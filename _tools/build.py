@@ -153,13 +153,13 @@ page("about/index.html", "About the Pointe", "About the Pointe",
      body="""  <section class="article"><div class="wrap"><div class="split">
     <div class="prose">
       <p>Hartstene Pointe is a unique community located on the northern tip of Harstine Island, set within a verdant forest, and surrounded on three sides by the waters of Puget Sound. The Pointe is approximately 215 acres in size and is situated about 18 miles northeast of the City of Shelton in Mason County, Washington.</p>
-      <p>In 1970 Weyerhaeuser established Hartstene Pointe as a not-for-profit corporation. While Hartstene Pointe was originally planned to be a recreational community, a significant number of the homes serve as primary residences today. The Pointe consists of 532 private residential lots &mdash; 90 of which are condominium &ldquo;Island Houses&rdquo; &mdash; along with a private road system, a 6,000&nbsp;sq.&nbsp;ft. Clubhouse, a swimming pool and hot tub, three tennis courts, a basketball court, a pickleball court, about 5.5 miles of walking trails, a 110-slip marina, a boat launch, picnic areas and 3.5 miles of private beach.</p>
+      <p>In 1970 Weyerhaeuser established Hartstene Pointe as a not-for-profit corporation. While Hartstene Pointe was originally planned to be a recreational community, a significant number of the homes serve as primary residences today. The Pointe consists of 532 private residential lots, 90 of which are condominium &ldquo;Island Houses&rdquo;, along with a private road system, a 6,000&nbsp;sq.&nbsp;ft. Clubhouse, a swimming pool and hot tub, three tennis courts, a basketball court, a pickleball court, about 5.5 miles of walking trails, a 110-slip marina, a boat launch, picnic areas and 3.5 miles of private beach.</p>
       <p>Decades on, Hartstene Pointe remains heavily wooded with Douglas fir, hemlock, cedar, madrona, maple and various other deciduous trees. The area is also home to a significant population of birds, deer and raccoons, and bald eagles have been sighted along the water's edge. Along its perimeter, Hartstene Pointe gives magnificent views of Puget Sound, Mt. Rainier and the Olympic Mountains.</p>
 
-      <h2>HPMA &mdash; the organization</h2>
+      <h2>HPMA, the organization</h2>
       <p>&ldquo;The Pointe&rdquo; is incorporated as a non-profit homeowners' association, as described in our <a href="../governance/">Governance</a> section. HPMA is governed by a seven-member Board of Directors and administered by a General Manager and staff.</p>
 
-      <h2>Harstine Island &mdash; a remote paradise</h2>
+      <h2>Harstine Island, a remote paradise</h2>
       <p>Harstine Island, approximately ten miles long and three miles wide, is located at the southern end of Puget Sound, 18 miles from the nearest town, Shelton. The island is accessible by a bridge from Highway 3 that links Shelton to Bremerton.</p>
       <p>Lured by the quiet beauty and low cost of land, early settlers farmed, logged, planted orchards, and gathered clams and oysters from the sea. The settlers built schools and stores, and in 1914 volunteers erected the Community Hall, which is still actively used today. Electricity and telephone were not available on the island until 1947. A ferry provided transportation across the passage until 1969, when a bridge was built connecting the island to the mainland. Hartstene Pointe development followed soon afterward.</p>
 
@@ -188,13 +188,13 @@ page("about/our-place.html", "Our Place", "Our Place",
 
     <h2>Hartstene Pointe</h2>
     <p>In 1970 Weyerhaeuser established Hartstene Pointe as a not-for-profit corporation. Located on the northern tip of the island, it is an unincorporated community of 532 home sites, surrounded by common green-belt property. While Hartstene Pointe was originally planned to be a recreational community, a significant share of the homes serve as primary residences today.</p>
-    <p>The Pointe employs a full-time Manager, office, patrol and maintenance staff, and is governed by a seven-member Board of Directors elected by the property owners. The Board functions under the Covenants, Conditions and Restrictions (CC&amp;Rs). All development at the Pointe &mdash; including new construction, additions, exterior maintenance and painting, and tree cutting &mdash; is closely regulated by the Permit Review Committee.</p>
+    <p>The Pointe employs a full-time Manager, office, patrol and maintenance staff, and is governed by a seven-member Board of Directors elected by the property owners. The Board functions under the Covenants, Conditions and Restrictions (CC&amp;Rs). All development at the Pointe, including new construction, additions, exterior maintenance and painting, and tree cutting, is closely regulated by the Permit Review Committee.</p>
     <p>There is a 6,000-square-foot Clubhouse with a library, a swimming pool and spa, three tennis courts, a basketball court, a playground, a pickleball court, 5.5 miles of walking trails, a 110-slip marina, a boat launch, picnic areas and 3.5 miles of beach. The community remains heavily wooded with Douglas fir, hemlock, cedar, madrona and maple, and is home to deer, raccoons and many birds, with bald eagles sighted along the water's edge.</p>
 
     <h2>Where are we?</h2>
-    <p>Hartstene Pointe is on the northern tip of Harstine Island in Mason County, Washington &mdash; reached by the Harstine Island bridge off Highway 3, about 18 miles from Shelton. Detailed community maps are available on the <a href="../governance/documents.html">Governing Documents</a> page and at the HPMA office.</p>
+    <p>Hartstene Pointe is on the northern tip of Harstine Island in Mason County, Washington, reached by the Harstine Island bridge off Highway 3, about 18 miles from Shelton. Detailed community maps are available on the <a href="../governance/documents.html">Governing Documents</a> page and at the HPMA office.</p>
 
-    <div class="callout warn"><h4>Be prepared</h4><p>Island living means being ready for weather, power outages and other events. The Association's Disaster Preparedness resources help owners plan ahead &mdash; see the emergency-preparedness materials in the office and on the <a href="../governance/committees.html">Committees</a> page.</p></div>
+    <div class="callout warn"><h4>Be prepared</h4><p>Island living means being ready for weather, power outages and other events. The Association's Disaster Preparedness resources help owners plan ahead, see the emergency-preparedness materials in the office and on the <a href="../governance/committees.html">Committees</a> page.</p></div>
   </div></div></section>""")
 
 page("about/history.html", "Our Stories &amp; History", "Our Stories &amp; History",
@@ -204,7 +204,7 @@ page("about/history.html", "Our Stories &amp; History", "Our Stories &amp; Histo
     <div class="prose">
       <h2>Collective memories</h2>
       <p>Once upon a time, four would-be historians were struck by a sobering thought: most of the original residents from the 1970s had left, for one reason or another. As their numbers dwindled, so did the sources of the oral history of the beginnings of Hartstene Pointe.</p>
-      <p>A plan was made to find them and listen to their stories. To support sometimes-contradictory accounts &mdash; some memories clear as a bell, others foggy in the details &mdash; they gleaned through the archives of board meetings, newsletters, correspondence, personal letters and lawsuits.</p>
+      <p>A plan was made to find them and listen to their stories. To support sometimes-contradictory accounts, some memories clear as a bell, others foggy in the details, they gleaned through the archives of board meetings, newsletters, correspondence, personal letters and lawsuits.</p>
 
       <h2>Stories from the Pointe</h2>
       <p>A collection of remembrances contributed by residents over the years:</p>
@@ -215,7 +215,7 @@ page("about/history.html", "Our Stories &amp; History", "Our Stories &amp; Histo
         <li><a href="../assets/docs/history-thad-and-liz-thomas.pdf" target="_blank" rel="noopener"><span class="doc-ic">PDF</span>Thad &amp; Liz Thomas's Tale<span class="doc-note">as reported by Fiona Leslie</span></a></li>
         <li><a href="../assets/docs/history-my-love-of-the-pointe.pdf" target="_blank" rel="noopener"><span class="doc-ic">PDF</span>My Love of the Pointe<span class="doc-note">Laura St. George</span></a></li>
       </ul>
-      <p style="font-size:14px;color:var(--rock)">Additional remembrances &mdash; including Shirley Marrs' memories as an original pioneer, Ken Brown on the island forest, and Walt Tupper's &ldquo;Welcome to Fantasy Island&rdquo; &mdash; are held in the Association archives.</p>
+      <p style="font-size:14px;color:var(--rock)">Additional remembrances, including Shirley Marrs' memories as an original pioneer, Ken Brown on the island forest, and Walt Tupper's &ldquo;Welcome to Fantasy Island&rdquo;, are held in the Association archives.</p>
 
       <h2>Contribute a story</h2>
       <p>We invite contributions of stories to enhance our history. Send them to the office via our <a href="../contact/">contact page</a>.</p>
@@ -232,7 +232,7 @@ page("about/history.html", "Our Stories &amp; History", "Our Stories &amp; Histo
 # ============ GOVERNANCE ============
 page("governance/index.html", "Governance", "Governance",
      [home_link(), "Governance"],
-     lede="How decisions are made at the Pointe &mdash; and how owners take part in making them.",
+     lede="How decisions are made at the Pointe, and how owners take part in making them.",
      body="""  <section class="article"><div class="wrap"><div class="split">
     <div class="prose">
       <p>Simply put, <em>governance</em> means the process of decision-making and the process by which decisions are implemented. It includes the formal and informal actors involved in making and carrying out decisions, and the structures set in place to arrive at and implement them.</p>
@@ -248,7 +248,7 @@ page("governance/index.html", "Governance", "Governance",
       <p>You can read all of these on the <a href="documents.html">Governing Documents</a> page. The Board has also established several committees in the Bylaws; these committees advise the Board but are not delegated Board authority.</p>
 
       <h2>How it works in practice</h2>
-      <p>Property owners elect a seven-member Board of Directors each June, with terms running three years &mdash; two or three seats come up for election each year. The Board elects its own officers: President, Vice-President, Secretary and Treasurer.</p>
+      <p>Property owners elect a seven-member Board of Directors each June, with terms running three years, two or three seats come up for election each year. The Board elects its own officers: President, Vice-President, Secretary and Treasurer.</p>
       <p>The Board meets twice a month in open meetings: the 2nd Thursday and the 3rd Saturday. The Saturday meeting is where business affecting all property owners is conducted, and owners are urged to attend and participate. While owners are encouraged to present their views, the Board has the final decision-making authority.</p>
 
       <h2>The informal system</h2>
@@ -277,11 +277,11 @@ page("governance/committees.html", "Committees", "Committees",
      body="""  <section class="article"><div class="wrap"><div class="split">
     <div class="prose">
       <h2>The role of committees</h2>
-      <p>Many people at the Pointe volunteer to serve on committees to help the community in various ways. Our Bylaws make provision for the Board to appoint advisory committees &mdash; sometimes called Standing Committees &mdash; which are expected to operate for an extended period with ongoing responsibilities and charges from the Board.</p>
+      <p>Many people at the Pointe volunteer to serve on committees to help the community in various ways. Our Bylaws make provision for the Board to appoint advisory committees, sometimes called Standing Committees, which are expected to operate for an extended period with ongoing responsibilities and charges from the Board.</p>
       <p>The Bylaws set out, for all committees, their operating procedures, authority and duration; and for each committee, its membership requirements and scope of responsibility.</p>
 
       <h2>Ad-hoc committees</h2>
-      <p>Some committees are established by the Board for a limited time or purpose, and others simply emerge on their own. Examples have included a Roads Committee and a Bluff Erosion group &mdash; along with many groups that form for a certain purpose and then disband when it is achieved.</p>
+      <p>Some committees are established by the Board for a limited time or purpose, and others simply emerge on their own. Examples have included a Roads Committee and a Bluff Erosion group, along with many groups that form for a certain purpose and then disband when it is achieved.</p>
 
       <div class="callout"><h4>Get involved</h4><p>Interested in serving? Owners are always welcome. Contact the <a href="../contact/">HPMA office</a> to learn which committees are seeking volunteers.</p></div>
     </div>
@@ -308,7 +308,7 @@ page("governance/committees.html", "Committees", "Committees",
   </div></div></section>""")
 
 DOCS = """  <section class="article"><div class="wrap"><div class="prose">
-    <p>The documents that govern Hartstene Pointe are provided below as PDFs. <strong>CC&amp;Rs differ between plats</strong> &mdash; please refer to the document that applies to your property.</p>
+    <p>The documents that govern Hartstene Pointe are provided below as PDFs. <strong>CC&amp;Rs differ between plats</strong>, please refer to the document that applies to your property.</p>
 
     <h2>Core documents</h2>
     <ul class="doclist">
@@ -318,14 +318,14 @@ DOCS = """  <section class="article"><div class="wrap"><div class="prose">
 
     <h2>CC&amp;Rs by plat</h2>
     <ul class="doclist">
-      <li><a href="../assets/docs/ccrs-circle-lots.pdf" target="_blank" rel="noopener"><span class="doc-ic">PDF</span>CC&amp;Rs &mdash; Circle Lots</a></li>
-      <li><a href="../assets/docs/ccrs-rectangular-lots.pdf" target="_blank" rel="noopener"><span class="doc-ic">PDF</span>CC&amp;Rs &mdash; Rectangular Lots</a></li>
-      <li><a href="../assets/docs/ccrs-island-house.pdf" target="_blank" rel="noopener"><span class="doc-ic">PDF</span>CC&amp;Rs &mdash; Island Houses</a></li>
+      <li><a href="../assets/docs/ccrs-circle-lots.pdf" target="_blank" rel="noopener"><span class="doc-ic">PDF</span>CC&amp;Rs, Circle Lots</a></li>
+      <li><a href="../assets/docs/ccrs-rectangular-lots.pdf" target="_blank" rel="noopener"><span class="doc-ic">PDF</span>CC&amp;Rs, Rectangular Lots</a></li>
+      <li><a href="../assets/docs/ccrs-island-house.pdf" target="_blank" rel="noopener"><span class="doc-ic">PDF</span>CC&amp;Rs, Island Houses</a></li>
     </ul>
 
     <h2>Moorage</h2>
     <ul class="doclist">
-      <li><a href="../assets/docs/moorage-agreement.pdf" target="_blank" rel="noopener"><span class="doc-ic">PDF</span>Moorage Agreement &amp; Declaration &mdash; Indian Cove</a></li>
+      <li><a href="../assets/docs/moorage-agreement.pdf" target="_blank" rel="noopener"><span class="doc-ic">PDF</span>Moorage Agreement &amp; Declaration, Indian Cove</a></li>
       <li><a href="../assets/docs/moorage-rules.pdf" target="_blank" rel="noopener"><span class="doc-ic">PDF</span>Moorage Rules &amp; Handbook<span class="doc-note">Current 5-21-2022</span></a></li>
     </ul>
 
@@ -347,14 +347,14 @@ page("governance/documents.html", "Governing Documents", "Governing Documents",
 AM = [
  ("clubhouse.html","Clubhouse","assets/img/amenities/clubhouse.jpg","6,000 sq. ft. of gathering space, a library, and the entrance to the pool."),
  ("pool-spa.html","Pool &amp; Spa","assets/img/amenities/pool.jpg","A swimming pool and hot tub with seasonal hours, steps from the Clubhouse."),
- ("marina.html","Marina","assets/img/amenities/marina.jpg","Indian Cove Marina &mdash; 110 slips, transient moorage, and two boat ramps."),
+ ("marina.html","Marina","assets/img/amenities/marina.jpg","Indian Cove Marina, 110 slips, transient moorage, and two boat ramps."),
  ("boat-rv-storage.html","Boat &amp; RV Storage","assets/img/amenities/marina.jpg","On-site storage for boats, trailers, RVs, kayaks and canoes."),
- ("fitness-center.html","Fitness Center","assets/img/amenities/fitness.jpg","Open 24 hours with cardio machines, weights and more &mdash; gate card required."),
+ ("fitness-center.html","Fitness Center","assets/img/amenities/fitness.jpg","Open 24 hours with cardio machines, weights and more, gate card required."),
  ("outdoor-recreation.html","Outdoor Recreation","assets/img/amenities/recreation.jpg","Tennis, pickleball, basketball, playgrounds, horseshoes and fire pits."),
  ("picnic-shelters.html","Picnic Shelters","assets/img/amenities/picnic.jpg","Five picnic areas around the Pointe, from North Beach to the Spit."),
  ("trails.html","Trails","assets/img/amenities/trails.jpg","About 5.5 miles of marked trails through ravines and along the bluffs."),
  ("pea-patch.html","Pea Patch Garden","assets/img/amenities/pea-patch.jpg","A community garden started in 2006 by owners with a shared vision."),
- ("wildlife.html","Wildlife &amp; Habitat","assets/img/amenities/wildlife.jpg","Deer, eagles, raccoons and wildflowers &mdash; and how to coexist safely."),
+ ("wildlife.html","Wildlife &amp; Habitat","assets/img/amenities/wildlife.jpg","Deer, eagles, raccoons and wildflowers, and how to coexist safely."),
 ]
 cards = "".join(
  f'<a class="acard" href="{u}"><div class="ph" style="background-image:url(\'../{img}\')"></div>'
@@ -372,15 +372,15 @@ def amenity(u, title, h1, hero, lede, body):
          lede=lede, herobg=hero, body=body)
 
 amenity("clubhouse.html","Clubhouse","Clubhouse","assets/img/amenities/clubhouse.jpg",
- "The heart of the community &mdash; 6,000 square feet of gathering space overlooking the Pointe.",
+ "The heart of the community, 6,000 square feet of gathering space overlooking the Pointe.",
  """  <section class="article"><div class="wrap"><div class="split">
     <div class="prose">
       <p>The Hartstene Pointe Clubhouse offers something for everyone in the community.</p>
       <h3>Our Clubhouse offers</h3>
       <ul>
         <li>Manager and business office (for residents)</li>
-        <li>Multi-purpose room &mdash; activities, meetings, ping pong, pool, chess and checkers</li>
-        <li>Library &mdash; books, magazines, DVDs and puzzles</li>
+        <li>Multi-purpose room, activities, meetings, ping pong, pool, chess and checkers</li>
+        <li>Library, books, magazines, DVDs and puzzles</li>
         <li>Kitchen (for scheduled events)</li>
         <li>Bulletin boards and information posting</li>
         <li>An outside gazebo with fireplace, for meetings and events</li>
@@ -403,7 +403,7 @@ amenity("clubhouse.html","Clubhouse","Clubhouse","assets/img/amenities/clubhouse
   </div></div></section>""")
 
 amenity("pool-spa.html","Pool &amp; Spa","Pool &amp; Spa","assets/img/amenities/pool.jpg",
- "A swimming pool and hot tub, steps from the Clubhouse &mdash; no reservation required.",
+ "A swimming pool and hot tub, steps from the Clubhouse, no reservation required.",
  """  <section class="article"><div class="wrap"><div class="split">
     <div class="prose">
       <p>The pool and spa are open to residents and their guests. Please read the pool and spa regulations before using the facilities.</p>
@@ -426,14 +426,14 @@ amenity("pool-spa.html","Pool &amp; Spa","Pool &amp; Spa","assets/img/amenities/
   </div></div></section>""")
 
 amenity("marina.html","Marina","Marina","assets/img/amenities/marina.jpg",
- "Indian Cove Marina &mdash; a 110-slip working marina tucked into a wooded cove.",
+ "Indian Cove Marina, a 110-slip working marina tucked into a wooded cove.",
  """  <section class="article"><div class="wrap"><div class="split">
     <div class="prose">
       <h2>Indian Cove Marina</h2>
       <p>The marina is a treasured amenity of the Pointe, set in a sheltered cove on the community's west side.</p>
       <h3>Temporary moorage</h3>
-      <p>Only property owners should contact the Harbormaster. To request temporary moorage, email the Harbormaster with the dates needed, the beam and length of the boat, and the property address to be billed &mdash; or use the amenity booking service in the <a href="https://app.condocontrol.com/login" target="_blank" rel="noopener">Owner Portal</a>.</p>
-      <p>Temporary moorage is limited to property owners and their guests. Property owners must be on-site during the requested moorage dates for a guest. Moorage is not available to renters. Required paperwork is in the mailbox near the pavilion. Every effort is made to accommodate all boats &mdash; please contact the Harbormaster if you need to cancel, to avoid being billed.</p>
+      <p>Only property owners should contact the Harbormaster. To request temporary moorage, email the Harbormaster with the dates needed, the beam and length of the boat, and the property address to be billed, or use the amenity booking service in the <a href="https://app.condocontrol.com/login" target="_blank" rel="noopener">Owner Portal</a>.</p>
+      <p>Temporary moorage is limited to property owners and their guests. Property owners must be on-site during the requested moorage dates for a guest. Moorage is not available to renters. Required paperwork is in the mailbox near the pavilion. Every effort is made to accommodate all boats, please contact the Harbormaster if you need to cancel, to avoid being billed.</p>
       <h3>Marina information</h3>
       <ul>
         <li>100+ slips from 20&ndash;55 feet in length; slips are fully leased.</li>
@@ -444,7 +444,7 @@ amenity("marina.html","Marina","Marina","assets/img/amenities/marina.jpg",
       <h3>Kayak &amp; canoe storage</h3>
       <p>Racks are available at the marina and other locations for storing kayaks and canoes for an annual fee. Check with the HPMA office regarding fees and availability.</p>
       <h3>Boat ramps</h3>
-      <p>There are two boat ramps &mdash; off Chesapeake Drive and in the North Beach Lagoon. These are not part of Indian Cove Marina but are maintained by HPMA. Consider the tide charts when using both ramps, especially in the lagoon.</p>
+      <p>There are two boat ramps, off Chesapeake Drive and in the North Beach Lagoon. These are not part of Indian Cove Marina but are maintained by HPMA. Consider the tide charts when using both ramps, especially in the lagoon.</p>
       <h2>A little history</h2>
       <p>When Quadrant developed Hartstene Pointe in the 1970s, many buyers believed they were promised a marina. A settlement led to a 20-slip marina. Years later, 100 property owners funded ($400,000) the current 110-slip marina. Under the agreement with HPMA, leaseholders maintain the marina's operation at no cost to HPMA, and the annual moorage assessments support maintenance, insurance, office assistance, the Harbormaster and the Washington State shoreline lease, with residual funds set aside for future dredging and major repairs.</p>
     </div>
@@ -462,18 +462,18 @@ amenity("marina.html","Marina","Marina","assets/img/amenities/marina.jpg",
   </div></div></section>""")
 
 amenity("boat-rv-storage.html","Boat &amp; RV Storage","Boat &amp; RV Storage","assets/img/amenities/marina.jpg",
- "On-site storage for boats, trailers, RVs, kayaks and canoes &mdash; available to all owners.",
+ "On-site storage for boats, trailers, RVs, kayaks and canoes, available to all owners.",
  """  <section class="article"><div class="wrap"><div class="prose">
     <p>HPMA provides on-site storage areas for boats and trailers, RVs, utility trailers, kayaks and canoes for a fee. These amenities are available to all owners. In addition, the community has two boat launches.</p>
     <h2>Lagoon Ramp</h2>
-    <p>This ramp has a dock and is located in the lagoon at the east end, accessed by the road off Chesapeake that goes to the spit. It is only for smaller boats (under about 25 feet) and can only be used at high tide. When entering or exiting the lagoon, keep to the outside &mdash; there is a sand bar in the middle.</p>
+    <p>This ramp has a dock and is located in the lagoon at the east end, accessed by the road off Chesapeake that goes to the spit. It is only for smaller boats (under about 25 feet) and can only be used at high tide. When entering or exiting the lagoon, keep to the outside, there is a sand bar in the middle.</p>
     <h2>Case Inlet Ramp</h2>
     <p>This ramp has no dock and is accessed by the other road off Chesapeake.</p>
     <div class="callout"><p>Contact the <a href="../contact/">HPMA office</a> for current storage fees and availability.</p></div>
   </div></div></section>""")
 
 amenity("fitness-center.html","Fitness Center","Fitness Center","assets/img/amenities/fitness.jpg",
- "Open 24 hours a day, across the road from the Clubhouse &mdash; gate card required for entry.",
+ "Open 24 hours a day, across the road from the Clubhouse, gate card required for entry.",
  """  <section class="article"><div class="wrap"><div class="split">
     <div class="prose">
       <p>Enjoy our Fitness Center, located across the road from the Clubhouse in the Maintenance Facility Building. It is open 24 hours a day; a gate card is required for entry.</p>
@@ -509,12 +509,12 @@ amenity("outdoor-recreation.html","Outdoor Recreation","Outdoor Recreation","ass
  """  <section class="article"><div class="wrap"><div class="prose">
     <p>In addition to the beautiful beaches that surround the Pointe, there are outdoor recreational facilities for all ages to enjoy. Here is a snapshot of just a few:</p>
     <ul>
-      <li><strong>Tennis courts</strong> &mdash; two near the Clubhouse, one by the spit</li>
-      <li><strong>Basketball &amp; pickleball court</strong> &mdash; near the Clubhouse</li>
-      <li><strong>Fire pits</strong> &mdash; at the Spit</li>
-      <li><strong>Playground equipment</strong> &mdash; North Beach and the Clubhouse area</li>
-      <li><strong>Horseshoes</strong> &mdash; North Beach</li>
-      <li><strong>Hiking</strong> &mdash; about 5.5 miles of community <a href="trails.html">trails</a></li>
+      <li><strong>Tennis courts</strong>, two near the Clubhouse, one by the spit</li>
+      <li><strong>Basketball &amp; pickleball court</strong>, near the Clubhouse</li>
+      <li><strong>Fire pits</strong>, at the Spit</li>
+      <li><strong>Playground equipment</strong>, North Beach and the Clubhouse area</li>
+      <li><strong>Horseshoes</strong>, North Beach</li>
+      <li><strong>Hiking</strong>, about 5.5 miles of community <a href="trails.html">trails</a></li>
     </ul>
     <figure><img src="../assets/img/amenities/recreation.jpg" alt="Tennis courts at Hartstene Pointe"></figure>
   </div></div></section>""")
@@ -526,13 +526,13 @@ amenity("picnic-shelters.html","Picnic Shelters","Picnic Shelters","assets/img/a
     <h2>North Beach</h2>
     <p>Our largest picnic area, with a covered fireplace, running water, propane barbeque, sink, stovetop, electrical outlet and picnic tables. Horseshoe pits, swings and restrooms are nearby.</p>
     <h2>Clubhouse Gazebo</h2>
-    <p>A covered fireplace, electrical outlets, picnic tables and an overhead light &mdash; with the playground and pool just steps away.</p>
+    <p>A covered fireplace, electrical outlets, picnic tables and an overhead light, with the playground and pool just steps away.</p>
     <h2>Indian Cove (West Beach / Marina)</h2>
     <p>Steps from the marina docks, with a sink, stovetop, picnic tables, electrical outlets, string lights in the rafters and an outdoor fireplace.</p>
     <h2>Cuttysark Estuary (South Beach)</h2>
     <p>A single picnic table, with a restroom nearby.</p>
     <h2>The Spit</h2>
-    <p>Next to the tennis courts &mdash; small and intimate, with running water, stovetop, propane barbeque, electrical outlet, covered fireplace and picnic tables.</p>
+    <p>Next to the tennis courts, small and intimate, with running water, stovetop, propane barbeque, electrical outlet, covered fireplace and picnic tables.</p>
     <div class="callout"><p>Reserve a facility with the <a href="../assets/docs/facilities-use-application.pdf" target="_blank" rel="noopener">Facilities Use Application</a>, submitted to the <a href="../contact/">office</a>.</p></div>
   </div></div></section>""")
 
@@ -540,10 +540,10 @@ amenity("trails.html","Trails","Trails","assets/img/amenities/trails.jpg",
  "About 5.5 miles of marked trails through the major ravines and along the east and west banks.",
  """  <section class="article"><div class="wrap"><div class="split">
     <div class="prose">
-      <p>Enjoy our trails &mdash; through the major ravines and along the east and west banks. Trail maps are available at the office for $3.00, and the trails are clearly marked with signage.</p>
+      <p>Enjoy our trails, through the major ravines and along the east and west banks. Trail maps are available at the office for $3.00, and the trails are clearly marked with signage.</p>
       <h3>Rules &amp; considerations</h3>
       <ul>
-        <li>Bank erosion is an ongoing problem. Guard rails alert you to dangerous areas &mdash; please stay on the trail.</li>
+        <li>Bank erosion is an ongoing problem. Guard rails alert you to dangerous areas, please stay on the trail.</li>
         <li>Expect roots and loose rocks; bring water and, ideally, a companion on all hikes.</li>
         <li>Mountain bikes are prohibited on our trails.</li>
         <li>Dogs must be leashed on the trails.</li>
@@ -553,13 +553,13 @@ amenity("trails.html","Trails","Trails","assets/img/amenities/trails.jpg",
 
       <h2>Featured trails</h2>
       <h3>West Bluff &amp; Nature Trail</h3>
-      <p>More ups and downs than the east side &mdash; a walking stick may help on the steeper hills. On clear days there are views of the Olympic Mountains. Known as the Nature Trail, signs along the way describe the trees and vegetation common at the Pointe, a project of resident and biologist Jim Cary.</p>
+      <p>More ups and downs than the east side, a walking stick may help on the steeper hills. On clear days there are views of the Olympic Mountains. Known as the Nature Trail, signs along the way describe the trees and vegetation common at the Pointe, a project of resident and biologist Jim Cary.</p>
       <h3>Indian Cove Trail</h3>
       <p>Park at the Clubhouse and walk down Pointes Drive West to the trailhead. Enjoy the ferny walk downhill to the bridge and across to the marina. Bring a snack and watch the marina at rest before retracing your steps up to Promontory Road.</p>
       <h3>East Bluff Trail</h3>
       <p>A mostly level trail, soft and spongy underfoot and open enough to see many forest and water birds. There are views across the water to Mount Rainier and benches to sit upon. Its northern end accesses the spit, or take the Lagoon Trail to North Beach and pick up the West Bluff Trail.</p>
       <h3>Cutty Sark &amp; Deep Ravine Trails</h3>
-      <p>Multiple access points along Nantucket and Pointes Drive East reach the ravine, South Lagoon and South Beach. This is as close to an old-growth environment as we have at the Pointe &mdash; old trees, moss and a creek, with little development.</p>
+      <p>Multiple access points along Nantucket and Pointes Drive East reach the ravine, South Lagoon and South Beach. This is as close to an old-growth environment as we have at the Pointe, old trees, moss and a creek, with little development.</p>
     </div>
     <aside class="aside">
       <h4>Trail maps &amp; guides</h4>
@@ -584,13 +584,13 @@ amenity("pea-patch.html","Pea Patch","Pea Patch Garden","assets/img/amenities/pe
  "A community garden started in 2006 by owners with a shared vision.",
  """  <section class="article"><div class="wrap"><div class="prose">
     <p>In 2006, several property owners had a vision to start a pea patch garden. They thought the horseshoe pit behind the tennis court near the Clubhouse would be sunny and was partially fenced.</p>
-    <p>The horseshoe pit was relocated to North Beach &mdash; fitting for a picnic area &mdash; and several owners held pancake breakfasts to raise funds for new fencing. About half the funds were raised that first spring; the remainder came from a $50 first-time fee and a yearly $25 fee, paying for the cedar-plank plot borders and the soil.</p>
+    <p>The horseshoe pit was relocated to North Beach, fitting for a picnic area, and several owners held pancake breakfasts to raise funds for new fencing. About half the funds were raised that first spring; the remainder came from a $50 first-time fee and a yearly $25 fee, paying for the cedar-plank plot borders and the soil.</p>
     <figure><img src="../assets/img/amenities/pea-patch.jpg" alt="The Pea Patch community garden"></figure>
     <div class="callout"><h4>Pea Patch questions</h4><p>Email <a href="mailto:office@hpma.org">office@hpma.org</a>. The Pea Patch Committee maintains the garden and its charter and plot agreement.</p></div>
   </div></div></section>""")
 
 amenity("wildlife.html","Wildlife","Wildlife &amp; Habitat","assets/img/amenities/wildlife.jpg",
- "Deer, eagles, raccoons and wildflowers &mdash; and how to share the Pointe safely.",
+ "Deer, eagles, raccoons and wildflowers, and how to share the Pointe safely.",
  """  <section class="article"><div class="wrap"><div class="prose">
     <div class="callout warn"><h4>Cougar awareness</h4><p>Cougars have been sighted on Pointe trails. Please be aware and keep your family safe: don't leave small children unattended and be sure they are indoors by dusk; don't feed wildlife or feral cats; close off spaces under porches and decks; feed pets indoors; keep dogs and cats in from dusk to dawn; and use garbage cans with tight-fitting lids. Predators follow prey.</p></div>
 
@@ -601,28 +601,28 @@ amenity("wildlife.html","Wildlife","Wildlife &amp; Habitat","assets/img/amenitie
     <p>Raccoons in the United States are known to carry infectious diseases that can be transmitted to humans and animals through contact with the animals or their waste. People should not handle raccoons or their waste without protection and appropriate training. Anyone who has handled a raccoon, or been bitten, scratched or exposed to their waste, should consult a physician immediately.</p>
 
     <h2>The Pointe's wildflowers</h2>
-    <p>The greenbelt does not feature an abundance of flowers &mdash; probably due to deer browsing &mdash; but we do have some:</p>
+    <p>The greenbelt does not feature an abundance of flowers, probably due to deer browsing, but we do have some:</p>
     <ul>
-      <li><strong>Twinflower</strong> &mdash; moist shady areas, tiny flowers close to the ground; blooms all summer.</li>
-      <li><strong>Orange &amp; hairy honeysuckle</strong> &mdash; vines among trailside brush; prefers partial shade; blooms late spring to early summer.</li>
-      <li><strong>Red Indian paintbrush</strong> &mdash; dry environments, high on the bluffs north of the Bo'sun stairs in summer.</li>
-      <li><strong>Columbia tiger lily</strong> &mdash; shady, moist places, May to August; a spectacular flower &mdash; please leave it for the next person to enjoy.</li>
-      <li><strong>Yellow violets</strong> &mdash; very low-growing, along shady moist trails in spring and early summer.</li>
+      <li><strong>Twinflower</strong>, moist shady areas, tiny flowers close to the ground; blooms all summer.</li>
+      <li><strong>Orange &amp; hairy honeysuckle</strong>, vines among trailside brush; prefers partial shade; blooms late spring to early summer.</li>
+      <li><strong>Red Indian paintbrush</strong>, dry environments, high on the bluffs north of the Bo'sun stairs in summer.</li>
+      <li><strong>Columbia tiger lily</strong>, shady, moist places, May to August; a spectacular flower, please leave it for the next person to enjoy.</li>
+      <li><strong>Yellow violets</strong>, very low-growing, along shady moist trails in spring and early summer.</li>
     </ul>
   </div></div></section>""")
 
 # ============ COMMUNITY ============
 page("community/index.html", "Community", "Community",
      [home_link(), "Community"],
-     lede="A place to be part of something &mdash; or simply to be by yourself and enjoy the natural world.",
+     lede="A place to be part of something, or simply to be by yourself and enjoy the natural world.",
      body="""  <section class="article"><div class="wrap"><div class="prose">
-    <p>Hartstene Pointe is a community, but also a place where people can be by themselves and enjoy the natural environment. No one is pressured to engage in community activities &mdash; but at the same time, the community welcomes people to join together to participate in activities and governance. It's your choice.</p>
+    <p>Hartstene Pointe is a community, but also a place where people can be by themselves and enjoy the natural environment. No one is pressured to engage in community activities, but at the same time, the community welcomes people to join together to participate in activities and governance. It's your choice.</p>
 
     <h2>Take part in governance</h2>
-    <p>Many people at the Pointe volunteer to join the Board of Directors, Board committees or ad-hoc committees, or simply lend their voice to governance issues. We encourage owners to do this &mdash; we are all owners and stewards of the Pointe, with a responsibility to contribute our thoughts and work for the betterment of our community. Learn more on the <a href="../governance/">Governance</a> and <a href="../governance/committees.html">Committees</a> pages.</p>
+    <p>Many people at the Pointe volunteer to join the Board of Directors, Board committees or ad-hoc committees, or simply lend their voice to governance issues. We encourage owners to do this, we are all owners and stewards of the Pointe, with a responsibility to contribute our thoughts and work for the betterment of our community. Learn more on the <a href="../governance/">Governance</a> and <a href="../governance/committees.html">Committees</a> pages.</p>
 
     <h2>Activities at the Pointe</h2>
-    <p>Most activities are initiated and organized by volunteers or ad-hoc groups. Participating in social and recreational activities is an excellent way to connect with your neighbors &mdash; no pressure, no expectations, just do what is comfortable for you.</p>
+    <p>Most activities are initiated and organized by volunteers or ad-hoc groups. Participating in social and recreational activities is an excellent way to connect with your neighbors, no pressure, no expectations, just do what is comfortable for you.</p>
     <div class="grid-2">
       <div class="callout"><h4>Recurring gatherings</h4><p>Book clubs &middot; Library group &middot; Walking groups &middot; News &amp; Views &middot; Pot-luck dinners &middot; Travel club &middot; Yoga &middot; Music circle</p></div>
       <div class="callout"><h4>Occasional events</h4><p>Holiday celebrations &amp; the 4th of July &middot; Fishing derby &middot; Marina salmon roast &middot; Garage sales &middot; Art exhibits &amp; fairs &middot; Concerts at North Beach</p></div>
@@ -662,7 +662,7 @@ items = "".join(
  for i in imgs)
 page("photos/index.html", "Photos", "Photos",
      [home_link(), "Photos"],
-     lede=f"Scenes from around the Pointe &mdash; sunsets, shoreline, the marina, wildlife and community life, contributed by residents over the years. Click any photo to view it larger.",
+     lede=f"Scenes from around the Pointe, sunsets, shoreline, the marina, wildlife and community life, contributed by residents over the years. Click any photo to view it larger.",
      body=f'  <section class="article"><div class="wrap"><div class="gallery">\n{items}  </div></div></section>')
 
 print("ALL PAGES DONE")

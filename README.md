@@ -1,7 +1,7 @@
-# Hartstene Pointe Maintenance Association — website
+# Hartstene Pointe Maintenance Association website
 
 A fast, static website for [hpma.org](https://hpma.org). No PHP, no database, no
-login system — just plain HTML, CSS and a little JavaScript. It can be hosted on
+login system. Just plain HTML, CSS and a little JavaScript. It can be hosted on
 GitHub Pages (current plan) or any static host.
 
 ## Structure
@@ -26,7 +26,7 @@ GitHub Pages (current plan) or any static host.
 ## Editing the site
 
 Every page is a plain `.html` file you can open and edit directly. The site
-header (navigation) and footer are repeated on each page — if you change a menu
+header (navigation) and footer are repeated on each page. If you change a menu
 item, update it on each page, or re-run the generator (below).
 
 ### Optional: the page generator
@@ -40,7 +40,7 @@ everywhere. To change the nav or footer for the whole site, edit that script's
 python _tools/build.py
 ```
 
-It writes plain HTML — there is **no build step required to host the site**. The
+It writes plain HTML, and there is **no build step required to host the site**. The
 generator is a convenience, not a dependency.
 
 ### Adding a news item
@@ -57,7 +57,7 @@ automatically).
 ## Design
 
 Colors, typography (Hanken Grotesk) and components all live in
-`assets/css/site.css` as CSS variables at the top of the file — change a value
+`assets/css/site.css` as CSS variables at the top of the file. Change a value
 there and it updates everywhere.
 
 ## Owner Portal

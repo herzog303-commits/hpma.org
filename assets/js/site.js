@@ -1,4 +1,4 @@
-/* Hartstene Pointe — nav toggle + gallery lightbox */
+/* Hartstene Pointe - nav toggle + gallery lightbox */
 (function () {
   // mobile nav
   var toggle = document.querySelector('.nav-toggle');
