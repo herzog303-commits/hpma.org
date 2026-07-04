@@ -50,6 +50,8 @@ HEAD = """<!DOCTYPE html>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="icon" type="image/jpeg" href="{p}assets/img/logo.jpg">
+<link rel="apple-touch-icon" href="{p}assets/img/logo.jpg">
 <link rel="stylesheet" href="{p}assets/css/site.css">
 </head>
 <body>
@@ -66,8 +68,11 @@ HEAD = """<!DOCTYPE html>
 
 <nav class="nav">
   <a class="brand" href="{p}index.html" aria-label="Hartstene Pointe home">
-    <span class="wm">HARTSTENE POINTE</span>
-    <span class="sub">Maintenance Association</span>
+    <img class="brand-mark" src="{p}assets/img/logo.jpg" alt="Hartstene Pointe crest" width="42" height="43">
+    <span class="brand-text">
+      <span class="wm">HARTSTENE POINTE</span>
+      <span class="sub">Maintenance Association</span>
+    </span>
   </a>
   <button class="nav-toggle" aria-label="Menu" aria-expanded="false"><span></span><span></span><span></span></button>
 {nav}
@@ -90,6 +95,7 @@ FOOT = """</main>
   <div class="wrap">
     <div class="cols">
       <div>
+        <img class="foot-mark" src="{p}assets/img/logo.jpg" alt="Hartstene Pointe crest" width="38" height="39">
         <div class="wm">HARTSTENE POINTE</div>
         <div class="sub">Maintenance Association</div>
         <p>202 E Pointes Dr. East<br>Shelton, WA 98584<br>(360) 426&ndash;2300<br><a href="mailto:office@hpma.org">office@hpma.org</a></p>
