@@ -51,8 +51,8 @@ HEAD = """<!DOCTYPE html>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="icon" type="image/jpeg" href="{p}assets/img/logo.jpg">
-<link rel="apple-touch-icon" href="{p}assets/img/logo.jpg">
+<link rel="icon" type="image/png" href="{p}assets/img/logo.png">
+<link rel="apple-touch-icon" href="{p}assets/img/logo.png">
 <link rel="stylesheet" href="{p}assets/css/site.css">
 </head>
 <body>
@@ -69,7 +69,7 @@ HEAD = """<!DOCTYPE html>
 
 <nav class="nav">
   <a class="brand" href="{p}index.html" aria-label="Hartstene Pointe Maintenance Association home">
-    <img class="brand-mark" src="{p}assets/img/logo.jpg" alt="Hartstene Pointe crest" width="42" height="43">
+    <img class="brand-mark" src="{p}assets/img/logo.png" alt="Hartstene Pointe crest" width="42" height="42">
     <span class="wm">HARTSTENE POINTE</span>
   </a>
   <button class="nav-toggle" aria-label="Menu" aria-expanded="false"><span></span><span></span><span></span></button>
@@ -93,7 +93,7 @@ FOOT = """</main>
   <div class="wrap">
     <div class="cols">
       <div>
-        <img class="foot-mark" src="{p}assets/img/logo.jpg" alt="Hartstene Pointe crest" width="38" height="39">
+        <img class="foot-mark" src="{p}assets/img/logo-light.png" alt="Hartstene Pointe crest" width="38" height="38">
         <div class="wm">HARTSTENE POINTE</div>
         <div class="sub">Maintenance Association</div>
         <p>202 E Pointes Dr. East<br>Shelton, WA 98584<br>(360) 426&ndash;2300<br><a href="mailto:office@hpma.org">office@hpma.org</a></p>
@@ -397,6 +397,7 @@ amenity("clubhouse.html","Clubhouse","Clubhouse","assets/img/amenities/clubhouse
  """  <section class="article"><div class="wrap"><div class="split">
     <div class="prose">
       <p>The Hartstene Pointe Clubhouse offers something for everyone in the community.</p>
+      <figure><img src="../assets/img/pages/aerial-clubhouse.jpg" alt="Aerial view of the Clubhouse, pool and tennis courts"><figcaption>The Clubhouse, pool, spa and tennis courts, tucked into the forest.</figcaption></figure>
       <h3>Our Clubhouse offers</h3>
       <ul>
         <li>Manager and business office (for residents)</li>
@@ -438,7 +439,7 @@ amenity("pool-spa.html","Pool &amp; Spa","Pool &amp; Spa","assets/img/amenities/
         <li>Equipment for the courts can be checked out at the pool.</li>
         <li>No reservation required.</li>
       </ul>
-      <figure><img src="../assets/img/amenities/pool.jpg" alt="The pool at Hartstene Pointe"></figure>
+      <figure><img src="../assets/img/pages/aerial-clubhouse.jpg" alt="Aerial view of the pool, spa and Clubhouse"><figcaption>The pool and spa sit just behind the Clubhouse, with the courts nearby.</figcaption></figure>
     </div>
     <aside class="aside">
       <h4>Summer pool hours</h4>
@@ -550,6 +551,7 @@ amenity("outdoor-recreation.html","Outdoor Recreation","Outdoor Recreation","ass
  "Beyond the beaches, there are outdoor facilities for all ages to enjoy.",
  """  <section class="article"><div class="wrap"><div class="prose">
     <p>In addition to the beautiful beaches that surround the Pointe, there are outdoor recreational facilities for all ages to enjoy. Here is a snapshot of just a few:</p>
+    <figure><img src="../assets/img/pages/aerial-clubhouse.jpg" alt="Aerial view of the tennis courts, pool and Clubhouse"><figcaption>The tennis and pickleball courts, pool and Clubhouse from above.</figcaption></figure>
     <ul>
       <li><strong>Tennis courts</strong>, two near the Clubhouse, one by the spit</li>
       <li><strong>Basketball &amp; pickleball court</strong>, near the Clubhouse</li>
