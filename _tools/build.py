@@ -67,12 +67,9 @@ HEAD = """<!DOCTYPE html>
 </div>
 
 <nav class="nav">
-  <a class="brand" href="{p}index.html" aria-label="Hartstene Pointe home">
+  <a class="brand" href="{p}index.html" aria-label="Hartstene Pointe Maintenance Association home">
     <img class="brand-mark" src="{p}assets/img/logo.jpg" alt="Hartstene Pointe crest" width="42" height="43">
-    <span class="brand-text">
-      <span class="wm">HARTSTENE POINTE</span>
-      <span class="sub">Maintenance Association</span>
-    </span>
+    <span class="wm">HARTSTENE POINTE</span>
   </a>
   <button class="nav-toggle" aria-label="Menu" aria-expanded="false"><span></span><span></span><span></span></button>
 {nav}
