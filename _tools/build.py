@@ -36,6 +36,7 @@ NAV = """  <ul class="nav-menu">
       </ul>
     </li>
     <li><a href="{p}community/">Community</a></li>
+    <li><a href="{p}visiting/">Visiting</a></li>
     <li><a href="{p}photos/">Photos</a></li>
     <li><a href="https://app.condocontrol.com/login" class="portal" target="_blank" rel="noopener">Owner Portal</a></li>
   </ul>"""
@@ -99,7 +100,7 @@ FOOT = """</main>
       </div>
       <div><h4>Explore</h4><ul>
         <li><a href="{p}amenities/">Amenities</a></li>
-        <li><a href="{p}amenities/trails.html">Trails</a></li>
+        <li><a href="{p}visiting/">Visiting the Pointe</a></li>
         <li><a href="{p}amenities/marina.html">Marina</a></li>
         <li><a href="{p}photos/">Photos</a></li>
       </ul></div>
@@ -156,6 +157,7 @@ page("about/index.html", "About the Pointe", "About the Pointe",
      body="""  <section class="article"><div class="wrap"><div class="split">
     <div class="prose">
       <p>Hartstene Pointe is a unique community located on the northern tip of Harstine Island, set within a verdant forest, and surrounded on three sides by the waters of Puget Sound. The Pointe is approximately 215 acres in size and is situated about 18 miles northeast of the City of Shelton in Mason County, Washington.</p>
+      <figure><img src="../assets/img/amenities/entrance-sign.jpg" alt="The Hartstene Pointe entrance sign"><figcaption>The entrance to Hartstene Pointe.</figcaption></figure>
       <p>In 1970 Weyerhaeuser established Hartstene Pointe as a not-for-profit corporation. While Hartstene Pointe was originally planned to be a recreational community, a significant number of the homes serve as primary residences today. The Pointe consists of 532 private residential lots, 90 of which are condominium &ldquo;Island Houses&rdquo;, along with a private road system, a 6,000&nbsp;sq.&nbsp;ft. Clubhouse, a swimming pool and hot tub, three tennis courts, a basketball court, a pickleball court, about 5.5 miles of walking trails, a 110-slip marina, a boat launch, picnic areas and 3.5 miles of private beach.</p>
       <p>Decades on, Hartstene Pointe remains heavily wooded with Douglas fir, hemlock, cedar, madrona, maple and various other deciduous trees. The area is also home to a significant population of birds, deer and raccoons, and bald eagles have been sighted along the water's edge. Along its perimeter, Hartstene Pointe gives magnificent views of Puget Sound, Mt. Rainier and the Olympic Mountains.</p>
 
@@ -208,6 +210,7 @@ page("about/history.html", "Our Stories &amp; History", "Our Stories &amp; Histo
       <h2>Collective memories</h2>
       <p>Once upon a time, four would-be historians were struck by a sobering thought: most of the original residents from the 1970s had left, for one reason or another. As their numbers dwindled, so did the sources of the oral history of the beginnings of Hartstene Pointe.</p>
       <p>A plan was made to find them and listen to their stories. To support sometimes-contradictory accounts, some memories clear as a bell, others foggy in the details, they gleaned through the archives of board meetings, newsletters, correspondence, personal letters and lawsuits.</p>
+      <figure><img src="../assets/img/history/harstine-island.jpg" alt="Historical view of Harstine Island"><figcaption>Harstine Island, the setting for the Pointe's story.</figcaption></figure>
 
       <h2>Stories from the Pointe</h2>
       <p>A collection of remembrances contributed by residents over the years:</p>
@@ -506,6 +509,11 @@ amenity("fitness-center.html","Fitness Center","Fitness Center","assets/img/amen
         <li>Weslo Cardio Glide</li>
         <li>Assorted dumbbells and exercise mats</li>
       </ul>
+      <div class="figrow">
+        <figure><img src="../assets/img/amenities/elliptical.jpg" alt="Elliptical trainers in the Fitness Center"><figcaption>Vision Fitness ellipticals</figcaption></figure>
+        <figure><img src="../assets/img/amenities/fitness-vectra.jpg" alt="Vectra 1800 weight machine"><figcaption>Vectra 1800 weight machine</figcaption></figure>
+        <figure><img src="../assets/img/amenities/hand-weights.jpg" alt="Free weights and dumbbells"><figcaption>Free weights and dumbbells</figcaption></figure>
+      </div>
     </div>
     <aside class="aside">
       <h4>Equipment manuals</h4>
@@ -530,7 +538,11 @@ amenity("outdoor-recreation.html","Outdoor Recreation","Outdoor Recreation","ass
       <li><strong>Horseshoes</strong>, North Beach</li>
       <li><strong>Hiking</strong>, about 5.5 miles of community <a href="trails.html">trails</a></li>
     </ul>
-    <figure><img src="../assets/img/amenities/recreation.jpg" alt="Tennis courts at Hartstene Pointe"></figure>
+    <div class="figrow">
+      <figure><img src="../assets/img/amenities/basketball.jpg" alt="Basketball court near the Clubhouse"><figcaption>Basketball and pickleball court</figcaption></figure>
+      <figure><img src="../assets/img/amenities/playground-swings.jpg" alt="Swings at North Beach"><figcaption>Swings at North Beach</figcaption></figure>
+      <figure><img src="../assets/img/amenities/playground-horseshoes.jpg" alt="Horseshoe pits at North Beach"><figcaption>Horseshoes at North Beach</figcaption></figure>
+    </div>
   </div></div></section>""")
 
 amenity("picnic-shelters.html","Picnic Shelters","Picnic Shelters","assets/img/amenities/picnic.jpg",
@@ -539,6 +551,7 @@ amenity("picnic-shelters.html","Picnic Shelters","Picnic Shelters","assets/img/a
     <p>Enjoy our many facilities for picnics, gatherings, or just a spot to relax. Reservations for Hartstene Pointe facilities can be made on a non-exclusive basis. To find an open date, check the calendar of events, complete a <a href="../assets/docs/facilities-use-application.pdf" target="_blank" rel="noopener">Facilities Use Application</a>, and submit it to the HPMA office.</p>
     <h2>North Beach</h2>
     <p>Our largest picnic area, with a covered fireplace, running water, propane barbeque, sink, stovetop, electrical outlet and picnic tables. Horseshoe pits, swings and restrooms are nearby.</p>
+    <figure><img src="../assets/img/amenities/north-beach-gazebo.jpg" alt="The gazebo at North Beach"><figcaption>The North Beach gazebo and picnic area.</figcaption></figure>
     <h2>Clubhouse Gazebo</h2>
     <p>A covered fireplace, electrical outlets, picnic tables and an overhead light, with the playground and pool just steps away.</p>
     <h2>Indian Cove (West Beach / Marina)</h2>
@@ -568,6 +581,7 @@ amenity("trails.html","Trails","Trails","assets/img/amenities/trails.jpg",
       <h2>Featured trails</h2>
       <h3>West Bluff &amp; Nature Trail</h3>
       <p>More ups and downs than the east side, a walking stick may help on the steeper hills. On clear days there are views of the Olympic Mountains. Known as the Nature Trail, signs along the way describe the trees and vegetation common at the Pointe, a project of resident and biologist Jim Cary.</p>
+      <figure><img src="../assets/img/amenities/nature-trail-sign.jpg" alt="Interpretive sign along the Nature Trail"><figcaption>Interpretive signs along the Nature Trail describe the Pointe's trees and vegetation.</figcaption></figure>
       <h3>Indian Cove Trail</h3>
       <p>Park at the Clubhouse and walk down Pointes Drive West to the trailhead. Enjoy the ferny walk downhill to the bridge and across to the marina. Bring a snack and watch the marina at rest before retracing your steps up to Promontory Road.</p>
       <h3>East Bluff Trail</h3>
@@ -610,9 +624,11 @@ amenity("wildlife.html","Wildlife","Wildlife &amp; Habitat","assets/img/amenitie
 
     <h2>Please do not feed the wildlife</h2>
     <p>Feeding wildlife foods not found in their natural habitat can do more harm than good. Corn, apples and artificial feeds can disrupt an animal's gut microbes, which can lead to starvation when they can't absorb essential nutrients.</p>
+    <figure><img src="../assets/img/wildlife/deer.jpg" alt="A deer at Hartstene Pointe"><figcaption>Black-tailed deer are a familiar sight throughout the Pointe.</figcaption></figure>
 
     <h2>Raccoons &amp; health</h2>
     <p>Raccoons in the United States are known to carry infectious diseases that can be transmitted to humans and animals through contact with the animals or their waste. People should not handle raccoons or their waste without protection and appropriate training. Anyone who has handled a raccoon, or been bitten, scratched or exposed to their waste, should consult a physician immediately.</p>
+    <figure><img src="../assets/img/wildlife/raccoon.jpg" alt="A raccoon at Hartstene Pointe"><figcaption>Please do not handle or feed raccoons.</figcaption></figure>
 
     <h2>The Pointe's wildflowers</h2>
     <p>The greenbelt does not feature an abundance of flowers, probably due to deer browsing, but we do have some:</p>
@@ -623,6 +639,66 @@ amenity("wildlife.html","Wildlife","Wildlife &amp; Habitat","assets/img/amenitie
       <li><strong>Columbia tiger lily</strong>, shady, moist places, May to August; a spectacular flower, please leave it for the next person to enjoy.</li>
       <li><strong>Yellow violets</strong>, very low-growing, along shady moist trails in spring and early summer.</li>
     </ul>
+    <div class="figrow">
+      <figure><img src="../assets/img/wildlife/twinflower.jpg" alt="Twinflower"><figcaption>Twinflower</figcaption></figure>
+      <figure><img src="../assets/img/wildlife/orange-honeysuckle.jpg" alt="Orange honeysuckle"><figcaption>Orange honeysuckle</figcaption></figure>
+      <figure><img src="../assets/img/wildlife/red-indian-paintbrush.jpg" alt="Red Indian paintbrush"><figcaption>Red Indian paintbrush</figcaption></figure>
+      <figure><img src="../assets/img/wildlife/columbia-tiger-lily.jpg" alt="Columbia tiger lily"><figcaption>Columbia tiger lily</figcaption></figure>
+      <figure><img src="../assets/img/wildlife/yellow-violets.jpg" alt="Yellow violets"><figcaption>Yellow violets</figcaption></figure>
+    </div>
+  </div></div></section>""")
+
+# ============ VISITING (guest / renter rules) ============
+page("visiting/index.html", "Visiting the Pointe", "Visiting the Pointe",
+     [home_link(), "Visiting"],
+     herobg="assets/img/amenities/marina.jpg",
+     lede="Welcome to Hartstene Pointe. A few simple rules keep the Pointe safe, quiet and beautiful for everyone, residents, guests and wildlife alike.",
+     body="""  <section class="article"><div class="wrap"><div class="prose">
+    <p>If you are staying at the Pointe as a guest or renter, your host has arranged access for you. Please treat this private community as the neighbors who live here do: with care and respect. Below is a short guide to the rules that matter most during your stay. They come from the Association's official <a href="../governance/documents.html">Rules &amp; Regulations</a>, which remain the authoritative source.</p>
+
+    <div class="callout warn"><h4>Please note</h4><p>Hartstene Pointe is private property. These rules apply to everyone on the Pointe, and violations may be subject to fines. When in doubt, ask your host.</p></div>
+
+    <h2>Safety and fire</h2>
+    <ul>
+      <li><strong>Speed limit is 15 mph</strong> throughout the Pointe, and it is strictly enforced. Watch for pedestrians, children, pets and wildlife.</li>
+      <li><strong>No smoking</strong> in any common areas, on the roads, or on the trails.</li>
+      <li><strong>No fireworks</strong> anywhere on the Pointe, at any time.</li>
+      <li><strong>No open fires</strong> except in the fire pits at the Spit and the fireplaces at the picnic shelters.</li>
+      <li><strong>No fires at all during a posted burn ban.</strong> Burn bans are posted as you enter the gate.</li>
+      <li>The discharge of weapons is prohibited.</li>
+    </ul>
+
+    <h2>Being a good neighbor</h2>
+    <ul>
+      <li>Do not block access to homes or driveways.</li>
+      <li>Turn off outside lights by 10 pm.</li>
+      <li>Keep noise down, especially after 10 pm. Sound carries in a quiet, wooded community.</li>
+    </ul>
+
+    <h2>Parking</h2>
+    <ul>
+      <li>Park only on the paved portion of the roads. Please do not park on the grass.</li>
+    </ul>
+
+    <h2>Pets</h2>
+    <ul>
+      <li>Keep dogs on a leash at all times, except on the beach below the bulkheads at the Spit, North Beach and the Marina.</li>
+      <li>Pick up after your dog. Dispose of waste bags in the designated trash bins or dumpsters, not in the restrooms or the picnic-shelter bins.</li>
+    </ul>
+
+    <h2>Wildlife</h2>
+    <ul>
+      <li>Please do not feed the wildlife. It does them more harm than good. See our <a href="../amenities/wildlife.html">Wildlife &amp; Habitat</a> page to learn more.</li>
+    </ul>
+
+    <h2>Garbage</h2>
+    <ul>
+      <li>Use the dumpsters west of the Clubhouse for household garbage.</li>
+    </ul>
+
+    <div class="callout"><h4>Questions during your stay?</h4><p>Please contact your host first for routine questions about the home you are staying in and its amenities. Your host can reach the HPMA office if needed.</p></div>
+
+    <p style="margin-top:24px">Thank you for helping keep the Pointe a beautiful community. We hope you enjoy your stay.</p>
   </div></div></section>""")
 
 # ============ COMMUNITY ============
