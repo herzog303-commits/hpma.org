@@ -18,17 +18,21 @@
   lb.innerHTML =
     '<span class="close" aria-label="Close">&times;</span>' +
     '<span class="nav-btn prev" aria-label="Previous">&#8249;</span>' +
-    '<img alt="">' +
+    '<figure class="lb-figure"><img alt=""><figcaption class="lb-cap"></figcaption></figure>' +
     '<span class="nav-btn next" aria-label="Next">&#8250;</span>';
   document.body.appendChild(lb);
   var img = lb.querySelector('img');
+  var cap = lb.querySelector('.lb-cap');
   var idx = 0;
 
   function show(i) {
     idx = (i + links.length) % links.length;
     var a = links[idx];
+    var text = a.getAttribute('data-caption') || '';
     img.src = a.getAttribute('href');
-    img.alt = a.getAttribute('data-caption') || '';
+    img.alt = text;
+    cap.textContent = text;
+    cap.style.display = text ? 'block' : 'none';
     lb.classList.add('open');
   }
   function close() { lb.classList.remove('open'); img.src = ''; }

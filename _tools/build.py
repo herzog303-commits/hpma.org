@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """Static-site generator for hpma.org. Emits plain HTML files (no runtime dep)."""
-import os, glob, html
+import os, glob, html, json
 
 # Repo root = parent of this _tools/ folder, so the script is portable.
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -434,13 +434,24 @@ amenity("marina.html","Marina","Marina","assets/img/amenities/marina.jpg",
     <div class="prose">
       <h2>Indian Cove Marina</h2>
       <p>The marina is a treasured amenity of the Pointe, set in a sheltered cove on the community's west side.</p>
-      <h3>Temporary moorage</h3>
-      <p>Only property owners should contact the Harbormaster. To request temporary moorage, email the Harbormaster with the dates needed, the beam and length of the boat, and the property address to be billed, or use the amenity booking service in the <a href="https://app.condocontrol.com/login" target="_blank" rel="noopener">Owner Portal</a>.</p>
-      <p>Temporary moorage is limited to property owners and their guests. Property owners must be on-site during the requested moorage dates for a guest. Moorage is not available to renters. Required paperwork is in the mailbox near the pavilion. Every effort is made to accommodate all boats, please contact the Harbormaster if you need to cancel, to avoid being billed.</p>
+      <h3>Transient and guest moorage</h3>
+      <p>Transient and guest moorage is not open to the general public. There is no public or visitor moorage at Indian Cove. It is available only to:</p>
+      <ul>
+        <li>Property owners who do not hold a long-term slip lease</li>
+        <li>Registered occupants, and</li>
+        <li>Guests, and only when the lot owner is present with them.</li>
+      </ul>
+      <p>A guest may not moor a boat unless accompanied by the lot owner. To arrange moorage, the property owner should contact the Harbormaster with the dates needed and the beam and length of the boat, or use the amenity booking service in the <a href="https://app.condocontrol.com/login" target="_blank" rel="noopener">Owner Portal</a>. Moorage is not available to renters.</p>
+      <h3>What is required on arrival</h3>
+      <ul>
+        <li>A completed Transient Guest Vessel Moorage Agreement, deposited where directed at the time of arrival. The form is in the blue mailbox at the base of the gangway.</li>
+        <li>The receipt included with the agreement must be posted and attached to the vessel on arrival.</li>
+        <li>Proof of insurance with a minimum of $300,000 liability, if requested by the Harbormaster.</li>
+        <li>Current boat registration aboard, with current registration decals applied to the boat.</li>
+      </ul>
       <h3>Marina information</h3>
       <ul>
-        <li>100+ slips from 20&ndash;55 feet in length; slips are fully leased.</li>
-        <li>Transient moorage for owners and their guests at $1.00 per foot/day.</li>
+        <li>100+ slips from 20 to 55 feet in length; slips are fully leased.</li>
         <li>Slips are leased long-term by owners, who may sublet or sell only to other property owners.</li>
         <li>Seven security cameras are installed, four with infrared capability.</li>
       </ul>
@@ -658,15 +669,59 @@ page("contact/index.html", "Contact", "Contact",
   </div></section>""")
 
 # ============ PHOTO GALLERY ============
+# Albums mirror the original hpma.org Photo Gallery. Data lives in
+# _tools/gallery-albums.json (scraped once from the old site: image file,
+# title, and photographer credit). Every image maps to exactly one album.
 GAL = os.path.join(ROOT, "assets", "img", "gallery")
-imgs = sorted(os.listdir(GAL), key=str.lower)
-items = "".join(
- f'    <a href="../assets/img/gallery/{html.escape(i)}"><img loading="lazy" src="../assets/img/gallery/{html.escape(i)}" alt="Hartstene Pointe"></a>\n'
- for i in imgs)
-page("photos/index.html", "Photos", "Photos",
+with open(os.path.join(os.path.dirname(__file__), "gallery-albums.json"), encoding="utf-8") as _f:
+    ALBUMS = json.load(_f)
+
+# short blurb per album, keyed by id
+ALBUM_BLURB = {
+    13: "A December king tide that pushed the Sound right up to the picnic tables and pathways.",
+    2:  "Fir and madrona, eagles and deer, tide pools and wildflowers: the natural life of the peninsula.",
+    9:  "Neighbors, gatherings, and everyday life around the Pointe.",
+    5:  "Sunrises, sunsets, and the ever-changing sky over Puget Sound.",
+    14: "The quiet lagoon at the North Beach, a favorite spot for kayakers and herons.",
+}
+
+def caption(p):
+    t, c = p.get("title", "").strip(), p.get("credit", "").strip()
+    if t and c:
+        return f"{t}. Photo: {c}"
+    if c:
+        return f"Photo: {c}"
+    return t
+
+def gallery_block(alb):
+    tiles = ""
+    for p in alb["photos"]:
+        f = html.escape(p["file"])
+        cap = html.escape(caption(p), quote=True)
+        alt = html.escape(caption(p) or "Hartstene Pointe")
+        tiles += (f'      <a href="../assets/img/gallery/{f}" data-caption="{cap}">'
+                  f'<img loading="lazy" src="../assets/img/gallery/{f}" alt="{alt}"></a>\n')
+    n = len(alb["photos"])
+    blurb = ALBUM_BLURB.get(alb["id"], "")
+    return (f'    <div class="album">\n'
+            f'      <div class="album-head"><h2>{html.escape(alb["name"])}</h2>'
+            f'<span class="album-count">{n} photos</span></div>\n'
+            f'      {"<p class=\"album-blurb\">" + html.escape(blurb) + "</p>" if blurb else ""}\n'
+            f'      <div class="gallery">\n{tiles}      </div>\n'
+            f'    </div>\n')
+
+# quick jump nav across albums
+_jump = " ".join(
+    f'<a href="#album-{a["id"]}">{html.escape(a["name"])}</a>' for a in ALBUMS)
+_sections = ""
+for a in ALBUMS:
+    _sections += f'  <section class="article album-section" id="album-{a["id"]}"><div class="wrap">\n{gallery_block(a)}</div></section>\n'
+
+_total = sum(len(a["photos"]) for a in ALBUMS)
+page("photos/index.html", "Photos", "Photo Gallery",
      [home_link(), "Photos"],
-     lede=f"Scenes from around the Pointe, sunsets, shoreline, the marina, wildlife and community life, contributed by residents over the years. Click any photo to view it larger.",
-     body=f'  <section class="article"><div class="wrap"><div class="gallery">\n{items}  </div></div></section>')
+     lede=f"Scenes from around the Pointe, contributed by residents over the years: {_total} photographs across five albums. Click any photo to view it larger.",
+     body=f'  <div class="album-jump"><div class="wrap"><span>Albums:</span> {_jump}</div></div>\n{_sections}')
 
 print("ALL PAGES DONE")
 
