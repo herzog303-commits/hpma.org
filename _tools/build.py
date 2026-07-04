@@ -354,8 +354,7 @@ DOCS = """  <section class="article"><div class="wrap"><div class="prose">
     <h2>Forms &amp; maps</h2>
     <ul class="doclist">
       <li><a href="../assets/docs/facilities-use-application.pdf" target="_blank" rel="noopener"><span class="doc-ic">PDF</span>Facilities Use Application<span class="doc-note">Editable form</span></a></li>
-      <li><a href="../assets/docs/map-1.pdf" target="_blank" rel="noopener"><span class="doc-ic">PDF</span>Hartstene Pointe Map 1</a></li>
-      <li><a href="../assets/docs/map-2.pdf" target="_blank" rel="noopener"><span class="doc-ic">PDF</span>Hartstene Pointe Map 2</a></li>
+      <li><a href="../assets/docs/trail-map.pdf" target="_blank" rel="noopener"><span class="doc-ic">PDF</span>Hartstene Pointe Trail Map</a></li>
     </ul>
 
     <div class="callout"><p>Looking for something not listed here? The <a href="../contact/">HPMA office</a> can help with Articles of Incorporation, additional plat CC&amp;Rs, and other records.</p></div>
@@ -631,8 +630,7 @@ amenity("trails.html","Trails","Trails","assets/img/amenities/trails.jpg",
     <aside class="aside">
       <h4>Trail maps &amp; guides</h4>
       <ul>
-        <li><a href="../assets/docs/map-1.pdf" target="_blank" rel="noopener">Hartstene Pointe Map 1</a></li>
-        <li><a href="../assets/docs/map-2.pdf" target="_blank" rel="noopener">Hartstene Pointe Map 2</a></li>
+        <li><a href="../assets/docs/trail-map.pdf" target="_blank" rel="noopener">Hartstene Pointe Trail Map</a></li>
       </ul>
       <h4 style="margin-top:20px">The trail network</h4>
       <ul>
