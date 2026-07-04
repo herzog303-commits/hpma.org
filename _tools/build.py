@@ -162,7 +162,7 @@ page("about/index.html", "About the Pointe", "About the Pointe",
       <p>Decades on, Hartstene Pointe remains heavily wooded with Douglas fir, hemlock, cedar, madrona, maple and various other deciduous trees. The area is also home to a significant population of birds, deer and raccoons, and bald eagles have been sighted along the water's edge. Along its perimeter, Hartstene Pointe gives magnificent views of Puget Sound, Mt. Rainier and the Olympic Mountains.</p>
 
       <h2>HPMA, the organization</h2>
-      <p>&ldquo;The Pointe&rdquo; is incorporated as a non-profit homeowners' association, as described in our <a href="../governance/">Governance</a> section. HPMA is governed by a seven-member Board of Directors and administered by a General Manager and staff.</p>
+      <p>&ldquo;The Pointe&rdquo; is incorporated as a non-profit homeowners' association, as described in our <a href="../governance/">Governance</a> section. HPMA is governed by a seven-member Board of Directors and administered by a General Manager, with a staff of five full-time employees and up to eight part-time patrol, pool-monitor and maintenance personnel.</p>
 
       <h2>Harstine Island, a remote paradise</h2>
       <p>Harstine Island, approximately ten miles long and three miles wide, is located at the southern end of Puget Sound, 18 miles from the nearest town, Shelton. The island is accessible by a bridge from Highway 3 that links Shelton to Bremerton.</p>
@@ -178,6 +178,9 @@ page("about/index.html", "About the Pointe", "About the Pointe",
       <div class="info-row"><b>Waterfront</b><span>3.5 miles of private beach</span></div>
       <div class="info-row"><b>Marina</b><span>110 slips at Indian Cove</span></div>
       <div class="info-row"><b>Trails</b><span>~5.5 miles</span></div>
+      <div class="info-row"><b>Governance</b><span>7-member Board of Directors</span></div>
+      <div class="info-row"><b>Staff</b><span>5 full-time (incl. General Manager) &amp; up to 8 part-time</span></div>
+      <div class="info-row"><b>Island population</b><span>1,412 (Harstine Island)</span></div>
       <div class="info-row"><b>Location</b><span>Harstine Island, Mason County, WA</span></div>
       <p style="margin-top:16px"><a class="btn ghost" href="our-place.html">Our Place &amp; maps</a></p>
     </aside>
@@ -197,7 +200,19 @@ page("about/our-place.html", "Our Place", "Our Place",
     <p>There is a 6,000-square-foot Clubhouse with a library, a swimming pool and spa, three tennis courts, a basketball court, a playground, a pickleball court, 5.5 miles of walking trails, a 110-slip marina, a boat launch, picnic areas and 3.5 miles of beach. The community remains heavily wooded with Douglas fir, hemlock, cedar, madrona and maple, and is home to deer, raccoons and many birds, with bald eagles sighted along the water's edge.</p>
 
     <h2>Where are we?</h2>
-    <p>Hartstene Pointe is on the northern tip of Harstine Island in Mason County, Washington, reached by the Harstine Island bridge off Highway 3, about 18 miles from Shelton. Detailed community maps are available on the <a href="../governance/documents.html">Governing Documents</a> page and at the HPMA office.</p>
+    <p>Hartstene Pointe is on the northern tip of Harstine Island in Mason County, Washington, reached by the Harstine Island bridge off Highway 3, about 18 miles from Shelton, the county seat. Detailed community maps are available on the <a href="../governance/documents.html">Governing Documents</a> page and at the HPMA office.</p>
+
+    <h2>On the water</h2>
+    <p>The region's clear, deep waters offer world-class shrimp and salmon fishing, scuba diving, and miles of pristine shoreline for boaters, kayakers and beachcombers. Bald eagles, seals and shorebirds are part of daily life along the water's edge.</p>
+
+    <h2>Exploring the area</h2>
+    <p>There is a great deal to explore beyond the Pointe. Immediately west of Shelton are Olympic National Park and Olympic National Forest, with mountain trails, temperate rainforests, waterfalls and sweeping vistas. Closer to home, Harstine Island and Case Inlet hold several worthwhile destinations:</p>
+    <ul>
+      <li><strong>Jarrell Cove State Park</strong>, a quiet marine park on the north end of the island, popular with boaters and campers.</li>
+      <li><strong>McMicken Island State Park</strong>, a boat-in marine state park just offshore.</li>
+      <li><strong>Stretch Point State Park</strong>, a small boat-in park with one of the area's nicer swimming beaches.</li>
+      <li><strong>Wild Felid Advocacy Center</strong>, a wild-cat sanctuary on the island that is home to roughly 60 cats.</li>
+    </ul>
 
     <div class="callout warn"><h4>Be prepared</h4><p>Island living means being ready for weather, power outages and other events. The Association's Disaster Preparedness resources help owners plan ahead, see the emergency-preparedness materials in the office and on the <a href="../governance/committees.html">Committees</a> page.</p></div>
   </div></div></section>""")
@@ -391,8 +406,10 @@ amenity("clubhouse.html","Clubhouse","Clubhouse","assets/img/amenities/clubhouse
         <li>Bulletin boards and information posting</li>
         <li>An outside gazebo with fireplace, for meetings and events</li>
         <li>Entrance to the pool &amp; spa</li>
+        <li>Comfortable easy chairs for relaxing</li>
         <li>Free Wi-Fi</li>
       </ul>
+      <p style="font-size:14px;color:var(--rock)">Children 12 and under must be accompanied by an adult.</p>
       <h2>The Library</h2>
       <p>The Library is full of great reads, ranging from children's books and non-fiction to magazines and classic novels. All books are donated and may be checked out by all Pointe residents and their guests on an honor system. There are also games, puzzles and DVD and VCR movies. A team of volunteers maintains the Library for the benefit of the community.</p>
       <figure><img src="../assets/img/pages/clubhouse-2.jpg" alt="Hartstene Pointe Clubhouse"></figure>
@@ -412,11 +429,13 @@ amenity("pool-spa.html","Pool &amp; Spa","Pool &amp; Spa","assets/img/amenities/
  "A swimming pool and hot tub, steps from the Clubhouse, no reservation required.",
  """  <section class="article"><div class="wrap"><div class="split">
     <div class="prose">
-      <p>The pool and spa are open to residents and their guests. Please read the pool and spa regulations before using the facilities.</p>
+      <p>The pool and spa are located behind the Clubhouse and are open to residents and their guests from approximately Memorial Day until Labor Day. Entry is from the parking lot west of the Clubhouse. Please read the pool and spa regulations and sign in before using the facilities.</p>
       <h3>Pool use considerations</h3>
       <ul>
-        <li>Guests 12 and under must have an adult with them at the pool.</li>
+        <li>Children 12 and under must be accompanied by an adult at the pool.</li>
         <li>Please observe posted quiet-swim and all-swim times.</li>
+        <li>Bring your own towels and your keycard for entry.</li>
+        <li>Equipment for the courts can be checked out at the pool.</li>
         <li>No reservation required.</li>
       </ul>
       <figure><img src="../assets/img/amenities/pool.jpg" alt="The pool at Hartstene Pointe"></figure>
@@ -493,9 +512,10 @@ amenity("fitness-center.html","Fitness Center","Fitness Center","assets/img/amen
  "Open 24 hours a day, across the road from the Clubhouse, gate card required for entry.",
  """  <section class="article"><div class="wrap"><div class="split">
     <div class="prose">
-      <p>Enjoy our Fitness Center, located across the road from the Clubhouse in the Maintenance Facility Building. It is open 24 hours a day; a gate card is required for entry.</p>
+      <p>Enjoy our Fitness Center, located down a small road across the street from the Clubhouse, in the Maintenance Facility Building. Park at the Clubhouse and walk in. It is open 24 hours a day and a keycard is required for entry.</p>
       <h3>Facility rules</h3>
       <ul>
+        <li>The Fitness Center is for adult use; no unaccompanied children under 12.</li>
         <li>Clean equipment <strong>before and after</strong> each use (cleansers and sanitizers are provided).</li>
         <li>Sign in on the clipboard provided; normal Fitness Center rules apply.</li>
       </ul>
@@ -536,8 +556,16 @@ amenity("outdoor-recreation.html","Outdoor Recreation","Outdoor Recreation","ass
       <li><strong>Fire pits</strong>, at the Spit</li>
       <li><strong>Playground equipment</strong>, North Beach and the Clubhouse area</li>
       <li><strong>Horseshoes</strong>, North Beach</li>
-      <li><strong>Hiking</strong>, about 5.5 miles of community <a href="trails.html">trails</a></li>
+      <li><strong>Hiking</strong>, about 5.5 miles of community <a href="trails.html">trails</a>, plus 3.5 miles of private beach</li>
     </ul>
+    <p style="font-size:14px;color:var(--rock)">Equipment for the tennis, pickleball and basketball courts can be checked out at the pool.</p>
+
+    <h3>Play structure</h3>
+    <p>A play structure for small children is located behind the Clubhouse gazebo, next to the pool. Adult supervision is required.</p>
+
+    <h3>Fire pits at the Spit</h3>
+    <p>Fire pits and charcoal barbecues are available at the Spit, along with some chairs and picnic tables. Bring your own firewood, and be sure it fits inside the fire rings. Extinguish all fires when you leave, using the red buckets provided.</p>
+
     <div class="figrow">
       <figure><img src="../assets/img/amenities/basketball.jpg" alt="Basketball court near the Clubhouse"><figcaption>Basketball and pickleball court</figcaption></figure>
       <figure><img src="../assets/img/amenities/playground-swings.jpg" alt="Swings at North Beach"><figcaption>Swings at North Beach</figcaption></figure>
@@ -548,7 +576,7 @@ amenity("outdoor-recreation.html","Outdoor Recreation","Outdoor Recreation","ass
 amenity("picnic-shelters.html","Picnic Shelters","Picnic Shelters","assets/img/amenities/picnic.jpg",
  "Facilities for picnics, gatherings, or just a spot to relax and enjoy nature.",
  """  <section class="article"><div class="wrap"><div class="prose">
-    <p>Enjoy our many facilities for picnics, gatherings, or just a spot to relax. Reservations for Hartstene Pointe facilities can be made on a non-exclusive basis. To find an open date, check the calendar of events, complete a <a href="../assets/docs/facilities-use-application.pdf" target="_blank" rel="noopener">Facilities Use Application</a>, and submit it to the HPMA office.</p>
+    <p>Enjoy our many facilities for picnics, gatherings, or just a spot to relax. Four of these areas have covered shelters with fireplaces: North Beach, the Marina, the Clubhouse gazebo, and north of the Spit tennis courts. Reservations for Hartstene Pointe facilities can be made on a non-exclusive basis. To find an open date, check the calendar of events, complete a <a href="../assets/docs/facilities-use-application.pdf" target="_blank" rel="noopener">Facilities Use Application</a>, and submit it to the HPMA office.</p>
     <h2>North Beach</h2>
     <p>Our largest picnic area, with a covered fireplace, running water, propane barbeque, sink, stovetop, electrical outlet and picnic tables. Horseshoe pits, swings and restrooms are nearby.</p>
     <figure><img src="../assets/img/amenities/north-beach-gazebo.jpg" alt="The gazebo at North Beach"><figcaption>The North Beach gazebo and picnic area.</figcaption></figure>
