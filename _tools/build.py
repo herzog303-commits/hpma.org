@@ -201,6 +201,7 @@ page("about/our-place.html", "Our Place", "Our Place",
 
     <h2>Where are we?</h2>
     <p>Hartstene Pointe is on the northern tip of Harstine Island in Mason County, Washington, reached by the Harstine Island bridge off Highway 3, about 18 miles from Shelton, the county seat. Detailed community maps are available on the <a href="../governance/documents.html">Governing Documents</a> page and at the HPMA office.</p>
+    <figure><img src="../assets/img/pages/washington-map.png" alt="Map of Washington showing Harstine Island in South Puget Sound"><figcaption>Harstine Island sits in South Puget Sound, in Mason County, Washington.</figcaption></figure>
 
     <h2>On the water</h2>
     <p>The region's clear, deep waters offer world-class shrimp and salmon fishing, scuba diving, and miles of pristine shoreline for boaters, kayakers and beachcombers. Bald eagles, seals and shorebirds are part of daily life along the water's edge.</p>
@@ -440,6 +441,7 @@ amenity("pool-spa.html","Pool &amp; Spa","Pool &amp; Spa","assets/img/amenities/
         <li>No reservation required.</li>
       </ul>
       <figure><img src="../assets/img/pages/aerial-clubhouse.jpg" alt="Aerial view of the pool, spa and Clubhouse"><figcaption>The pool and spa sit just behind the Clubhouse, with the courts nearby.</figcaption></figure>
+      <figure><img src="../assets/img/pages/community-pool.jpg" alt="A summer day at the Hartstene Pointe pool"><figcaption>A summer afternoon at the pool.</figcaption></figure>
     </div>
     <aside class="aside">
       <h4>Summer pool hours</h4>
@@ -457,6 +459,10 @@ amenity("marina.html","Marina","Marina","assets/img/amenities/marina.jpg",
     <div class="prose">
       <h2>Indian Cove Marina</h2>
       <p>The marina is a treasured amenity of the Pointe, set in a sheltered cove on the community's west side.</p>
+      <div class="figrow two">
+        <figure><img src="../assets/img/pages/marina-aerial.jpg" alt="Indian Cove Marina from above"><figcaption>Indian Cove Marina from above.</figcaption></figure>
+        <figure><img src="../assets/img/pages/marina-twilight.jpg" alt="The marina at twilight"><figcaption>The docks at twilight.</figcaption></figure>
+      </div>
       <h3>Transient and guest moorage</h3>
       <p>Transient and guest moorage is not open to the general public. There is no public or visitor moorage at Indian Cove. It is available only to:</p>
       <ul>
@@ -581,7 +587,10 @@ amenity("picnic-shelters.html","Picnic Shelters","Picnic Shelters","assets/img/a
     <p>Enjoy our many facilities for picnics, gatherings, or just a spot to relax. Four of these areas have covered shelters with fireplaces: North Beach, the Marina, the Clubhouse gazebo, and north of the Spit tennis courts. Reservations for Hartstene Pointe facilities can be made on a non-exclusive basis. To find an open date, check the calendar of events, complete a <a href="../assets/docs/facilities-use-application.pdf" target="_blank" rel="noopener">Facilities Use Application</a>, and submit it to the HPMA office.</p>
     <h2>North Beach</h2>
     <p>Our largest picnic area, with a covered fireplace, running water, propane barbeque, sink, stovetop, electrical outlet and picnic tables. Horseshoe pits, swings and restrooms are nearby.</p>
-    <figure><img src="../assets/img/amenities/north-beach-gazebo.jpg" alt="The gazebo at North Beach"><figcaption>The North Beach gazebo and picnic area.</figcaption></figure>
+    <div class="figrow two">
+      <figure><img src="../assets/img/amenities/north-beach-gazebo.jpg" alt="The gazebo at North Beach"><figcaption>The North Beach gazebo and picnic area.</figcaption></figure>
+      <figure><img src="../assets/img/pages/picnic-shelter-winter.jpg" alt="A picnic shelter on a frosty morning"><figcaption>A covered shelter on a frosty morning by the water.</figcaption></figure>
+    </div>
     <h2>Clubhouse Gazebo</h2>
     <p>A covered fireplace, electrical outlets, picnic tables and an overhead light, with the playground and pool just steps away.</p>
     <h2>Indian Cove (West Beach / Marina)</h2>
@@ -651,6 +660,8 @@ amenity("wildlife.html","Wildlife","Wildlife &amp; Habitat","assets/img/amenitie
  "Deer, eagles, raccoons and wildflowers, and how to share the Pointe safely.",
  """  <section class="article"><div class="wrap"><div class="prose">
     <div class="callout warn"><h4>Cougar awareness</h4><p>Cougars have been sighted on Pointe trails. Please be aware and keep your family safe: don't leave small children unattended and be sure they are indoors by dusk; don't feed wildlife or feral cats; close off spaces under porches and decks; feed pets indoors; keep dogs and cats in from dusk to dawn; and use garbage cans with tight-fitting lids. Predators follow prey.</p></div>
+
+    <figure><img src="../assets/img/wildlife/sandpipers.jpg" alt="Sandpipers along the beach at Hartstene Pointe"><figcaption>Shorebirds gather along the beaches at low tide.</figcaption></figure>
 
     <h2>Please do not feed the wildlife</h2>
     <p>Feeding wildlife foods not found in their natural habitat can do more harm than good. Corn, apples and artificial feeds can disrupt an animal's gut microbes, which can lead to starvation when they can't absorb essential nutrients.</p>
@@ -747,6 +758,10 @@ page("community/index.html", "Community", "Community",
       <div class="callout"><h4>Recurring gatherings</h4><p>Book clubs &middot; Library group &middot; Walking groups &middot; News &amp; Views &middot; Pot-luck dinners &middot; Travel club &middot; Yoga &middot; Music circle</p></div>
       <div class="callout"><h4>Occasional events</h4><p>Holiday celebrations &amp; the 4th of July &middot; Fishing derby &middot; Marina salmon roast &middot; Garage sales &middot; Art exhibits &amp; fairs &middot; Concerts at North Beach</p></div>
     </div>
+    <div class="figrow two">
+      <figure><img src="../assets/img/pages/pie-social.jpg" alt="A community pie social at Hartstene Pointe"><figcaption>A community pie social.</figcaption></figure>
+      <figure><img src="../assets/img/pages/community-bubbles.jpg" alt="A community gathering at Hartstene Pointe"><figcaption>Neighbors and families gather at a community event.</figcaption></figure>
+    </div>
     <p style="margin-top:24px">See the community in pictures on our <a href="../photos/">Photos</a> page.</p>
   </div></div></section>""")
 
@@ -784,6 +799,7 @@ with open(os.path.join(os.path.dirname(__file__), "gallery-albums.json"), encodi
 
 # short blurb per album, keyed by id
 ALBUM_BLURB = {
+    100: "A selection of favorite scenes from around the community, the water, the marina, and life at the Pointe.",
     13: "A December king tide that pushed the Sound right up to the picnic tables and pathways.",
     2:  "Fir and madrona, eagles and deer, tide pools and wildflowers: the natural life of the peninsula.",
     9:  "Neighbors, gatherings, and everyday life around the Pointe.",
@@ -826,7 +842,7 @@ for a in ALBUMS:
 _total = sum(len(a["photos"]) for a in ALBUMS)
 page("photos/index.html", "Photos", "Photo Gallery",
      [home_link(), "Photos"],
-     lede=f"Scenes from around the Pointe, contributed by residents over the years: {_total} photographs across five albums. Click any photo to view it larger.",
+     lede=f"Scenes from around the Pointe, contributed by residents over the years: {_total} photographs across {len(ALBUMS)} albums. Click any photo to view it larger.",
      body=f'  <div class="album-jump"><div class="wrap"><span>Albums:</span> {_jump}</div></div>\n{_sections}')
 
 print("ALL PAGES DONE")
