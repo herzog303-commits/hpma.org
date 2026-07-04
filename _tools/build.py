@@ -710,7 +710,7 @@ page("visiting/index.html", "Visiting the Pointe", "Visiting the Pointe",
 
     <h2>Pets</h2>
     <ul>
-      <li>Keep dogs on a leash at all times, except on the beach below the bulkheads at the Spit, North Beach and the Marina.</li>
+      <li>Keep dogs on a leash at all times.</li>
       <li>Pick up after your dog. Dispose of waste bags in the designated trash bins or dumpsters, not in the restrooms or the picnic-shelter bins.</li>
     </ul>
 
