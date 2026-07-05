@@ -3,12 +3,39 @@
   // mobile nav
   var toggle = document.querySelector('.nav-toggle');
   var menu = document.querySelector('.nav-menu');
+  var mq = window.matchMedia('(max-width:900px)');
+  function collapseSubs() {
+    Array.prototype.forEach.call(document.querySelectorAll('.has-sub.expanded'), function (o) {
+      o.classList.remove('expanded');
+      var a = o.querySelector(':scope > a');
+      if (a) a.setAttribute('aria-expanded', 'false');
+    });
+  }
   if (toggle && menu) {
     toggle.addEventListener('click', function () {
       var open = menu.classList.toggle('open');
       toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+      if (!open) collapseSubs();
     });
   }
+
+  // mobile: tap a top-level parent to expand its submenu instead of navigating.
+  // (Each submenu's first item links to the parent's own page, so nothing is lost.)
+  Array.prototype.forEach.call(document.querySelectorAll('.has-sub > a'), function (a) {
+    a.setAttribute('aria-haspopup', 'true');
+    a.setAttribute('aria-expanded', 'false');
+    a.addEventListener('click', function (e) {
+      if (!mq.matches) return; // desktop keeps hover behaviour and normal links
+      e.preventDefault();
+      var li = a.parentNode;
+      var willOpen = !li.classList.contains('expanded');
+      collapseSubs();
+      li.classList.toggle('expanded', willOpen);
+      a.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+    });
+  });
+  // reset if the viewport grows back to desktop
+  mq.addEventListener('change', function (e) { if (!e.matches) collapseSubs(); });
 
   // gallery lightbox
   var links = Array.prototype.slice.call(document.querySelectorAll('.gallery a'));
