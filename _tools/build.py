@@ -35,7 +35,13 @@ NAV = """  <ul class="nav-menu">
         <li><a href="{p}amenities/wildlife.html">Wildlife</a></li>
       </ul>
     </li>
-    <li><a href="{p}community/">Community</a></li>
+    <li class="has-sub"><a href="{p}community/">Community</a>
+      <ul class="submenu">
+        <li><a href="{p}community/">Community</a></li>
+        <li><a href="{p}community/exploring-the-area.html">Exploring the Area</a></li>
+        <li><a href="{p}community/considering-the-pointe.html">Considering the Pointe</a></li>
+      </ul>
+    </li>
     <li><a href="{p}visiting/">Visiting</a></li>
     <li><a href="{p}photos/">Photos</a></li>
     <li><a href="https://app.condocontrol.com/login" class="portal" target="_blank" rel="noopener">Owner Portal</a></li>
@@ -101,6 +107,7 @@ FOOT = """</main>
       <div><h4>Explore</h4><ul>
         <li><a href="{p}amenities/">Amenities</a></li>
         <li><a href="{p}visiting/">Visiting the Pointe</a></li>
+        <li><a href="{p}community/exploring-the-area.html">Exploring the Area</a></li>
         <li><a href="{p}amenities/marina.html">Marina</a></li>
         <li><a href="{p}photos/">Photos</a></li>
       </ul></div>
@@ -108,6 +115,7 @@ FOOT = """</main>
         <li><a href="{p}about/">About</a></li>
         <li><a href="{p}governance/">Governance</a></li>
         <li><a href="{p}governance/documents.html">Governing Documents</a></li>
+        <li><a href="{p}community/considering-the-pointe.html">Considering the Pointe</a></li>
         <li><a href="{p}contact/">Contact</a></li>
       </ul></div>
       <div class="hours"><h4>Office Hours</h4>
@@ -214,6 +222,7 @@ page("about/our-place.html", "Our Place", "Our Place",
       <li><strong>Stretch Point State Park</strong>, a small boat-in park with one of the area's nicer swimming beaches.</li>
       <li><strong>Wild Felid Advocacy Center</strong>, a wild-cat sanctuary on the island that is home to roughly 60 cats.</li>
     </ul>
+    <p>There is much more nearby, from Hood Canal shellfish houses to the trails of the Olympics. See our <a href="../community/exploring-the-area.html">Exploring the Area</a> guide for favorites.</p>
 
     <div class="callout warn"><h4>Be prepared</h4><p>Island living means being ready for weather, power outages and other events. The Association's Disaster Preparedness resources help owners plan ahead, see the emergency-preparedness materials in the office and on the <a href="../governance/committees.html">Committees</a> page.</p></div>
   </div></div></section>""")
@@ -761,6 +770,122 @@ page("community/index.html", "Community", "Community",
       <figure><img src="../assets/img/pages/community-bubbles.jpg" alt="A community gathering at Hartstene Pointe"><figcaption>Neighbors and families gather at a community event.</figcaption></figure>
     </div>
     <p style="margin-top:24px">See the community in pictures on our <a href="../photos/">Photos</a> page.</p>
+  </div></div></section>""")
+
+page("community/exploring-the-area.html", "Exploring the Area", "Exploring the Area",
+     [home_link(), '<a href="index.html">Community</a>', "Exploring the Area"],
+     herobg="assets/img/pages/driftwood-beach.jpg",
+     lede="Marine parks, warm-water beaches, world-class shellfish and small-town character, all within an easy drive or a short paddle of the Pointe.",
+     body="""  <section class="article"><div class="wrap"><div class="prose">
+    <p>One of the pleasures of the Pointe is how much there is to explore just beyond the gate. Harstine Island and the Hood Canal are among the quietest, most beautiful corners of the Pacific Northwest. Here are a few favorites to help you plan a day out.</p>
+
+    <div class="callout"><h4>Good to know</h4><p>These are independent parks and businesses, not affiliated with the Association. Hours, seasons and access change, so it is worth checking ahead before you go. Several of the marine parks are best reached by boat or at low tide.</p></div>
+
+    <h2>On and around the island</h2>
+    <ul>
+      <li><strong>Jarrell Cove State Park</strong> (north end of Harstine Island). A 43-acre marine park in deeply protected water, with more than 650 feet of moorage, overnight docks, short forested walking loops, picnic shelters and playfields. A longtime favorite of boaters.</li>
+      <li><strong>Harstine Island State Park</strong> (east shore). A quiet, undeveloped park where trails wind through mature Douglas fir and fern before dropping to a long, uncrowded beach. Good for hiking, beachcombing and birdwatching; dogs are restricted to protect wildlife.</li>
+      <li><strong>McMicken Island State Park</strong> (just offshore). A small, primitive marine park linked to Harstine by a sand spit that emerges only at very low tide. Popular with kayakers and boaters. Check the tide charts before crossing on foot.</li>
+      <li><strong>Stretch Point State Park</strong> (boat-in). A small marine park with one of the area's nicer swimming beaches.</li>
+      <li><strong>Wild Felid Advocacy Center</strong> (on the island). A wild-cat sanctuary that is home to roughly 60 cats, open to visitors on scheduled tours.</li>
+    </ul>
+
+    <h2>Shellfish and dining along the Hood Canal</h2>
+    <p>The cold, clean water of the Hood Canal produces some of the finest oysters, clams and geoduck anywhere. A loop around the canal strings together several of the region's best-known tables.</p>
+    <ul>
+      <li><strong>Taylor Shellfish Farms</strong> (Shelton). The flagship retail store of the region's best-known shellfish grower. Buy oysters, clams, crab and geoduck straight from the source, with outdoor picnic tables for a casual, self-shucked lunch.</li>
+      <li><strong>Hama Hama Oyster Saloon</strong> (Lilliwaup). An outdoor, farm-to-table oyster house on the tide flats, serving wood-roasted and raw oysters steps from where they are harvested. Seasonal, with a Farm Store open year-round.</li>
+      <li><strong>Alderbrook Resort &amp; Spa</strong> (Union). A historic waterfront lodge and spa on the Hood Canal, with a well-regarded restaurant, full spa, indoor pool and a guest marina. A comfortable base or a special dinner out.</li>
+      <li><strong>The Fjord Oyster Bank</strong> (Hoodsport). A small, much-loved seafood restaurant carrying on the recipes of legendary local chef Xinh Dwelley, known for its chowder and oyster dishes.</li>
+      <li><strong>Hood Canal&eacute;</strong> (Union). A cozy wood-fired pizza kitchen and wine shop in the waterfront village of Union, with Pacific Northwest wines and the occasional evening of live music.</li>
+    </ul>
+
+    <h2>Parks, trails and landmarks</h2>
+    <ul>
+      <li><strong>Twanoh State Park</strong> (Union). Some of the warmest saltwater beaches in the state, plus a two-mile forested loop along salmon-bearing Twanoh Creek and rustic stone shelters built by the Civilian Conservation Corps in the 1930s.</li>
+      <li><strong>Theler Wetlands</strong> (Belfair). A flat, accessible network of gravel paths and boardwalks crossing tidal marsh at the head of the canal, and one of the South Sound's premier birdwatching spots for herons, eagles and otters.</li>
+      <li><strong>High Steel Bridge</strong> (northwest of Shelton). A former logging railroad bridge standing about 375 feet above the South Fork Skokomish River canyon, one of the highest bridges of its kind in the country, with dramatic views into the gorge below.</li>
+      <li><strong>Olympic National Park and National Forest</strong> (west of Shelton). Mountain trails, temperate rainforest, waterfalls and sweeping vistas, all within an easy drive.</li>
+    </ul>
+
+    <h2>In and around Shelton</h2>
+    <ul>
+      <li><strong>Skyline Drive-In Theater</strong> (Shelton). One of only a handful of drive-in theaters left in Washington, showing weekend double features under the stars in season. A fun, family-friendly evening.</li>
+      <li><strong>Shelton</strong> (about 18 miles, the county seat). The nearest full-service town, with groceries, fuel, hardware, medical care and everyday dining.</li>
+    </ul>
+
+    <p style="margin-top:24px">Closer to home, the Pointe's own beaches, trails and marina are described on the <a href="../amenities/">Amenities</a> pages, and there is more on the island's past on the <a href="../about/history.html">Our Stories &amp; History</a> page.</p>
+  </div></div></section>""")
+
+page("community/considering-the-pointe.html", "Considering the Pointe", "Considering the Pointe",
+     [home_link(), '<a href="index.html">Community</a>', "Considering the Pointe"],
+     herobg="assets/img/pages/aerial-clubhouse.jpg",
+     lede="Thinking about a home at the Pointe? Here is what the community is, how it works, and where to find the details.",
+     body="""  <section class="article"><div class="wrap"><div class="split">
+    <div class="prose">
+      <p>If you are considering a home at Hartstene Pointe, this page is here to help you understand the community and how it works. The Association does not sell or list homes and cannot discuss specific properties; for homes on the market, please work with a licensed real estate professional. What we can do is explain what it means to own here.</p>
+
+      <h2>What Hartstene Pointe is</h2>
+      <p>Hartstene Pointe is a private, gated community on the northern tip of Harstine Island in Mason County, Washington, reached by a toll-free bridge off Highway 3 with no ferry to schedule. Established by Weyerhaeuser as a not-for-profit corporation in 1970, it is made up of 532 home sites, including the Island House condominiums, spread across roughly 215 wooded acres and surrounded on three sides by the waters of Puget Sound. Once planned mainly as a recreational retreat, the Pointe today is a mix of full-time residents and seasonal owners.</p>
+
+      <h2>How the community works</h2>
+      <p>Every owner is a member of the Hartstene Pointe Maintenance Association. The community is governed by a seven-member Board of Directors elected by owners, and run day to day by a professional General Manager with office, patrol and maintenance staff. Ownership comes with both a voice in how the Pointe is run and a shared responsibility to help care for it. There is more on the <a href="../governance/">Governance</a> page.</p>
+
+      <h2>What your assessments support</h2>
+      <p>Annual assessments paid by owners maintain the private roads, the gated entrance and patrol, and the common greenbelt and beaches, and they fund the shared amenities that make the Pointe what it is:</p>
+      <ul>
+        <li>A 6,000-square-foot Clubhouse with a library</li>
+        <li>A swimming pool and spa</li>
+        <li>Three tennis courts, a pickleball court and a basketball court</li>
+        <li>A playground and picnic areas</li>
+        <li>5.5 miles of walking trails through the woods</li>
+        <li>A 110-slip marina and a boat launch</li>
+        <li>3.5 miles of private beach and common shoreline</li>
+      </ul>
+      <p>Assessment amounts are set each year by the Board. For current figures, and for any special assessments, contact the <a href="../contact/">HPMA office</a>.</p>
+
+      <h2>Water and sewer</h2>
+      <p>Water and sewer service is provided by the Hartstene Pointe Water-Sewer District, a separate government entity that is not run by the Association and is billed separately. Questions about rates and service go directly to the District at <a href="https://www.hpwsd.org/" target="_blank" rel="noopener">hpwsd.org</a>.</p>
+
+      <h2>Building, remodeling and trees</h2>
+      <p>To protect the wooded character of the Pointe, most changes to a property are reviewed by the Permit Review Committee, from new construction and additions to exterior painting and tree cutting. If you are buying with a project in mind, review the CC&amp;Rs that apply to your lot before you commit. The CC&amp;Rs differ between plats, so be sure you are reading the set for your property.</p>
+
+      <h2>The marina</h2>
+      <p>Indian Cove Marina is an owner amenity. Slips are leased long-term by owners and may be sublet or sold only to other owners, and there is no public or transient moorage. If a slip matters to you, ask the office about current availability and the moorage waitlist. See the <a href="../amenities/marina.html">Marina</a> page for details.</p>
+
+      <h2>If you plan to rent your home</h2>
+      <p>Some owners rent their homes when they are away. Renters and their guests are expected to follow the community's Rules &amp; Regulations, summarized for visitors on the <a href="../visiting/">Visiting the Pointe</a> page. If rental income is part of your plans, review the current rules with the office first.</p>
+
+      <h2>Doing your homework</h2>
+      <p>Before you buy, it is worth reviewing the documents that govern life at the Pointe. Most are posted on the <a href="../governance/documents.html">Governing Documents</a> page, and the office can help with anything not listed there:</p>
+      <ul>
+        <li>The CC&amp;Rs for your specific plat</li>
+        <li>The Bylaws and the Rules &amp; Regulations</li>
+        <li>Current assessment amounts and any special assessments</li>
+        <li>Marina moorage availability, if a slip matters to you</li>
+        <li>Water and sewer rates from the District</li>
+      </ul>
+
+      <div class="callout"><h4>Questions about the community?</h4><p>The HPMA office is glad to answer general questions about how the Pointe works. Reach the office through our <a href="../contact/">contact page</a>. For homes currently for sale, a local real estate professional can help; the Association is not able to recommend agents or discuss specific listings.</p></div>
+    </div>
+    <aside class="aside">
+      <h4>At a glance</h4>
+      <div class="info-row"><b>Location</b><span>North tip of Harstine Island, Mason County, WA</span></div>
+      <div class="info-row"><b>Access</b><span>Toll-free bridge off Highway 3, no ferry</span></div>
+      <div class="info-row"><b>Established</b><span>1970, not-for-profit corporation</span></div>
+      <div class="info-row"><b>Home sites</b><span>532, including Island House condominiums</span></div>
+      <div class="info-row"><b>Setting</b><span>About 215 wooded acres, water on three sides</span></div>
+      <div class="info-row"><b>Governance</b><span>Seven-member elected Board and a professional manager</span></div>
+      <div class="info-row"><b>Nearest town</b><span>Shelton, about 18 miles</span></div>
+      <h4 style="margin-top:22px">Start here</h4>
+      <ul>
+        <li><a href="index.html">About the community</a></li>
+        <li><a href="../amenities/">Amenities</a></li>
+        <li><a href="../governance/documents.html">Governing Documents</a></li>
+        <li><a href="exploring-the-area.html">Exploring the area</a></li>
+        <li><a href="../contact/">Contact the office</a></li>
+      </ul>
+    </aside>
   </div></div></section>""")
 
 # ============ CONTACT ============
