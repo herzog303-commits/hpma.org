@@ -79,15 +79,32 @@
 
   <!-- hero -->
   <header class="hero">
-    <div class="bg" style="background-image:url('assets/img/pages/sunset-rainier.jpg')"></div>
+    <div class="bg" id="heroBg" style="background-image:url('assets/img/heroes/rainier-spit.jpg')"></div>
     <div class="scrim"></div>
     <div class="inner">
       <span class="eyebrow">A private community on the northern tip of Harstine Island</span>
       <h1>Where the forest meets the Sound.</h1>
       <p class="lede">A gated waterfront community on the quiet shores of South Puget Sound, defined by towering firs, sun-warmed madronas, and dramatic sandstone bluffs, featuring three and a half miles of pristine private beach, thoughtfully preserved by the people who call it home.</p>
     </div>
-    <span class="caption credit">Sunset over Puget Sound &middot; Hartstene Pointe</span>
+    <span class="caption credit" id="heroCredit">Mount Rainier from the sandspit &middot; Hartstene Pointe</span>
   </header>
+  <script>
+    /* Pick a random hero image on each page load: dynamic feel, still a static site. */
+    (function () {
+      var heroes = [
+        ["rainier-spit.jpg",        "Mount Rainier from the sandspit"],
+        ["rainier-pink-sunset.jpg", "Sunset over Puget Sound with Mount Rainier"],
+        ["starry-night-lagoon.jpg", "A starry night over the lagoon"],
+        ["orange-sunset-water.jpg", "Sunset across the Sound"],
+        ["golden-hour-beach.jpg",   "Golden hour on the beach"]
+      ];
+      var pick = heroes[Math.floor(Math.random() * heroes.length)];
+      var bg = document.getElementById('heroBg');
+      var cr = document.getElementById('heroCredit');
+      if (bg) bg.style.backgroundImage = "url('assets/img/heroes/" + pick[0] + "')";
+      if (cr) cr.innerHTML = pick[1] + " · Hartstene Pointe";
+    })();
+  </script>
 
   <!-- welcome -->
   <section class="welcome">

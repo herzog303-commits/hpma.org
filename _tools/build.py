@@ -248,6 +248,20 @@ page("about/history.html", "Our Stories &amp; History", "Our Stories &amp; Histo
       </ul>
       <p style="font-size:14px;color:var(--rock)">Additional remembrances, including Shirley Marrs' memories as an original pioneer, Ken Brown on the island forest, and Walt Tupper's &ldquo;Welcome to Fantasy Island&rdquo;, are held in the Association archives.</p>
 
+      <h2>Before the Pointe: the island's story</h2>
+      <p>Hartstene Pointe occupies the northern tip of a much older place. A welcome sign at the Harstine Island community hall, drawn from <em>The Island Remembers</em> and the state parks department, tells the island's longer history, and it is worth retelling here.</p>
+      <p>The first caretakers of the island were the ancestors of the Squaxin Island Tribe, guided by the give and take between people and nature. They gathered shellfish, hunted game and harvested berries in ways that left the wild character of the island intact. Two trees were treasured above the rest: the Pacific yew, whose strong, flexible wood made bows and canoe paddles and whose bark and needles were brewed into healing teas (modern medicine later drew the cancer drug taxol from the same tree), and the great red cedar, whose soft inner bark was pounded into supple fabric for clothing, baskets and mats.</p>
+      <p>In 1841 Commander Charles Wilkes, anchored off Fort Nisqually near the end of a four-year exploratory voyage, gave the island its name. His logbook recorded it as &ldquo;Harstein,&rdquo; and over the years at least five spellings competed before &ldquo;Harstine&rdquo; settled in as the island's own. The community that Weyerhaeuser laid out here in the 1970s took the older, softer spelling, Hartstene, which is why the two names differ to this day.</p>
+      <p>Robert Jarrell became the first permanent European settler in 1872, homesteading 160 acres; in 1878 he married Philura, the first European woman on the island, and Jarrells Cove, now home to a marina and a state park, still carries their name. Logging followed and became the island's major industry, and the second- and third-growth Douglas fir, western red cedar, hemlock, madrona, maple and alder that shade the Pointe today grew up in its wake, home to the eagles, deer, raccoon, fox and coyote that residents still see.</p>
+      <ul>
+        <li>A two-story log cabin built by the Bustrack family in <strong>1888</strong> still stands, moved to high ground to keep it safe.</li>
+        <li>The <strong>Island Belle</strong> grape, bred locally by Adam Eckert in <strong>1890</strong>, was well suited to Puget Sound and became a genuine agricultural success.</li>
+        <li>The first telephone line linked two island farms in <strong>1911</strong>; a dependable line to the mainland was not established until <strong>1946</strong>.</li>
+        <li>The community hall was raised by volunteer labor in <strong>1914</strong>, lit by gas lamps until electricity finally reached it in the late <strong>1940s</strong>.</li>
+        <li>Ferry service began in <strong>1922</strong> with the <em>Island Belle</em>, a 40-foot scow driven by side paddle wheels that could carry three cars. It ran until the new bridge opened on <strong>June 22, 1969</strong>, connecting the island to the mainland for good.</li>
+      </ul>
+      <p>It was onto this quiet, wooded island, a few years after the bridge replaced the ferry, that Hartstene Pointe was drawn.</p>
+
       <h2>The original vision</h2>
       <p>Not long ago a resident turned up the original sales brochure that The Quadrant Corporation, a Weyerhaeuser company, used to introduce Hartstene Pointe when lots first went on the market in the mid-1970s. Its photographs and typewritten pages are a window into how the Pointe was imagined at the very beginning.</p>
       <blockquote>There's something about an island like Hartstene in Puget Sound that takes you &ldquo;out of this world&rdquo; the minute you cross the bridge from the mainland. It's a quieter, live-and-let-live world, developed by the people who care. Hartstene Pointe is one of those rare, nearby getaway places where the trees still outnumber the people, and always will.</blockquote>
@@ -468,6 +482,7 @@ amenity("pool-spa.html","Pool &amp; Spa","Pool &amp; Spa","assets/img/amenities/
       </ul>
       <figure><img src="../assets/img/pages/aerial-clubhouse.jpg" alt="Aerial view of the pool, spa and Clubhouse"><figcaption>The pool and spa sit just behind the Clubhouse, with the courts nearby.</figcaption></figure>
       <figure><img src="../assets/img/pages/community-pool.jpg" alt="A summer day at the Hartstene Pointe pool"><figcaption>A summer afternoon at the pool.</figcaption></figure>
+      <figure><img src="../assets/img/pages/pool-spa.jpg" alt="The heated pool and spa ringed by fir trees behind the Clubhouse"><figcaption>The heated pool and spa, ringed by firs behind the Clubhouse.</figcaption></figure>
     </div>
     <aside class="aside">
       <h4>Summer pool hours</h4>
@@ -688,6 +703,11 @@ amenity("wildlife.html","Wildlife","Wildlife &amp; Habitat","assets/img/amenitie
     <h2>Please do not feed the wildlife</h2>
     <p>Feeding wildlife foods not found in their natural habitat can do more harm than good. Corn, apples and artificial feeds can disrupt an animal's gut microbes, which can lead to starvation when they can't absorb essential nutrients.</p>
     <figure><img src="../assets/img/wildlife/deer.jpg" alt="A deer at Hartstene Pointe"><figcaption>Black-tailed deer are a familiar sight throughout the Pointe.</figcaption></figure>
+    <div class="figrow">
+      <figure><img src="../assets/img/wildlife/fawns.jpg" alt="Two spotted fawns in the grass at Hartstene Pointe"><figcaption>Fawns in the greenbelt in early summer.</figcaption></figure>
+      <figure><img src="../assets/img/wildlife/eagle.jpg" alt="A bald eagle perched in a shoreline tree"><figcaption>Bald eagles nest and hunt along the shoreline.</figcaption></figure>
+      <figure><img src="../assets/img/wildlife/sea-star.jpg" alt="An orange sea star in a tide pool at low water"><figcaption>Sea stars and shellfish in the tide pools at low tide.</figcaption></figure>
+    </div>
 
     <h2>Raccoons &amp; health</h2>
     <p>Raccoons in the United States are known to carry infectious diseases that can be transmitted to humans and animals through contact with the animals or their waste. People should not handle raccoons or their waste without protection and appropriate training. Anyone who has handled a raccoon, or been bitten, scratched or exposed to their waste, should consult a physician immediately.</p>
