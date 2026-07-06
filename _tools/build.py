@@ -510,10 +510,7 @@ amenity("marina.html","Marina","Marina","assets/img/amenities/marina.jpg",
         <li>Slips are leased long-term by owners, who may sublet or sell only to other property owners.</li>
         <li>Seven security cameras are installed, four with infrared capability.</li>
       </ul>
-      <h3>Kayak &amp; canoe storage</h3>
-      <p>Racks are available at the marina and other locations for storing kayaks and canoes for an annual fee. Check with the HPMA office regarding fees and availability.</p>
-      <h3>Boat ramps</h3>
-      <p>There are two boat ramps, off Chesapeake Drive and in the North Beach Lagoon. These are not part of Indian Cove Marina but are maintained by HPMA. Consider the tide charts when using both ramps, especially in the lagoon.</p>
+      <p>Kayak and canoe rack storage and the community's two boat launches are separate from Indian Cove Marina. Those are covered on the <a href="boat-rv-storage.html">Boat &amp; RV Storage</a> page.</p>
       <h2>A little history</h2>
       <p>When Quadrant developed Hartstene Pointe in the 1970s, many buyers believed they were promised a marina. A settlement led to a 20-slip marina. Years later, 100 property owners funded ($400,000) the current 110-slip marina. Under the agreement with HPMA, leaseholders maintain the marina's operation at no cost to HPMA, and the annual moorage assessments support maintenance, insurance, office assistance, the Harbormaster and the Washington State shoreline lease, with residual funds set aside for future dredging and major repairs.</p>
     </div>
@@ -533,7 +530,7 @@ amenity("marina.html","Marina","Marina","assets/img/amenities/marina.jpg",
 amenity("boat-rv-storage.html","Boat &amp; RV Storage","Boat &amp; RV Storage","assets/img/amenities/marina.jpg",
  "On-site storage for boats, trailers, RVs, kayaks and canoes, available to all owners.",
  """  <section class="article"><div class="wrap"><div class="prose">
-    <p>HPMA provides on-site storage areas for boats and trailers, RVs, utility trailers, kayaks and canoes for a fee. These amenities are available to all owners. In addition, the community has two boat launches.</p>
+    <p>HPMA provides on-site storage areas for boats and trailers, RVs, utility trailers, kayaks and canoes for a fee. These amenities are available to all owners. Kayak and canoe racks are available at the marina and other locations. In addition, the community has two boat launches.</p>
     <h2>Lagoon Ramp</h2>
     <p>This ramp has a dock and is located in the lagoon at the east end, accessed by the road off Chesapeake that goes to the spit. It is only for smaller boats (under about 25 feet) and can only be used at high tide. When entering or exiting the lagoon, keep to the outside, there is a sand bar in the middle.</p>
     <h2>Case Inlet Ramp</h2>
