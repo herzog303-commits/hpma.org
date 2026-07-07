@@ -504,7 +504,7 @@ amenity("marina.html","Marina","Marina","assets/img/amenities/marina.jpg",
         <figure><img src="../assets/img/pages/marina-twilight.jpg" alt="The marina at twilight"><figcaption>The docks at twilight.</figcaption></figure>
       </div>
       <h3>Guest and transient moorage</h3>
-      <p>Indian Cove is a private, owner's marina rather than a public one. Owners without a long-term slip, registered occupants, and guests accompanied by their host owner are welcome to arrange short-term moorage through the Harbormaster or the amenity booking service in the <a href="https://app.condocontrol.com/login" target="_blank" rel="noopener">Owner Portal</a>, which is also where the arrival details and current requirements are kept.</p>
+      <p>Indian Cove is a private, owner's marina, and there is no public or visitor moorage. Owners without a long-term slip, registered occupants, and guests accompanied by their host owner are welcome to arrange short-term moorage through the Harbormaster or the amenity booking service in the <a href="https://app.condocontrol.com/login" target="_blank" rel="noopener">Owner Portal</a>, which is also where the arrival details and current requirements are kept.</p>
       <h3>About the marina</h3>
       <ul>
         <li>More than 100 slips from 20 to 55 feet, leased long-term by owners and passed along only to other owners.</li>
