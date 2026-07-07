@@ -415,7 +415,7 @@ AM = [
  ("picnic-shelters.html","Picnic Shelters","assets/img/amenities/picnic.jpg","Five picnic areas around the Pointe, from North Beach to the Spit."),
  ("trails.html","Trails","assets/img/amenities/trails.jpg","About 5.5 miles of marked trails through ravines and along the bluffs."),
  ("pea-patch.html","Pea Patch Garden","assets/img/amenities/pea-patch.jpg","A community garden started in 2006 by owners with a shared vision."),
- ("wildlife.html","Wildlife &amp; Habitat","assets/img/amenities/wildlife.jpg","Deer, eagles, raccoons and wildflowers, and how to coexist safely."),
+ ("wildlife.html","Wildlife &amp; Habitat","assets/img/amenities/wildlife.jpg","The deer, eagles, shorebirds and wildflowers that make their home alongside us."),
 ]
 cards = "".join(
  f'<a class="acard" href="{u}"><div class="ph" style="background-image:url(\'../{img}\')"></div>'
@@ -693,24 +693,17 @@ amenity("pea-patch.html","Pea Patch","Pea Patch Garden","assets/img/amenities/pe
   </div></div></section>""")
 
 amenity("wildlife.html","Wildlife","Wildlife &amp; Habitat","assets/img/amenities/wildlife.jpg",
- "Deer, eagles, raccoons and wildflowers, and how to share the Pointe safely.",
+ "The deer, eagles, shorebirds and wildflowers that make their home alongside us.",
  """  <section class="article"><div class="wrap"><div class="prose">
-    <div class="callout warn"><h4>Cougar awareness</h4><p>Cougars have been sighted on Pointe trails. Please be aware and keep your family safe: don't leave small children unattended and be sure they are indoors by dusk; don't feed wildlife or feral cats; close off spaces under porches and decks; feed pets indoors; keep dogs and cats in from dusk to dawn; and use garbage cans with tight-fitting lids. Predators follow prey.</p></div>
+    <p>One of the quiet joys of life at the Pointe is the company we keep. Black-tailed deer step through the greenbelt at first light, fawns curl into the tall grass by midsummer, bald eagles wheel over the water and nest in the high firs, and shorebirds work the beaches at every low tide. The forest and shoreline that surround us are a living habitat, and its residents were here long before we were. Watching them, quietly and from a respectful distance, is one of the simplest pleasures the community offers.</p>
 
-    <figure><img src="../assets/img/wildlife/sandpipers.jpg" alt="Sandpipers along the beach at Hartstene Pointe"><figcaption>Shorebirds gather along the beaches at low tide.</figcaption></figure>
-
-    <h2>Please do not feed the wildlife</h2>
-    <p>Feeding wildlife foods not found in their natural habitat can do more harm than good. Corn, apples and artificial feeds can disrupt an animal's gut microbes, which can lead to starvation when they can't absorb essential nutrients.</p>
     <figure><img src="../assets/img/wildlife/deer.jpg" alt="A deer at Hartstene Pointe"><figcaption>Black-tailed deer are a familiar sight throughout the Pointe.</figcaption></figure>
     <div class="figrow">
       <figure><img src="../assets/img/wildlife/fawns.jpg" alt="Two spotted fawns in the grass at Hartstene Pointe"><figcaption>Fawns in the greenbelt in early summer.</figcaption></figure>
       <figure><img src="../assets/img/wildlife/eagle.jpg" alt="A bald eagle perched in a shoreline tree"><figcaption>Bald eagles nest and hunt along the shoreline.</figcaption></figure>
       <figure><img src="../assets/img/wildlife/sea-star.jpg" alt="An orange sea star in a tide pool at low water"><figcaption>Sea stars and shellfish in the tide pools at low tide.</figcaption></figure>
     </div>
-
-    <h2>Raccoons &amp; health</h2>
-    <p>Raccoons in the United States are known to carry infectious diseases that can be transmitted to humans and animals through contact with the animals or their waste. People should not handle raccoons or their waste without protection and appropriate training. Anyone who has handled a raccoon, or been bitten, scratched or exposed to their waste, should consult a physician immediately.</p>
-    <figure><img src="../assets/img/wildlife/raccoon.jpg" alt="A raccoon at Hartstene Pointe"><figcaption>Please do not handle or feed raccoons.</figcaption></figure>
+    <figure><img src="../assets/img/wildlife/sandpipers.jpg" alt="Sandpipers along the beach at Hartstene Pointe"><figcaption>Shorebirds gather along the beaches at low tide.</figcaption></figure>
 
     <h2>The Pointe's wildflowers</h2>
     <p>The greenbelt does not feature an abundance of flowers, probably due to deer browsing, but we do have some:</p>
@@ -728,6 +721,13 @@ amenity("wildlife.html","Wildlife","Wildlife &amp; Habitat","assets/img/amenitie
       <figure><img src="../assets/img/wildlife/columbia-tiger-lily.jpg" alt="Columbia tiger lily"><figcaption>Columbia tiger lily</figcaption></figure>
       <figure><img src="../assets/img/wildlife/yellow-violets.jpg" alt="Yellow violets"><figcaption>Yellow violets</figcaption></figure>
     </div>
+
+    <h2>Living alongside our wildlife</h2>
+    <p>The Pointe is their home as much as ours, and a few small habits keep it healthy for everyone, wild and human alike.</p>
+    <p><strong>Please don't feed the wildlife.</strong> Foods that aren't part of an animal's natural diet, corn, apples, bread and store-bought feed, can upset its digestion and do real harm. A well-meant handout can leave an animal worse off than none at all, so it is kindest to let them forage as they are meant to.</p>
+    <p><strong>Give raccoons their space.</strong> Clever and endearing as they are, raccoons can carry diseases passed through contact with them or their waste. Enjoy them from a distance rather than handling them, and if you are ever bitten, scratched or exposed to their waste, check with a physician.</p>
+    <figure><img src="../assets/img/wildlife/raccoon.jpg" alt="A raccoon at Hartstene Pointe"><figcaption>Raccoons are best enjoyed from a distance.</figcaption></figure>
+    <div class="callout"><h4>A note on cougars</h4><p>Cougars are seen on the Pointe's trails from time to time. They are shy by nature and rarely a concern, but a few sensible precautions keep everyone comfortable: keep small children close and indoors by dusk, feed pets indoors and bring cats and dogs in from dusk to dawn, close off the spaces beneath porches and decks, and use garbage cans with tight-fitting lids. Because predators follow prey, not feeding the wildlife helps here too.</p></div>
   </div></div></section>""")
 
 # ============ VISITING (guest / renter rules) ============
