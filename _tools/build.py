@@ -312,7 +312,7 @@ page("governance/index.html", "Governance", "Governance",
 
       <h2>How it works in practice</h2>
       <p>Property owners elect a seven-member Board of Directors each June, with terms running three years, two or three seats come up for election each year. The Board elects its own officers: President, Vice-President, Secretary and Treasurer.</p>
-      <p>The Board meets twice a month, on the 2nd Thursday and the 3rd Saturday, and property owners are warmly encouraged to attend. The Saturday meeting is where business affecting all owners is conducted; owners are invited to bring their questions and views, and the Board carries the final decision.</p>
+      <p>The Board meets twice a month, on the 2nd Thursday and the 3rd Saturday. These meetings are open to property owners only, and not to the general public, guests, or prospective buyers. The Saturday meeting is where business affecting all property owners is conducted, and owners are urged to attend and participate. While owners are encouraged to present their views, the Board has the final decision-making authority.</p>
 
       <h2>The informal system</h2>
       <p>In addition to the formal system, the Pointe has a number of informal, ad-hoc committees, task forces, groups and individuals who are self-organizing and take on various roles within the community. These people are essential to foster the ongoing work and activities at the Pointe, and to inform the formal governance system on key issues.</p>
