@@ -622,7 +622,7 @@ amenity("outdoor-recreation.html","Outdoor Recreation","Outdoor Recreation","ass
 amenity("picnic-shelters.html","Picnic Shelters","Picnic Shelters","assets/img/amenities/picnic.jpg",
  "Facilities for picnics, gatherings, or just a spot to relax and enjoy nature.",
  """  <section class="article"><div class="wrap"><div class="prose">
-    <p>Enjoy our many facilities for picnics, gatherings, or just a spot to relax. Four of these areas have covered shelters with fireplaces: North Beach, the Marina, the Clubhouse gazebo, and north of the Spit tennis courts. Reservations for Hartstene Pointe facilities can be made on a non-exclusive basis through the amenity booking service in the <a href="https://app.condocontrol.com/login" target="_blank" rel="noopener">Owner Portal</a>, where you can check availability and reserve an open date.</p>
+    <p>Enjoy our many facilities for picnics, gatherings, or just a spot to relax. Four of these areas have covered shelters with fireplaces: North Beach, the Marina, the Clubhouse gazebo, and north of the Spit tennis courts. Reservations for Hartstene Pointe facilities can be made on a non-exclusive basis through the amenity booking service in the <a href="https://app.condocontrol.com/login" target="_blank" rel="noopener">Owner Portal</a>, where you can check availability and reserve an open date. Restrooms are available near all of the shelters.</p>
     <h2>North Beach</h2>
     <p>Our largest picnic area, with a covered fireplace, running water, propane barbeque, sink, stovetop, electrical outlet and picnic tables. Horseshoe pits, swings and restrooms are nearby.</p>
     <div class="figrow two">
