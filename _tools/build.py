@@ -507,7 +507,7 @@ amenity("marina.html","Marina","Marina","assets/img/amenities/marina.jpg",
       <p>Indian Cove is a private, owner's marina, and there is no public or visitor moorage. Owners without a long-term slip, registered occupants, and guests accompanied by their host owner are welcome to arrange short-term moorage through the Harbormaster or the amenity booking service in the <a href="https://app.condocontrol.com/login" target="_blank" rel="noopener">Owner Portal</a>, which is also where the arrival details and current requirements are kept.</p>
       <h3>About the marina</h3>
       <ul>
-        <li>More than 100 slips from 20 to 55 feet, leased long-term by owners and passed along only to other owners.</li>
+        <li>More than 100 slips from 20 to 55 feet. Slips are leased long-term and may be held or transferred only by Hartstene Pointe lot owners, you must own a lot at the Pointe to hold a slip.</li>
         <li>Tucked into a sheltered cove, gated and watched over by security cameras.</li>
       </ul>
       <p>Kayak and canoe rack storage and the community's two boat launches are separate from Indian Cove Marina. Those are covered on the <a href="boat-rv-storage.html">Boat &amp; RV Storage</a> page.</p>
