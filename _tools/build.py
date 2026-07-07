@@ -224,7 +224,7 @@ page("about/our-place.html", "Our Place", "Our Place",
     </ul>
     <p>There is much more nearby, from Hood Canal shellfish houses to the trails of the Olympics. See our <a href="../community/exploring-the-area.html">Exploring the Area</a> guide for favorites.</p>
 
-    <div class="callout warn"><h4>Be prepared</h4><p>Island living means being ready for weather, power outages and other events. The Association's Disaster Preparedness resources help owners plan ahead, see the emergency-preparedness materials in the office and on the <a href="../governance/committees.html">Committees</a> page.</p></div>
+    <div class="callout"><h4>Island-ready, together</h4><p>Part of the charm of island life is its self-reliance, and neighbors here look out for one another. The Association's Disaster Preparedness volunteers help the community stay ready for winter weather and the occasional power outage. You can learn more on the <a href="../governance/committees.html">Committees</a> page.</p></div>
   </div></div></section>""")
 
 page("about/history.html", "Our Stories &amp; History", "Our Stories &amp; History",
@@ -312,7 +312,7 @@ page("governance/index.html", "Governance", "Governance",
 
       <h2>How it works in practice</h2>
       <p>Property owners elect a seven-member Board of Directors each June, with terms running three years, two or three seats come up for election each year. The Board elects its own officers: President, Vice-President, Secretary and Treasurer.</p>
-      <p>The Board meets twice a month, on the 2nd Thursday and the 3rd Saturday. These meetings are open to property owners, not to the general public, guests, or prospective buyers. The Saturday meeting is where business affecting all property owners is conducted, and owners are urged to attend and participate. While owners are encouraged to present their views, the Board has the final decision-making authority.</p>
+      <p>The Board meets twice a month, on the 2nd Thursday and the 3rd Saturday, and property owners are warmly encouraged to attend. The Saturday meeting is where business affecting all owners is conducted; owners are invited to bring their questions and views, and the Board carries the final decision.</p>
 
       <h2>The informal system</h2>
       <p>In addition to the formal system, the Pointe has a number of informal, ad-hoc committees, task forces, groups and individuals who are self-organizing and take on various roles within the community. These people are essential to foster the ongoing work and activities at the Pointe, and to inform the formal governance system on key issues.</p>
@@ -470,14 +470,14 @@ amenity("pool-spa.html","Pool &amp; Spa","Pool &amp; Spa","assets/img/amenities/
  "A swimming pool and hot tub, steps from the Clubhouse, no reservation required.",
  """  <section class="article"><div class="wrap"><div class="split">
     <div class="prose">
-      <p>The pool and spa are located behind the Clubhouse and are open to residents and their guests from approximately Memorial Day until Labor Day. Entry is from the parking lot west of the Clubhouse. Please read the pool and spa regulations and sign in before using the facilities.</p>
-      <h3>Pool use considerations</h3>
+      <p>The pool and spa sit just behind the Clubhouse and are open to residents and their guests from around Memorial Day through Labor Day. Come in from the parking lot west of the Clubhouse, and sign in when you arrive.</p>
+      <h3>Good to know</h3>
       <ul>
-        <li>Children 12 and under must be accompanied by an adult at the pool.</li>
-        <li>Please observe posted quiet-swim and all-swim times.</li>
+        <li>Children 12 and under are welcome with an adult along.</li>
+        <li>Quiet-swim and all-swim times are posted at the pool.</li>
         <li>Bring your own towels and your keycard for entry.</li>
         <li>Equipment for the courts can be checked out at the pool.</li>
-        <li>No reservation required.</li>
+        <li>No reservation needed, just come on down.</li>
       </ul>
       <figure><img src="../assets/img/pages/aerial-clubhouse.jpg" alt="Aerial view of the pool, spa and Clubhouse"><figcaption>The pool and spa sit just behind the Clubhouse, with the courts nearby.</figcaption></figure>
       <figure><img src="../assets/img/pages/community-pool.jpg" alt="A summer day at the Hartstene Pointe pool"><figcaption>A summer afternoon at the pool.</figcaption></figure>
@@ -503,26 +503,12 @@ amenity("marina.html","Marina","Marina","assets/img/amenities/marina.jpg",
         <figure><img src="../assets/img/pages/marina-aerial.jpg" alt="Indian Cove Marina from above"><figcaption>Indian Cove Marina from above.</figcaption></figure>
         <figure><img src="../assets/img/pages/marina-twilight.jpg" alt="The marina at twilight"><figcaption>The docks at twilight.</figcaption></figure>
       </div>
-      <h3>Transient and guest moorage</h3>
-      <p>Transient and guest moorage is not open to the general public. There is no public or visitor moorage at Indian Cove. It is available only to:</p>
+      <h3>Guest and transient moorage</h3>
+      <p>Indian Cove is a private, owner's marina rather than a public one. Owners without a long-term slip, registered occupants, and guests accompanied by their host owner are welcome to arrange short-term moorage through the Harbormaster or the amenity booking service in the <a href="https://app.condocontrol.com/login" target="_blank" rel="noopener">Owner Portal</a>, which is also where the arrival details and current requirements are kept.</p>
+      <h3>About the marina</h3>
       <ul>
-        <li>Property owners who do not hold a long-term slip lease</li>
-        <li>Registered occupants, and</li>
-        <li>Guests, and only when the lot owner is present with them.</li>
-      </ul>
-      <p>A guest may not moor a boat unless accompanied by the lot owner. To arrange moorage, the property owner should contact the Harbormaster with the dates needed and the beam and length of the boat, or use the amenity booking service in the <a href="https://app.condocontrol.com/login" target="_blank" rel="noopener">Owner Portal</a>. Moorage is not available to renters.</p>
-      <h3>What is required on arrival</h3>
-      <ul>
-        <li>A completed Transient Guest Vessel Moorage Agreement, deposited where directed at the time of arrival. The form is in the blue mailbox at the base of the gangway.</li>
-        <li>The receipt included with the agreement must be posted and attached to the vessel on arrival.</li>
-        <li>Proof of insurance with a minimum of $300,000 liability, if requested by the Harbormaster.</li>
-        <li>Current boat registration aboard, with current registration decals applied to the boat.</li>
-      </ul>
-      <h3>Marina information</h3>
-      <ul>
-        <li>100+ slips from 20 to 55 feet in length; slips are fully leased.</li>
-        <li>Slips are leased long-term by owners, who may sublet or sell only to other property owners.</li>
-        <li>Seven security cameras are installed, four with infrared capability.</li>
+        <li>More than 100 slips from 20 to 55 feet, leased long-term by owners and passed along only to other owners.</li>
+        <li>Tucked into a sheltered cove, gated and watched over by security cameras.</li>
       </ul>
       <p>Kayak and canoe rack storage and the community's two boat launches are separate from Indian Cove Marina. Those are covered on the <a href="boat-rv-storage.html">Boat &amp; RV Storage</a> page.</p>
       <h2>A little history</h2>
@@ -557,11 +543,11 @@ amenity("fitness-center.html","Fitness Center","Fitness Center","assets/img/amen
  """  <section class="article"><div class="wrap"><div class="split">
     <div class="prose">
       <p>Enjoy our Fitness Center, located down a small road across the street from the Clubhouse, in the Maintenance Facility Building. Park at the Clubhouse and walk in. It is open 24 hours a day and a keycard is required for entry.</p>
-      <h3>Facility rules</h3>
+      <h3>Good to know</h3>
       <ul>
-        <li>The Fitness Center is for adult use; no unaccompanied children under 12.</li>
-        <li>Clean equipment <strong>before and after</strong> each use (cleansers and sanitizers are provided).</li>
-        <li>Sign in on the clipboard provided; normal Fitness Center rules apply.</li>
+        <li>The center is geared for adults; children under 12 should have a grown-up along.</li>
+        <li>A quick wipe-down of the equipment before and after use keeps it fresh for the next neighbor (cleansers and sanitizers are provided).</li>
+        <li>Sign in on the clipboard when you arrive.</li>
       </ul>
       <h3>Equipment</h3>
       <ul>
@@ -644,15 +630,12 @@ amenity("trails.html","Trails","Trails","assets/img/amenities/trails.jpg",
  """  <section class="article"><div class="wrap"><div class="split">
     <div class="prose">
       <p>Enjoy our trails, through the major ravines and along the east and west banks. Trail maps are available at the office for $3.00, and the trails are clearly marked with signage.</p>
-      <h3>Rules &amp; considerations</h3>
+      <h3>Before you set out</h3>
       <ul>
-        <li>Bank erosion is an ongoing problem. Guard rails alert you to dangerous areas, please stay on the trail.</li>
-        <li>Expect roots and loose rocks; bring water and, ideally, a companion on all hikes.</li>
-        <li>Mountain bikes are prohibited on our trails.</li>
-        <li>Dogs must be leashed on the trails.</li>
-        <li>No motor vehicle, bicycle or other self-propelled vehicle may be operated on any trail within Hartstene Pointe (per Article VI, Traffic Control, Section 5). A fine is associated with this violation.</li>
+        <li>The bluffs are actively eroding in places. Where you see a guard rail, it marks a spot to keep well back from, so please stay on the trail.</li>
+        <li>Expect roots and loose rock underfoot. Bring water, and a walking companion is always a good idea.</li>
+        <li>The trails are for walking, so please leave bikes and motorized vehicles off them, and keep dogs on leash.</li>
       </ul>
-      <p>It is your responsibility as a community member to inform your family and guests of these rules.</p>
 
       <h2>Featured trails</h2>
       <h3>West Bluff &amp; Nature Trail</h3>
@@ -697,7 +680,7 @@ amenity("wildlife.html","Wildlife","Wildlife &amp; Habitat","assets/img/amenitie
  """  <section class="article"><div class="wrap"><div class="prose">
     <p>One of the quiet joys of life at the Pointe is the company we keep. Black-tailed deer step through the greenbelt at first light, fawns curl into the tall grass by midsummer, bald eagles wheel over the water and nest in the high firs, and shorebirds work the beaches at every low tide. The forest and shoreline that surround us are a living habitat, and its residents were here long before we were. Watching them, quietly and from a respectful distance, is one of the simplest pleasures the community offers.</p>
 
-    <figure><img src="../assets/img/wildlife/deer.jpg" alt="A deer at Hartstene Pointe"><figcaption>Black-tailed deer are a familiar sight throughout the Pointe.</figcaption></figure>
+    <figure><img src="../assets/img/wildlife/doe.jpg" alt="A black-tailed doe and yearling in the golden light at Hartstene Pointe"><figcaption>Black-tailed deer are a familiar sight throughout the Pointe.</figcaption></figure>
     <div class="figrow">
       <figure><img src="../assets/img/wildlife/fawns.jpg" alt="Two spotted fawns in the grass at Hartstene Pointe"><figcaption>Fawns in the greenbelt in early summer.</figcaption></figure>
       <figure><img src="../assets/img/wildlife/eagle.jpg" alt="A bald eagle perched in a shoreline tree"><figcaption>Bald eagles nest and hunt along the shoreline.</figcaption></figure>
@@ -734,53 +717,33 @@ amenity("wildlife.html","Wildlife","Wildlife &amp; Habitat","assets/img/amenitie
 page("visiting/index.html", "Visiting the Pointe", "Visiting the Pointe",
      [home_link(), "Visiting"],
      herobg="assets/img/amenities/marina.jpg",
-     lede="Welcome to Hartstene Pointe. A few simple rules keep the Pointe safe, quiet and beautiful for everyone, residents, guests and wildlife alike.",
+     lede="Welcome to Hartstene Pointe. We're so glad you're here, and hope you have a wonderful stay.",
      body="""  <section class="article"><div class="wrap"><div class="prose">
-    <p>If you are staying at the Pointe as a guest or renter, your host has arranged access for you. Please treat this private community as the neighbors who live here do: with care and respect. Below is a short guide to the rules that matter most during your stay. They come from the Association's official <a href="../governance/documents.html">Rules &amp; Regulations</a>, which remain the authoritative source.</p>
+    <p>If you are staying with us as a guest or renter, your host has arranged everything you need. The Pointe is a quiet, wooded community wrapped in three and a half miles of private beach, and a little shared care keeps it that way for everyone, neighbors, guests and the deer and eagles alike. Here are a few friendly notes to help you settle in and make the most of your time here.</p>
 
-    <div class="callout warn"><h4>Please note</h4><p>Hartstene Pointe is private property. These rules apply to everyone on the Pointe, and violations may be subject to fines. When in doubt, ask your host.</p></div>
-
-    <h2>Safety and fire</h2>
+    <h2>Settling in</h2>
     <ul>
-      <li><strong>Speed limit is 15 mph</strong> throughout the Pointe, and it is strictly enforced. Watch for pedestrians, children, pets and wildlife.</li>
-      <li><strong>No smoking</strong> in any common areas, on the roads, or on the trails.</li>
-      <li><strong>No fireworks</strong> anywhere on the Pointe, at any time.</li>
-      <li><strong>No open fires</strong> except in the fire pits at the Spit and the fireplaces at the picnic shelters.</li>
-      <li><strong>No fires at all during a posted burn ban.</strong> Burn bans are posted as you enter the gate.</li>
-      <li>The discharge of weapons is prohibited.</li>
+      <li>Please take the roads at an easy <strong>15 mph</strong>. Children, dogs, deer and the occasional wandering fawn all share them.</li>
+      <li>Sound carries in the quiet of the forest, so evenings are for keeping things mellow and outside lights low.</li>
+      <li>There's room to park on the paved roads; please leave the grass, driveways and homes clear for your neighbors.</li>
     </ul>
 
-    <h2>Being a good neighbor</h2>
+    <h2>Enjoying the outdoors</h2>
     <ul>
-      <li>Do not block access to homes or driveways.</li>
-      <li>Turn off outside lights by 10 pm.</li>
-      <li>Keep noise down, especially after 10 pm. Sound carries in a quiet, wooded community.</li>
+      <li>Campfires are a treat at the Spit fire pits and the picnic-shelter fireplaces. When a burn ban is posted at the gate, we let the fires rest for a while.</li>
+      <li>For the comfort of others and the safety of the forest, the Pointe is happily smoke-free and firework-free.</li>
+      <li>Household garbage goes in the dumpsters just west of the Clubhouse.</li>
     </ul>
 
-    <h2>Parking</h2>
+    <h2>Four-legged and wild neighbors</h2>
     <ul>
-      <li>Park only on the paved portion of the roads. Please do not park on the grass.</li>
+      <li>Keep dogs on a leash and pick up after them; waste bags go in the trash bins or dumpsters.</li>
+      <li>Please don't feed the wildlife. It does them more harm than good, and they forage beautifully on their own. Our <a href="../amenities/wildlife.html">Wildlife &amp; Habitat</a> page introduces the animals you might meet.</li>
     </ul>
 
-    <h2>Pets</h2>
-    <ul>
-      <li>Keep dogs on a leash at all times.</li>
-      <li>Pick up after your dog. Dispose of waste bags in the designated trash bins or dumpsters, not in the restrooms or the picnic-shelter bins.</li>
-    </ul>
+    <div class="callout"><h4>Questions during your stay?</h4><p>Your host is the best first stop for anything about the home you're in and its amenities, and can reach the HPMA office whenever it's needed.</p></div>
 
-    <h2>Wildlife</h2>
-    <ul>
-      <li>Please do not feed the wildlife. It does them more harm than good. See our <a href="../amenities/wildlife.html">Wildlife &amp; Habitat</a> page to learn more.</li>
-    </ul>
-
-    <h2>Garbage</h2>
-    <ul>
-      <li>Use the dumpsters west of the Clubhouse for household garbage.</li>
-    </ul>
-
-    <div class="callout"><h4>Questions during your stay?</h4><p>Please contact your host first for routine questions about the home you are staying in and its amenities. Your host can reach the HPMA office if needed.</p></div>
-
-    <p style="margin-top:24px">Thank you for helping keep the Pointe a beautiful community. We hope you enjoy your stay.</p>
+    <p style="margin-top:24px">Thank you for treating the Pointe with the same care the neighbors here do. Relax, breathe the salt air, and enjoy every minute.</p>
   </div></div></section>""")
 
 # ============ COMMUNITY ============
