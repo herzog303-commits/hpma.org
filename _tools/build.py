@@ -160,7 +160,7 @@ def home_link(depth=1):
 # ============ ABOUT ============
 page("about/index.html", "About the Pointe", "About the Pointe",
      [home_link(), "About"],
-     herobg="assets/img/hero-marina.jpg",
+     herobg="assets/img/pages/olympics-firs.jpg",
      lede="A unique community on the northern tip of Harstine Island, set within a verdant forest and surrounded on three sides by the waters of Puget Sound.",
      body="""  <section class="article"><div class="wrap"><div class="split">
     <div class="prose">
