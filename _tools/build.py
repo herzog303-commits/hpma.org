@@ -409,7 +409,7 @@ AM = [
  ("clubhouse.html","Clubhouse","assets/img/amenities/clubhouse.jpg","6,000 sq. ft. of gathering space, a library, and the entrance to the pool."),
  ("pool-spa.html","Pool &amp; Spa","assets/img/amenities/pool.jpg","A swimming pool and hot tub with seasonal hours, steps from the Clubhouse."),
  ("marina.html","Marina","assets/img/amenities/marina.jpg","Indian Cove Marina, 110 slips, transient moorage, and two boat ramps."),
- ("boat-rv-storage.html","Boat &amp; RV Storage","assets/img/amenities/marina.jpg","On-site storage for boats, trailers, RVs, kayaks and canoes."),
+ ("boat-rv-storage.html","Boat &amp; RV Storage","assets/img/amenities/boat-rv-storage.jpg","On-site storage for boats, trailers, RVs, kayaks and canoes."),
  ("fitness-center.html","Fitness Center","assets/img/amenities/fitness.jpg","Open 24 hours with cardio machines, weights and more, gate card required."),
  ("outdoor-recreation.html","Outdoor Recreation","assets/img/amenities/recreation.jpg","Tennis, pickleball, basketball, playgrounds, horseshoes and fire pits."),
  ("picnic-shelters.html","Picnic Shelters","assets/img/amenities/picnic.jpg","Five picnic areas around the Pointe, from North Beach to the Spit."),
@@ -527,7 +527,7 @@ amenity("marina.html","Marina","Marina","assets/img/amenities/marina.jpg",
     </aside>
   </div></div></section>""")
 
-amenity("boat-rv-storage.html","Boat &amp; RV Storage","Boat &amp; RV Storage","assets/img/amenities/marina.jpg",
+amenity("boat-rv-storage.html","Boat &amp; RV Storage","Boat &amp; RV Storage","assets/img/amenities/boat-rv-storage.jpg",
  "On-site storage for boats, trailers, RVs, kayaks and canoes, available to all owners.",
  """  <section class="article"><div class="wrap"><div class="prose">
     <p>HPMA provides on-site storage areas for boats and trailers, RVs, utility trailers, kayaks and canoes for a fee. These amenities are available to all owners. Kayak and canoe racks are available at the marina and other locations. In addition, the community has two boat launches.</p>
