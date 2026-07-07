@@ -273,7 +273,7 @@ page("about/history.html", "Our Stories &amp; History", "Our Stories &amp; Histo
         <figure><img src="../assets/img/history/view-from-pointe-1970s.jpg" alt="1970s photograph looking out from Hartstene Pointe across the water to a wooded island"><figcaption>&ldquo;View from Pointe,&rdquo; from the brochure.</figcaption></figure>
         <figure><img src="../assets/img/history/picnic-area-1970s.jpg" alt="1970s photograph of one of the shoreline picnic areas at Hartstene Pointe"><figcaption>&ldquo;One of four picnic areas,&rdquo; in the 1970s.</figcaption></figure>
       </div>
-      <p>Even the crest at the top of this site traces back to that first brochure: the green shield with its mountain, moon and water was the mark Quadrant chose for Hartstene Pointe, and it has watched over the community ever since.</p>
+      <p>Even the crest at the top of this site traces back to that first brochure: the green shield with its mountain, sun and water was the mark Quadrant chose for Hartstene Pointe, and it has watched over the community ever since.</p>
 
       <h2>Contribute a story</h2>
       <p>We invite contributions of stories to enhance our history. Send them to the office via our <a href="../contact/">contact page</a>.</p>
