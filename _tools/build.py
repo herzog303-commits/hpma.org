@@ -392,9 +392,8 @@ DOCS = """  <section class="article"><div class="wrap"><div class="prose">
       <li><a href="../assets/docs/moorage-rules.pdf" target="_blank" rel="noopener"><span class="doc-ic">PDF</span>Moorage Rules &amp; Handbook<span class="doc-note">Current 5-21-2022</span></a></li>
     </ul>
 
-    <h2>Forms &amp; maps</h2>
+    <h2>Maps</h2>
     <ul class="doclist">
-      <li><a href="../assets/docs/facilities-use-application.pdf" target="_blank" rel="noopener"><span class="doc-ic">PDF</span>Facilities Use Application<span class="doc-note">Editable form</span></a></li>
       <li><a href="../assets/docs/trail-map.pdf" target="_blank" rel="noopener"><span class="doc-ic">PDF</span>Hartstene Pointe Trail Map</a></li>
     </ul>
 
@@ -402,7 +401,7 @@ DOCS = """  <section class="article"><div class="wrap"><div class="prose">
   </div></div></section>"""
 page("governance/documents.html", "Governing Documents", "Governing Documents",
      [home_link(), '<a href="index.html">Governance</a>', "Documents"],
-     lede="Articles, CC&amp;Rs, Bylaws, Rules &amp; Regulations, moorage documents, forms and maps.",
+     lede="Articles, CC&amp;Rs, Bylaws, Rules &amp; Regulations, moorage documents and maps.",
      body=DOCS)
 
 # ============ AMENITIES INDEX ============
