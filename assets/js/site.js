@@ -78,3 +78,84 @@
     else if (e.key === 'ArrowLeft') show(idx - 1);
   });
 })();
+
+/* site search (Pagefind). The index in /pagefind/ is built by the indexer —
+   see "Search" in the README. Assets load lazily on first use. */
+(function () {
+  var btns = document.querySelectorAll('.search-toggle');
+  if (!btns.length) return;
+  // Site root derived from this script's own URL, so it works at any page depth.
+  var root = document.currentScript && document.currentScript.src
+    ? document.currentScript.src.replace(/assets\/js\/site\.js.*$/, '')
+    : '/';
+  var modal = null;
+  var cssAdded = false;
+  var state = 'idle'; // idle -> loading -> ready; a failed load returns to idle so reopening retries
+
+  function close() {
+    modal.classList.remove('open');
+    document.documentElement.style.overflow = '';
+  }
+  function focusInput() {
+    var inp = modal.querySelector('.pagefind-ui__search-input');
+    if (inp) inp.focus();
+  }
+  function showError(show) {
+    modal.querySelector('.search-error').style.display = show ? 'block' : 'none';
+  }
+  function build() {
+    modal = document.createElement('div');
+    modal.className = 'search-modal';
+    modal.setAttribute('role', 'dialog');
+    modal.setAttribute('aria-modal', 'true');
+    modal.setAttribute('aria-label', 'Search this site');
+    modal.innerHTML =
+      '<div class="search-panel">' +
+      '<div class="search-head"><h2>Search Hartstene Pointe</h2>' +
+      '<button class="search-close" aria-label="Close search">&times;</button></div>' +
+      '<div class="search-body"><div id="pf-search"></div>' +
+      '<p class="search-error" style="display:none">Search isn&rsquo;t available right now. ' +
+      'Please try again later, or browse using the menu above.</p></div></div>';
+    document.body.appendChild(modal);
+    modal.querySelector('.search-close').addEventListener('click', close);
+    modal.addEventListener('click', function (e) { if (e.target === modal) close(); });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && modal.classList.contains('open')) close();
+    });
+  }
+  function load() {
+    state = 'loading';
+    if (!cssAdded) {
+      cssAdded = true;
+      var css = document.createElement('link');
+      css.rel = 'stylesheet';
+      css.href = root + 'pagefind/pagefind-ui.css';
+      document.head.appendChild(css);
+    }
+    function fail() {
+      state = 'idle'; // keep the mount intact; the next open retries the load
+      showError(true);
+    }
+    var js = document.createElement('script');
+    js.src = root + 'pagefind/pagefind-ui.js';
+    js.onload = function () {
+      try {
+        new PagefindUI({ element: '#pf-search', showImages: false, showSubResults: true, autofocus: true });
+        state = 'ready';
+      } catch (e) {
+        fail();
+      }
+    };
+    js.onerror = fail;
+    document.head.appendChild(js);
+  }
+  function open() {
+    if (!modal) build();
+    showError(false);
+    modal.classList.add('open');
+    document.documentElement.style.overflow = 'hidden';
+    if (state === 'idle') load();
+    else if (state === 'ready') focusInput();
+  }
+  Array.prototype.forEach.call(btns, function (b) { b.addEventListener('click', open); });
+})();

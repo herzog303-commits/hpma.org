@@ -78,15 +78,16 @@ HEAD = """<!DOCTYPE html>
     <img class="brand-mark" src="{p}assets/img/logo.png" alt="Hartstene Pointe crest" width="42" height="42">
     <span class="wm">HARTSTENE POINTE</span>
   </a>
+  <button class="search-toggle" aria-label="Search this site"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4.1-4.1"/></svg><span class="label">Search</span></button>
   <button class="nav-toggle" aria-label="Menu" aria-expanded="false"><span></span><span></span><span></span></button>
 {nav}
 </nav>
 
-<main id="main">
+<main id="main" data-pagefind-body>
   <header class="page-hero">
     <div class="bg" style="background-image:url('{p}{herobg}')"></div>
     <div class="wrap">
-      <nav class="crumbs">{crumbs}</nav>
+      <nav class="crumbs" data-pagefind-ignore>{crumbs}</nav>
       <h1>{h1}</h1>
       {lede}
     </div>

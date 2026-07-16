@@ -15,9 +15,10 @@ GitHub Pages (current plan) or any static host.
 /photos/                 Photo gallery (click-to-enlarge lightbox)
 /contact/                Contact information
 /404.html                Friendly "page not found"
+/pagefind/               GENERATED search index + search UI (see "Search" below)
 /assets/
    css/site.css          All styling (design system + components)
-   js/site.js            Mobile nav + gallery lightbox
+   js/site.js            Mobile nav + gallery lightbox + search overlay
    img/                  Images (hero, amenities, gallery, page images)
    docs/                 PDF documents (Bylaws, CC&Rs, maps, etc.)
 /_original-site/         ARCHIVE of the old hpma.org content (see note below)
@@ -53,6 +54,34 @@ The homepage "Good to know" section holds short, evergreen notes. Edit the
 Drop image files into `assets/img/gallery/` and add a matching `<a>…<img></a>`
 line to `photos/index.html` (or re-run the generator, which lists that folder
 automatically).
+
+## Search
+
+The site has full-text search powered by [Pagefind](https://pagefind.app/): the
+"Search" button in the header opens an overlay that searches every page. It is
+entirely client-side — the index is a set of static files in `/pagefind/`
+served from this repo, and queries never leave the visitor's browser. No
+third-party service, no account, no tracking.
+
+How it fits together:
+
+- Pages opt into the index with `data-pagefind-body` on `<main>` (set by the
+  generator and on `index.html`). Pages without it — the 404 page, the old-site
+  archive — are not indexed. Breadcrumbs carry `data-pagefind-ignore`.
+- The search overlay lives in `assets/js/site.js` and lazy-loads the Pagefind
+  assets the first time someone clicks Search.
+- The `/pagefind/` folder is **generated — don't edit it by hand.** A GitHub
+  Action (`.github/workflows/search-index.yml`) rebuilds and commits it
+  automatically whenever an `.html` file changes on `main`, so normally you
+  never have to think about it.
+
+To rebuild the index locally (e.g. to preview search before pushing) — the
+version is pinned to match the GitHub Action, keep the two in sync:
+
+```
+pip install "pagefind[bin]==1.5.2"     # one-time
+python -m pagefind --site .
+```
 
 ## Design
 
