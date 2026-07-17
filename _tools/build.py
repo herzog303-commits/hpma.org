@@ -294,6 +294,23 @@ page("about/history.html", "Our Stories &amp; History", "Our Stories &amp; Histo
   </div></div></section>""")
 
 # ============ GOVERNANCE ============
+# One canonical, public-facing list of committees, shared by the Governance
+# and Committees pages. It is a sampling of what the community offers, not a
+# roster — both lists end with "and more" on purpose.
+COMMITTEES = [
+    "Permit Review",
+    "Long Range Planning",
+    "Common Area Stewardship",
+    "Recreation",
+    "Moorage",
+    "Island House",
+    "Fire Safety",
+    "Disaster Preparedness",
+    "Pea Patch",
+]
+COMMITTEE_LIS = "\n        ".join(f"<li>{c}</li>" for c in COMMITTEES) \
+    + "\n        <li>&hellip; and more</li>"
+
 page("governance/index.html", "Governance", "Governance",
      [home_link(), "Governance"],
      lede="How decisions are made at the Pointe, and how owners take part in making them.",
@@ -321,19 +338,11 @@ page("governance/index.html", "Governance", "Governance",
     <aside class="aside">
       <h4>Board committees</h4>
       <ul>
-        <li>Long Range Planning</li>
-        <li>Permit Review</li>
-        <li>Natural Resources / Common Area Stewardship</li>
-        <li>Recreation</li>
-        <li>Moorage</li>
-        <li>Island House</li>
-        <li>Fire Safety</li>
-        <li>Emergency / Disaster Preparedness</li>
-        <li>Pea Patch</li>
+        {COMMITTEE_LIS}
       </ul>
       <p style="margin-top:14px"><a class="btn ghost" href="committees.html">About committees</a></p>
     </aside>
-  </div></div></section>""")
+  </div></div></section>""".replace("{COMMITTEE_LIS}", COMMITTEE_LIS))
 
 page("governance/committees.html", "Committees", "Committees",
      [home_link(), '<a href="index.html">Governance</a>', "Committees"],
@@ -352,15 +361,7 @@ page("governance/committees.html", "Committees", "Committees",
     <aside class="aside">
       <h4>Board advisory committees</h4>
       <ul>
-        <li>Permit Review</li>
-        <li>Common Area Stewardship</li>
-        <li>Disaster Preparedness</li>
-        <li>Long Range Planning</li>
-        <li>Fire Safety</li>
-        <li>Pea Patch</li>
-        <li>Island House</li>
-        <li>Moorage</li>
-        <li>Recreation</li>
+        {COMMITTEE_LIS}
       </ul>
       <h4 style="margin-top:20px">Ad-hoc examples</h4>
       <ul>
@@ -369,7 +370,7 @@ page("governance/committees.html", "Committees", "Committees",
         <li>&hellip; and others that come &amp; go</li>
       </ul>
     </aside>
-  </div></div></section>""")
+  </div></div></section>""".replace("{COMMITTEE_LIS}", COMMITTEE_LIS))
 
 DOCS = """  <section class="article"><div class="wrap"><div class="prose">
     <p>The documents that govern Hartstene Pointe are provided below as PDFs. <strong>CC&amp;Rs differ between plats</strong>, please refer to the document that applies to your property.</p>
