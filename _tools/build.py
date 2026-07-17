@@ -671,8 +671,8 @@ amenity("trails.html","Trails","Trails","assets/img/amenities/trails.jpg",
 amenity("pea-patch.html","Pea Patch","Pea Patch Garden","assets/img/amenities/pea-patch.jpg",
  "A community garden started in 2006 by owners with a shared vision.",
  """  <section class="article"><div class="wrap"><div class="prose">
-    <p>In 2006, several property owners had a vision to start a pea patch garden. They thought the horseshoe pit behind the tennis court near the Clubhouse would be sunny and was partially fenced.</p>
-    <p>The horseshoe pit was relocated to North Beach, fitting for a picnic area, and several owners held pancake breakfasts to raise funds for new fencing. About half the funds were raised that first spring; the remainder came from a $50 first-time fee and a yearly $25 fee, paying for the cedar-plank plot borders and the soil.</p>
+    <p>The Pea Patch began in 2006 with a handful of property owners and a shared vision: a community garden in the sunny, partially fenced clearing behind the tennis court near the Clubhouse, home at the time to the horseshoe pit.</p>
+    <p>The horseshoes found a fitting new home at the North Beach picnic area, and the gardeners set to work. Neighbors flipped pancakes at fundraising breakfasts to help pay for the new fencing, and the founding gardeners saw to the rest, laying out cedar-plank beds and filling them with good garden soil. That spirit carries on today: the garden is sustained by the annual dues of the owners who tend its plots, keeping the Pea Patch growing season after season.</p>
     <figure><img src="../assets/img/amenities/pea-patch.jpg" alt="The Pea Patch community garden"></figure>
     <div class="callout"><h4>A garden grown by volunteers</h4><p>The Pea Patch Committee, made up of owner volunteers, cares for the garden and its charter. For current owners, garden plots are arranged through the HPMA office.</p></div>
   </div></div></section>""")
