@@ -838,9 +838,10 @@ page("community/considering-the-pointe.html", "Considering the Pointe", "Conside
         <li>A swimming pool and spa, a fitness center, and courts for tennis, pickleball and basketball</li>
         <li>A playground and picnic areas</li>
         <li>5.5 miles of walking trails through the woods</li>
-        <li>A 110-slip marina and a boat launch</li>
+        <li>Two boat launches</li>
         <li>3.5 miles of private beach and common shoreline</li>
       </ul>
+      <p>A few amenities support themselves: the 110-slip marina and the Pea Patch garden are funded by the moorage assessments and plot dues of the owners who use them, at no cost to the wider Association.</p>
       <p>Assessment amounts are set each year by the Board. For current figures, and for any special assessments, contact the <a href="../contact/">HPMA office</a>.</p>
 
       <h2>Water and sewer</h2>
