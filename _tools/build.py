@@ -523,8 +523,8 @@ amenity("marina.html","Marina","Marina","assets/img/amenities/marina.jpg",
       <div class="info-row"><b>Email</b><span><a href="mailto:harbormaster@hpma.org">harbormaster@hpma.org</a></span></div>
       <h4 style="margin-top:20px">Reference</h4>
       <ul>
-        <li><a href="../assets/docs/moorage-rules.pdf" target="_blank" rel="noopener">Moorage Rules &amp; Handbook</a></li>
-        <li><a href="../assets/docs/moorage-agreement.pdf" target="_blank" rel="noopener">Moorage Agreement &amp; Declaration</a></li>
+        <li><a href="../assets/docs/moorage-rules.pdf" target="_blank" rel="noopener">Moorage Rules &amp; Handbook<span class="doc-tag">PDF</span></a></li>
+        <li><a href="../assets/docs/moorage-agreement.pdf" target="_blank" rel="noopener">Moorage Agreement &amp; Declaration<span class="doc-tag">PDF</span></a></li>
       </ul>
       <p style="margin-top:14px"><a class="btn" href="https://app.condocontrol.com/login" target="_blank" rel="noopener">Owner Portal &#8599;</a></p>
     </aside>
@@ -571,8 +571,8 @@ amenity("fitness-center.html","Fitness Center","Fitness Center","assets/img/amen
     <aside class="aside">
       <h4>Equipment manuals</h4>
       <ul>
-        <li><a href="../assets/docs/elliptical-trainer-manual.pdf" target="_blank" rel="noopener">Elliptical trainer manual</a></li>
-        <li><a href="../assets/docs/indoor-cycle-manual.pdf" target="_blank" rel="noopener">Indoor cycle manual</a></li>
+        <li><a href="../assets/docs/elliptical-trainer-manual.pdf" target="_blank" rel="noopener">Elliptical trainer manual<span class="doc-tag">PDF</span></a></li>
+        <li><a href="../assets/docs/indoor-cycle-manual.pdf" target="_blank" rel="noopener">Indoor cycle manual<span class="doc-tag">PDF</span></a></li>
       </ul>
       <h4 style="margin-top:20px">Recreation Committee</h4>
       <p>Owner volunteers on the Recreation Committee advise the Association on the fitness center and other recreation amenities.</p>
@@ -654,7 +654,7 @@ amenity("trails.html","Trails","Trails","assets/img/amenities/trails.jpg",
     <aside class="aside">
       <h4>Trail maps &amp; guides</h4>
       <ul>
-        <li><a href="../assets/docs/trail-map.pdf" target="_blank" rel="noopener">Hartstene Pointe Trail Map</a></li>
+        <li><a href="../assets/docs/trail-map.pdf" target="_blank" rel="noopener">Hartstene Pointe Trail Map<span class="doc-tag">PDF</span></a></li>
       </ul>
       <h4 style="margin-top:20px">The trail network</h4>
       <ul>
