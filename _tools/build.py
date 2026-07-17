@@ -607,7 +607,7 @@ amenity("outdoor-recreation.html","Outdoor Recreation","Outdoor Recreation","ass
     </div>
   </div></div></section>""")
 
-amenity("picnic-shelters.html","Picnic Shelters","Picnic Shelters","assets/img/amenities/picnic.jpg",
+amenity("picnic-shelters.html","Picnic Shelters","Picnic Shelters","assets/img/pages/spit-firepit.jpg",
  "Facilities for picnics, gatherings, or just a spot to relax and enjoy nature.",
  """  <section class="article"><div class="wrap"><div class="prose">
     <p>Enjoy our many facilities for picnics, gatherings, or just a spot to relax. The shelters and picnic areas are for residents and their invited guests. Four of these areas have covered shelters with fireplaces: North Beach, the Marina, the Clubhouse gazebo, and north of the Spit tennis courts. For current owners, shelters can be reserved through the amenity booking service in the <a href="https://app.condocontrol.com/login" target="_blank" rel="noopener">Owner Portal</a>; reservations are non-exclusive, so a reserved shelter remains available to other residents and their invited guests. Restrooms are available near all of the shelters.</p>
@@ -690,6 +690,13 @@ amenity("wildlife.html","Wildlife","Wildlife &amp; Habitat","assets/img/amenitie
       <figure><img src="../assets/img/wildlife/sea-star.jpg" alt="An orange sea star in a tide pool at low water"><figcaption>Sea stars and shellfish in the tide pools at low tide.</figcaption></figure>
     </div>
     <figure><img src="../assets/img/wildlife/sandpipers.jpg" alt="Sandpipers along the beach at Hartstene Pointe"><figcaption>Shorebirds gather along the beaches at low tide.</figcaption></figure>
+
+    <h2>Visitors from the Sound</h2>
+    <p>The water brings its own parade. Harbor seals haul out on the boom logs to warm themselves, and on a lucky day a pod of orcas passes through close enough to hear the blow before you spot the fin.</p>
+    <div class="figrow two">
+      <figure><img src="../assets/img/wildlife/orcas.jpg" alt="Two orcas surfacing close to the forested shoreline near Hartstene Pointe"><figcaption>Orcas passing the Pointe, close enough to hear the blow.</figcaption></figure>
+      <figure><img src="../assets/img/wildlife/seal.jpg" alt="A harbor seal hauled out on a boom log"><figcaption>A harbor seal warming itself on a boom log.</figcaption></figure>
+    </div>
 
     <h2>The Pointe's wildflowers</h2>
     <p>The greenbelt does not feature an abundance of flowers, probably due to deer browsing, but we do have some:</p>
@@ -851,7 +858,7 @@ page("community/considering-the-pointe.html", "Considering the Pointe", "Conside
       <p>To protect the wooded character of the Pointe, most changes to a property are reviewed by the Permit Review Committee, from new construction and additions to exterior painting and tree cutting. If you are buying with a project in mind, review the CC&amp;Rs that apply to your lot before you commit. The CC&amp;Rs differ between plats, so be sure you are reading the set for your property.</p>
 
       <h2>The marina</h2>
-      <p>Indian Cove Marina is an owner amenity. Slips are leased long-term by owners and may be sublet or sold only to other owners, and there is no public or transient moorage. If a slip matters to you, ask the office about current availability and the moorage waitlist. See the <a href="../amenities/marina.html">Marina</a> page for details.</p>
+      <p>Indian Cove Marina is an owner amenity, and there is no public or transient moorage. All slips are privately held: they are leased long-term and are bought, sold or sublet only among Hartstene Pointe lot owners, so owning a lot at the Pointe comes first. See the <a href="../amenities/marina.html">Marina</a> page for details.</p>
 
       <h2>If you plan to rent your home</h2>
       <p>Some owners rent their homes when they are away. Renters and their guests are expected to follow the community's Rules &amp; Regulations, summarized for visitors on the <a href="../visiting/">Visiting the Pointe</a> page. If rental income is part of your plans, review the current rules with the office first.</p>
