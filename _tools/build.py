@@ -356,7 +356,7 @@ page("governance/committees.html", "Committees", "Committees",
       <h2>Ad-hoc committees</h2>
       <p>Some committees are established by the Board for a limited time or purpose, and others simply emerge on their own. Examples have included a Roads Committee and a Bluff Erosion group, along with many groups that form for a certain purpose and then disband when it is achieved.</p>
 
-      <div class="callout"><h4>Get involved</h4><p>Interested in serving? Owners are always welcome. Contact the <a href="../contact/">HPMA office</a> to learn which committees are seeking volunteers.</p></div>
+      <div class="callout"><h4>A community of volunteers</h4><p>Every committee is staffed by owners who volunteer their time and expertise. For current owners, committee openings and ways to serve are posted in the <a href="https://app.condocontrol.com/login" target="_blank" rel="noopener">Owner Portal</a>.</p></div>
     </div>
     <aside class="aside">
       <h4>Board advisory committees</h4>
@@ -574,7 +574,7 @@ amenity("fitness-center.html","Fitness Center","Fitness Center","assets/img/amen
         <li><a href="../assets/docs/indoor-cycle-manual.pdf" target="_blank" rel="noopener">Indoor cycle manual</a></li>
       </ul>
       <h4 style="margin-top:20px">Recreation Committee</h4>
-      <p>Contact the <a href="../contact/">office</a> to get involved.</p>
+      <p>Owner volunteers on the Recreation Committee advise the Association on the fitness center and other recreation amenities.</p>
     </aside>
   </div></div></section>""")
 
@@ -674,7 +674,7 @@ amenity("pea-patch.html","Pea Patch","Pea Patch Garden","assets/img/amenities/pe
     <p>In 2006, several property owners had a vision to start a pea patch garden. They thought the horseshoe pit behind the tennis court near the Clubhouse would be sunny and was partially fenced.</p>
     <p>The horseshoe pit was relocated to North Beach, fitting for a picnic area, and several owners held pancake breakfasts to raise funds for new fencing. About half the funds were raised that first spring; the remainder came from a $50 first-time fee and a yearly $25 fee, paying for the cedar-plank plot borders and the soil.</p>
     <figure><img src="../assets/img/amenities/pea-patch.jpg" alt="The Pea Patch community garden"></figure>
-    <div class="callout"><h4>Pea Patch questions</h4><p>Email <a href="mailto:office@hpma.org">office@hpma.org</a>. The Pea Patch Committee maintains the garden and its charter and plot agreement.</p></div>
+    <div class="callout"><h4>A garden grown by volunteers</h4><p>The Pea Patch Committee, made up of owner volunteers, cares for the garden and its charter. For current owners, garden plots are arranged through the HPMA office.</p></div>
   </div></div></section>""")
 
 amenity("wildlife.html","Wildlife","Wildlife &amp; Habitat","assets/img/amenities/wildlife.jpg",
