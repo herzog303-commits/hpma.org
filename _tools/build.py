@@ -835,8 +835,7 @@ page("community/considering-the-pointe.html", "Considering the Pointe", "Conside
       <p>Annual assessments paid by owners maintain the private roads, the gated entrance and patrol, and the common greenbelt and beaches, and they fund the shared amenities that make the Pointe what it is:</p>
       <ul>
         <li>A 6,000-square-foot Clubhouse with a library</li>
-        <li>A swimming pool and spa</li>
-        <li>Three tennis courts, a pickleball court and a basketball court</li>
+        <li>A swimming pool and spa, a fitness center, and courts for tennis, pickleball and basketball</li>
         <li>A playground and picnic areas</li>
         <li>5.5 miles of walking trails through the woods</li>
         <li>A 110-slip marina and a boat launch</li>
