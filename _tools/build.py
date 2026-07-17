@@ -517,7 +517,7 @@ amenity("marina.html","Marina","Marina","assets/img/amenities/marina.jpg",
     </div>
     <aside class="aside">
       <h4>Harbormaster</h4>
-      <div class="info-row"><b>Tammy Thomas</b><span><a href="tel:+13602293137">(360) 229-3137</a></span></div>
+      <div class="info-row"><b>Phone</b><span><a href="tel:+13602293137">(360) 229-3137</a></span></div>
       <div class="info-row"><b>Email</b><span><a href="mailto:harbormaster@hpma.org">harbormaster@hpma.org</a></span></div>
       <h4 style="margin-top:20px">Reference</h4>
       <ul>
@@ -902,7 +902,7 @@ page("contact/index.html", "Contact", "Contact",
       </div>
       <div class="contact-card">
         <h3>Marina &amp; other contacts</h3>
-        <div class="line"><b>Harbormaster</b><span>Tammy Thomas<br><a href="tel:+13602293137">(360) 229-3137</a><br><a href="mailto:harbormaster@hpma.org">harbormaster@hpma.org</a></span></div>
+        <div class="line"><b>Harbormaster</b><span><a href="tel:+13602293137">(360) 229-3137</a><br><a href="mailto:harbormaster@hpma.org">harbormaster@hpma.org</a></span></div>
         <div class="line"><b>Water &amp; Sewer</b><span>Hartstene Pointe Water-Sewer District<br><a href="tel:+13604272413">(360) 427-2413</a> &middot; <a href="mailto:acct@hpwsd.org">acct@hpwsd.org</a><br><a href="https://www.hpwsd.org/" target="_blank" rel="noopener">hpwsd.org &#8599;</a></span></div>
         <div class="line"><b>Owner Portal</b><span>Pay dues &amp; manage your account<br><a href="https://app.condocontrol.com/login" target="_blank" rel="noopener">Sign in to Condo Control &#8599;</a></span></div>
       </div>
