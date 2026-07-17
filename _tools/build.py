@@ -44,6 +44,7 @@ NAV = """  <ul class="nav-menu">
     </li>
     <li><a href="{p}visiting/">Visiting</a></li>
     <li><a href="{p}photos/">Photos</a></li>
+    <li class="nav-search"><button class="search-toggle" aria-label="Search this site"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4.1-4.1"/></svg><span class="label">Search</span></button></li>
     <li><a href="https://app.condocontrol.com/login" class="portal" target="_blank" rel="noopener">Owner Portal</a></li>
   </ul>"""
 
