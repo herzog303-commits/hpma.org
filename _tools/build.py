@@ -299,14 +299,14 @@ page("about/history.html", "Our Stories &amp; History", "Our Stories &amp; Histo
 # roster — both lists end with "and more" on purpose.
 COMMITTEES = [
     "Permit Review",
-    "Long Range Planning",
     "Common Area Stewardship",
-    "Recreation",
-    "Moorage",
-    "Island House",
-    "Fire Safety",
     "Disaster Preparedness",
+    "Long Range Planning",
+    "Fire Safety",
     "Pea Patch",
+    "Island House",
+    "Moorage",
+    "Recreation",
 ]
 COMMITTEE_LIS = "\n        ".join(f"<li>{c}</li>" for c in COMMITTEES) \
     + "\n        <li>&hellip; and more</li>"
