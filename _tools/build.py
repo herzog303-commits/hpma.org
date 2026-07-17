@@ -201,12 +201,12 @@ page("about/our-place.html", "Our Place", "Our Place",
      lede="Where we are, how the island came to be, and what it's like to live at the Pointe.",
      body="""  <section class="article"><div class="wrap"><div class="prose">
     <h2>Harstine Island</h2>
-    <p>Harstine Island, approximately ten miles long and three miles wide, is located at the southern end of Puget Sound, 18 miles away from the nearest town, Shelton. The island is accessible by a bridge from Highway 3 that links Shelton to Bremerton. Stories exist to explain the several spellings of Harstine / Hartstene.</p>
+    <p>Harstine Island, approximately ten miles long and three miles wide, is located at the southern end of Puget Sound, 18 miles away from the nearest town, Shelton. The island is accessible by a bridge from Highway 3 that links Shelton to Bremerton. The island's name has worn several spellings over the years, Harstine and Hartstene among them, and more than one story explains why.</p>
     <p>Lured by the quiet beauty and low cost of land, early settlers farmed, logged, planted orchards, and gathered clams and oysters from the sea. The settlers built schools and stores, and in 1914 volunteers erected the Community Hall, which is still actively used today. Electricity and telephone were not available on the island until 1947. A ferry provided transportation across the passage until 1969, when a bridge was built connecting the island to the mainland.</p>
 
     <h2>Hartstene Pointe</h2>
     <p>In 1970 Weyerhaeuser established Hartstene Pointe as a not-for-profit corporation. Located on the northern tip of the island, it is an unincorporated community of 532 home sites, surrounded by common green-belt property. While Hartstene Pointe was originally planned to be a recreational community, a significant share of the homes serve as primary residences today.</p>
-    <p>The Pointe employs a full-time Manager, office, patrol and maintenance staff, and is governed by a seven-member Board of Directors elected by the property owners. The Board functions under the Covenants, Conditions and Restrictions (CC&amp;Rs). All development at the Pointe, including new construction, additions, exterior maintenance and painting, and tree cutting, is closely regulated by the Permit Review Committee.</p>
+    <p>The Pointe employs a full-time Manager, office, patrol and maintenance staff, and is governed by a seven-member Board of Directors elected by the property owners. The Board functions under the Covenants, Conditions and Restrictions (CC&amp;Rs). To protect the wooded character of the Pointe, all development, including new construction, additions, exterior maintenance and painting, and tree cutting, is reviewed by the Permit Review Committee.</p>
     <p>There is a 6,000-square-foot Clubhouse with a library, a swimming pool and spa, three tennis courts, a basketball court, a playground, a pickleball court, 5.5 miles of walking trails, a 110-slip marina, a boat launch, picnic areas and 3.5 miles of beach. The community remains heavily wooded with Douglas fir, hemlock, cedar, madrona and maple, and is home to deer, raccoons and many birds, with bald eagles sighted along the water's edge.</p>
 
     <h2>Where are we?</h2>
@@ -317,24 +317,24 @@ page("governance/index.html", "Governance", "Governance",
      lede="How decisions are made at the Pointe, and how owners take part in making them.",
      body="""  <section class="article"><div class="wrap"><div class="split">
     <div class="prose">
-      <p>Simply put, <em>governance</em> means the process of decision-making and the process by which decisions are implemented. It includes the formal and informal actors involved in making and carrying out decisions, and the structures set in place to arrive at and implement them.</p>
+      <p>Simply put, <em>governance</em> is how decisions get made at the Pointe, and how they get carried out. It takes in the people, formal and informal alike, who shape those decisions, and the structures the community has set up to see them through.</p>
 
       <h2>Our formal structure</h2>
-      <p>HPMA is governed as stated in our governing documents:</p>
+      <p>Four documents, together, set the framework for life at the Pointe:</p>
       <ul>
         <li>Articles of Incorporation</li>
         <li>CC&amp;Rs (Covenants, Conditions &amp; Restrictions)</li>
         <li>Bylaws</li>
         <li>Rules &amp; Regulations</li>
       </ul>
-      <p>You can read all of these on the <a href="documents.html">Governing Documents</a> page. The Board has also established several committees in the Bylaws; these committees advise the Board but are not delegated Board authority.</p>
+      <p>You can read all of these on the <a href="documents.html">Governing Documents</a> page. The Board has also established several committees in the Bylaws; these committees advise the Board, though decisions remain the Board's to make.</p>
 
       <h2>How it works in practice</h2>
-      <p>Property owners elect a seven-member Board of Directors each June, with terms running three years, two or three seats come up for election each year. The Board elects its own officers: President, Vice-President, Secretary and Treasurer.</p>
+      <p>Property owners elect a seven-member Board of Directors each June; terms run three years, so two or three seats come up for election in any given year. The Board elects its own officers: President, Vice-President, Secretary and Treasurer.</p>
       <p>The Board meets twice a month, on the 2nd Thursday and the 3rd Saturday. These meetings are open to property owners only, and not to the general public, guests, or prospective buyers. The Saturday meeting is where business affecting all property owners is conducted, and owners are urged to attend and participate. While owners are encouraged to present their views, the Board has the final decision-making authority.</p>
 
       <h2>The informal system</h2>
-      <p>In addition to the formal system, the Pointe has a number of informal, ad-hoc committees, task forces, groups and individuals who are self-organizing and take on various roles within the community. These people are essential to foster the ongoing work and activities at the Pointe, and to inform the formal governance system on key issues.</p>
+      <p>In addition to the formal system, the Pointe has a number of informal, ad-hoc committees, task forces, groups and individuals who are self-organizing and take on various roles within the community. These neighbors carry much of the Pointe's ongoing work and activity, and their voices keep the Board informed on the issues that matter.</p>
     </div>
     <aside class="aside">
       <h4>Board committees</h4>
@@ -351,8 +351,8 @@ page("governance/committees.html", "Committees", "Committees",
      body="""  <section class="article"><div class="wrap"><div class="split">
     <div class="prose">
       <h2>The role of committees</h2>
-      <p>Many people at the Pointe volunteer to serve on committees to help the community in various ways. Our Bylaws make provision for the Board to appoint advisory committees, sometimes called Standing Committees, which are expected to operate for an extended period with ongoing responsibilities and charges from the Board.</p>
-      <p>The Bylaws set out, for all committees, their operating procedures, authority and duration; and for each committee, its membership requirements and scope of responsibility.</p>
+      <p>Many people at the Pointe volunteer to serve on committees to help the community in various ways. Our Bylaws let the Board appoint advisory committees, often called Standing Committees, that serve for the long haul with ongoing responsibilities and charges from the Board.</p>
+      <p>The Bylaws describe how each committee works, who serves on it, what it looks after, and how long it runs, so volunteers always know the shape of the job they are taking on.</p>
 
       <h2>Ad-hoc committees</h2>
       <p>Some committees are established by the Board for a limited time or purpose, and others simply emerge on their own. Examples have included a Roads Committee and a Bluff Erosion group, along with many groups that form for a certain purpose and then disband when it is achieved.</p>
@@ -411,7 +411,7 @@ page("governance/documents.html", "Governing Documents", "Governing Documents",
 AM = [
  ("clubhouse.html","Clubhouse","assets/img/amenities/clubhouse.jpg","6,000 sq. ft. of gathering space, a library, and the entrance to the pool."),
  ("pool-spa.html","Pool &amp; Spa","assets/img/amenities/pool.jpg","A swimming pool and hot tub with seasonal hours, steps from the Clubhouse."),
- ("marina.html","Marina","assets/img/amenities/marina.jpg","Indian Cove Marina, 110 slips, transient moorage, and two boat ramps."),
+ ("marina.html","Marina","assets/img/amenities/marina.jpg","Indian Cove Marina, 110 slips in a sheltered cove, with short-term moorage for owners and their guests."),
  ("boat-rv-storage.html","Boat &amp; RV Storage","assets/img/amenities/boat-rv-storage.jpg","On-site storage for boats, trailers, RVs, kayaks and canoes."),
  ("fitness-center.html","Fitness Center","assets/img/amenities/fitness.jpg","Open 24 hours with cardio machines, weights and more, gate card required."),
  ("outdoor-recreation.html","Outdoor Recreation","assets/img/amenities/recreation.jpg","Tennis, pickleball, basketball, playgrounds, horseshoes and fire pits."),
@@ -426,7 +426,7 @@ cards = "".join(
  for (u,t,img,d) in AM)
 page("amenities/index.html", "Amenities", "Amenities",
      [home_link(), "Amenities"],
-     lede="HPMA is fortunate to have a wide range of amenities available to property owners. The General Manager oversees their maintenance, with advice from the Recreation, Moorage and Common Area Stewardship committees.",
+     lede="The Pointe is fortunate to have a wide range of amenities for owners and their guests to enjoy, cared for by the General Manager and staff with advice from the Recreation, Moorage and Common Area Stewardship committees.",
      body=f'  <section class="article"><div class="wrap"><div class="grid-3">\n{cards}  </div></div></section>')
 
 # ============ AMENITY SUB-PAGES ============
@@ -453,7 +453,7 @@ amenity("clubhouse.html","Clubhouse","Clubhouse","assets/img/amenities/clubhouse
         <li>Comfortable easy chairs for relaxing</li>
         <li>Free Wi-Fi</li>
       </ul>
-      <p style="font-size:14px;color:var(--rock)">Children 12 and under must be accompanied by an adult.</p>
+      <p style="font-size:14px;color:var(--rock)">Children 12 and under are welcome with an adult along.</p>
       <h2>The Library</h2>
       <p>The Library is full of great reads, ranging from children's books and non-fiction to magazines and classic novels. All books are donated and may be checked out by all Pointe residents and their guests on an honor system. There are also games, puzzles and DVD and VCR movies. A team of volunteers maintains the Library for the benefit of the community.</p>
       <figure><img src="../assets/img/pages/library.jpg" alt="The library inside the Hartstene Pointe Clubhouse"><figcaption>The community library, maintained by resident volunteers.</figcaption></figure>
@@ -514,7 +514,7 @@ amenity("marina.html","Marina","Marina","assets/img/amenities/marina.jpg",
       </ul>
       <p>Kayak and canoe rack storage and the community's two boat launches are separate from Indian Cove Marina. Those are covered on the <a href="boat-rv-storage.html">Boat &amp; RV Storage</a> page.</p>
       <h2>A little history</h2>
-      <p>When Quadrant developed Hartstene Pointe in the 1970s, many buyers believed they were promised a marina. A settlement led to a 20-slip marina. Years later, 100 property owners funded ($400,000) the current 110-slip marina. Under the agreement with HPMA, leaseholders maintain the marina's operation at no cost to HPMA, and the annual moorage assessments support maintenance, insurance, office assistance, the Harbormaster and the Washington State shoreline lease, with residual funds set aside for future dredging and major repairs.</p>
+      <p>When Quadrant developed Hartstene Pointe in the 1970s, many buyers believed they were promised a marina. A settlement led to a 20-slip marina. Years later, 100 property owners funded the current 110-slip marina themselves, a $400,000 investment in the community. Under the agreement with HPMA, the leaseholders keep the marina running at no cost to the wider Association: annual moorage assessments support its upkeep, insurance, the Harbormaster and the Washington State shoreline lease, with funds set aside for future dredging and major repairs.</p>
     </div>
     <aside class="aside">
       <h4>Harbormaster</h4>
@@ -532,7 +532,7 @@ amenity("marina.html","Marina","Marina","assets/img/amenities/marina.jpg",
 amenity("boat-rv-storage.html","Boat &amp; RV Storage","Boat &amp; RV Storage","assets/img/amenities/boat-rv-storage.jpg",
  "On-site storage for boats, trailers, RVs, kayaks and canoes, available to all owners.",
  """  <section class="article"><div class="wrap"><div class="prose">
-    <p>HPMA provides on-site storage areas for boats and trailers, RVs, utility trailers, kayaks and canoes for a fee. These amenities are available to all owners. Kayak and canoe racks are available at the marina and other locations. In addition, the community has two boat launches.</p>
+    <p>The Pointe offers on-site storage for boats and trailers, RVs, utility trailers, kayaks and canoes, available to all owners. Kayak and canoe racks are found at the marina and other locations, and the community has two boat launches.</p>
     <h2>Lagoon Ramp</h2>
     <p>This ramp has a dock and is located in the lagoon at the east end, accessed by the road off Chesapeake that goes to the spit. It is only for smaller boats (under about 25 feet) and can only be used at high tide. When entering or exiting the lagoon, keep to the outside, there is a sand bar in the middle.</p>
     <h2>Case Inlet Ramp</h2>
@@ -609,7 +609,7 @@ amenity("outdoor-recreation.html","Outdoor Recreation","Outdoor Recreation","ass
 amenity("picnic-shelters.html","Picnic Shelters","Picnic Shelters","assets/img/amenities/picnic.jpg",
  "Facilities for picnics, gatherings, or just a spot to relax and enjoy nature.",
  """  <section class="article"><div class="wrap"><div class="prose">
-    <p>Enjoy our many facilities for picnics, gatherings, or just a spot to relax. Four of these areas have covered shelters with fireplaces: North Beach, the Marina, the Clubhouse gazebo, and north of the Spit tennis courts. Reservations for Hartstene Pointe facilities can be made on a non-exclusive basis through the amenity booking service in the <a href="https://app.condocontrol.com/login" target="_blank" rel="noopener">Owner Portal</a>, where you can check availability and reserve an open date. Restrooms are available near all of the shelters.</p>
+    <p>Enjoy our many facilities for picnics, gatherings, or just a spot to relax. Four of these areas have covered shelters with fireplaces: North Beach, the Marina, the Clubhouse gazebo, and north of the Spit tennis courts. For current owners, shelters can be reserved through the amenity booking service in the <a href="https://app.condocontrol.com/login" target="_blank" rel="noopener">Owner Portal</a>; reservations are non-exclusive, so the shelters always stay open to neighbors as well. Restrooms are available near all of the shelters.</p>
     <h2>North Beach</h2>
     <p>Our largest picnic area, with a covered fireplace, running water, propane barbeque, sink, stovetop, electrical outlet and picnic tables. Horseshoe pits, swings and restrooms are nearby.</p>
     <div class="figrow two">
@@ -631,7 +631,7 @@ amenity("trails.html","Trails","Trails","assets/img/amenities/trails.jpg",
  "About 5.5 miles of marked trails through the major ravines and along the east and west banks.",
  """  <section class="article"><div class="wrap"><div class="split">
     <div class="prose">
-      <p>Enjoy our trails, through the major ravines and along the east and west banks. Trail maps are available at the office for $3.00, and the trails are clearly marked with signage.</p>
+      <p>Enjoy our trails, through the major ravines and along the east and west banks. Trail maps are available at the office, and the trails are clearly marked with signage.</p>
       <h3>Before you set out</h3>
       <ul>
         <li>The bluffs are actively eroding in places. Where you see a guard rail, it marks a spot to keep well back from, so please stay on the trail.</li>
@@ -753,10 +753,10 @@ page("community/index.html", "Community", "Community",
      [home_link(), "Community"],
      lede="A place to be part of something, or simply to be by yourself and enjoy the natural world.",
      body="""  <section class="article"><div class="wrap"><div class="prose">
-    <p>Hartstene Pointe is a community, but also a place where people can be by themselves and enjoy the natural environment. No one is pressured to engage in community activities, but at the same time, the community welcomes people to join together to participate in activities and governance. It's your choice.</p>
+    <p>Hartstene Pointe is a community, but also a place where people can be by themselves and enjoy the natural environment. No one is pressured to take part, and everyone is welcome to: neighbors join together in activities and governance as much, or as little, as suits them. It's your choice.</p>
 
     <h2>Take part in governance</h2>
-    <p>Many people at the Pointe volunteer to join the Board of Directors, Board committees or ad-hoc committees, or simply lend their voice to governance issues. We encourage owners to do this, we are all owners and stewards of the Pointe, with a responsibility to contribute our thoughts and work for the betterment of our community. Learn more on the <a href="../governance/">Governance</a> and <a href="../governance/committees.html">Committees</a> pages.</p>
+    <p>Many people at the Pointe volunteer to join the Board of Directors, Board committees or ad-hoc committees, or simply lend their voice to governance issues. We encourage owners to do this: we are all stewards of the Pointe, and the community is better for every voice and helping hand. Learn more on the <a href="../governance/">Governance</a> and <a href="../governance/committees.html">Committees</a> pages.</p>
 
     <h2>Activities at the Pointe</h2>
     <p>Most activities are initiated and organized by volunteers or ad-hoc groups. Participating in social and recreational activities is an excellent way to connect with your neighbors, no pressure, no expectations, just do what is comfortable for you.</p>
