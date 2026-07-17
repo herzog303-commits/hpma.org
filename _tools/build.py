@@ -453,7 +453,7 @@ amenity("clubhouse.html","Clubhouse","Clubhouse","assets/img/amenities/clubhouse
         <li>Comfortable easy chairs for relaxing</li>
         <li>Free Wi-Fi</li>
       </ul>
-      <p style="font-size:14px;color:var(--rock)">Children 12 and under are welcome with an adult along.</p>
+      <p style="font-size:14px;color:var(--rock)">Children 12 and under must be supervised by an adult.</p>
       <h2>The Library</h2>
       <p>The Library is full of great reads, ranging from children's books and non-fiction to magazines and classic novels. All books are donated and may be checked out by all Pointe residents and their guests on an honor system. There are also games, puzzles and DVD and VCR movies. A team of volunteers maintains the Library for the benefit of the community.</p>
       <figure><img src="../assets/img/pages/library.jpg" alt="The library inside the Hartstene Pointe Clubhouse"><figcaption>The community library, maintained by resident volunteers.</figcaption></figure>
@@ -476,7 +476,8 @@ amenity("pool-spa.html","Pool &amp; Spa","Pool &amp; Spa","assets/img/amenities/
       <p>The pool and spa sit just behind the Clubhouse and are open to residents and their guests from around Memorial Day through Labor Day. Come in from the parking lot west of the Clubhouse, and sign in when you arrive.</p>
       <h3>Good to know</h3>
       <ul>
-        <li>Children 12 and under are welcome with an adult along.</li>
+        <li>There is no lifeguard on duty; everyone swims at their own risk.</li>
+        <li>Children 12 and under must be supervised by an adult.</li>
         <li>Quiet-swim and all-swim times are posted at the pool.</li>
         <li>Bring your own towels and your keycard for entry.</li>
         <li>Equipment for the courts can be checked out at the pool.</li>
@@ -547,7 +548,7 @@ amenity("fitness-center.html","Fitness Center","Fitness Center","assets/img/amen
       <p>Enjoy our Fitness Center, located down a small road across the street from the Clubhouse, in the Maintenance Facility Building. Park at the Clubhouse and walk in. It is open 24 hours a day and a keycard is required for entry.</p>
       <h3>Good to know</h3>
       <ul>
-        <li>The center is geared for adults; children under 12 should have a grown-up along.</li>
+        <li>The center is geared for adults; children 12 and under must be supervised by an adult.</li>
         <li>A quick wipe-down of the equipment before and after use keeps it fresh for the next neighbor (cleansers and sanitizers are provided).</li>
         <li>Sign in on the clipboard when you arrive.</li>
       </ul>
@@ -594,7 +595,7 @@ amenity("outdoor-recreation.html","Outdoor Recreation","Outdoor Recreation","ass
     <p style="font-size:14px;color:var(--rock)">Equipment for the tennis, pickleball and basketball courts can be checked out at the pool.</p>
 
     <h3>Play structure</h3>
-    <p>A play structure for small children is located behind the Clubhouse gazebo, next to the pool. Adult supervision is required.</p>
+    <p>A play structure for small children is located behind the Clubhouse gazebo, next to the pool. Children must be supervised by an adult.</p>
 
     <h3>Fire pits at the Spit</h3>
     <p>Fire pits and charcoal barbecues are available at the Spit, along with some chairs and picnic tables. Bring your own firewood, and be sure it fits inside the fire rings. Extinguish all fires when you leave, using the red buckets provided.</p>
