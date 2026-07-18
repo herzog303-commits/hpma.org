@@ -763,7 +763,7 @@ page("visiting/index.html", "Visiting the Pointe", "Visiting the Pointe",
     <h2>Enjoying the outdoors</h2>
     <ul>
       <li>Campfires are permitted only at the Spit fire pits and the picnic-shelter fireplaces. When a burn ban is posted at the gate, no fires are permitted.</li>
-      <li>For the comfort of others and the safety of the forest, the Pointe is happily smoke-free and firework-free.</li>
+      <li>For the comfort of others and the safety of the forest, all common spaces at the Pointe, including the roads, trails, beaches, parks and other shared areas, are smoke-free and firework-free.</li>
       <li>Household garbage goes in the dumpsters just west of the Clubhouse.</li>
     </ul>
 
