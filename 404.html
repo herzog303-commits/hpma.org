@@ -25,5 +25,33 @@
     <a class="btn" href="/index.html">Return home</a>
   </div>
 </div>
+<script>
+/* Send links from the old hpma.org (PHP-era URLs) to their new homes. */
+(function () {
+  var map = {
+    "15f99046a4e2cc": "/amenities/picnic-shelters.html",
+    "16010c616bf804": "/amenities/trails.html",
+    "164bcab86f3612": "/amenities/marina.html",
+    "25f9903fee2954": "/amenities/",
+    "25f9904c0ecae2": "/amenities/wildlife.html",
+    "263e34d730d293": "/governance/documents.html",
+    "363e34ccc2141b": "/about/history.html",
+    "85f99048767abc": "/amenities/pea-patch.html",
+    "85f9904a69fe9b": "/amenities/pool-spa.html",
+    "86010c5d5b5372": "/amenities/fitness-center.html",
+    "863e34c8e1e9d7": "/about/",
+    "96010c5fbe22b6": "/amenities/outdoor-recreation.html"
+  };
+  var path = location.pathname;
+  if (path === "/info.php") {
+    var pnum = new URLSearchParams(location.search).get("pnum");
+    location.replace(map[pnum] || "/");
+  } else if (path === "/contact.php") {
+    location.replace("/contact/");
+  } else if (path === "/default.php") {
+    location.replace("/");
+  }
+})();
+</script>
 </body>
 </html>

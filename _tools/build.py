@@ -5,6 +5,14 @@ import os, glob, html, json
 # Repo root = parent of this _tools/ folder, so the script is portable.
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
+# Canonical domain. Baked into canonical URLs, Open Graph tags and sitemap.xml;
+# takes full effect when hpma.org DNS points at this site.
+SITE = "https://hpma.org"
+WRITTEN = []  # canonical URLs of every generated page, for sitemap.xml
+
+def canonical(path):
+    return SITE + "/" + (path[:-len("index.html")] if path.endswith("index.html") else path)
+
 NAV = """  <ul class="nav-menu">
     <li class="has-sub"><a href="{p}about/">About</a>
       <ul class="submenu">
@@ -55,6 +63,14 @@ HEAD = """<!DOCTYPE html>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{title} &middot; Hartstene Pointe</title>
 <meta name="description" content="{desc}">
+<link rel="canonical" href="{url}">
+<meta property="og:site_name" content="Hartstene Pointe">
+<meta property="og:type" content="website">
+<meta property="og:title" content="{title} &middot; Hartstene Pointe">
+<meta property="og:description" content="{desc}">
+<meta property="og:url" content="{url}">
+<meta property="og:image" content="{site}/{herobg}">
+<meta name="twitter:card" content="summary_large_image">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -143,15 +159,18 @@ def page(path, title, h1, crumbs, body, herobg="assets/img/hero-marina.jpg", led
     p = "../" * depth
     lede_html = f"<p>{lede}</p>" if lede else ""
     crumb_html = ' <span style="opacity:.5">/</span> '.join(crumbs)
-    out = HEAD.format(title=html.escape(title), desc=html.escape(desc or h1), p=p,
+    # unescape-then-escape so pre-entitied strings ("&amp;") don't double-escape
+    esc = lambda s: html.escape(html.unescape(s))
+    out = HEAD.format(title=esc(title), desc=esc(desc or lede or h1), p=p,
                       nav=NAV.format(p=p), herobg=herobg, crumbs=crumb_html,
-                      h1=h1, lede=lede_html)
+                      h1=h1, lede=lede_html, url=canonical(path), site=SITE)
     out += "\n" + body + "\n"
     out += FOOT.format(p=p)
     full = os.path.join(ROOT, path.replace("/", os.sep))
     os.makedirs(os.path.dirname(full), exist_ok=True)
     with open(full, "w", encoding="utf-8") as f:
         f.write(out)
+    WRITTEN.append(canonical(path))
     print("wrote", path)
 
 def home_link(depth=1):
@@ -163,6 +182,7 @@ def home_link(depth=1):
 page("about/index.html", "About the Pointe", "About the Pointe",
      [home_link(), "About"],
      herobg="assets/img/pages/olympics-firs.jpg",
+     desc="Hartstene Pointe is a private gated community of 532 homesites on 215 wooded acres at the north tip of Harstine Island in Mason County, WA, established 1970, with 3.5 miles of private beach and a 110-slip marina.",
      lede="A unique community on the northern tip of Harstine Island, set within a verdant forest and surrounded on three sides by the waters of Puget Sound.",
      body="""  <section class="article"><div class="wrap"><div class="split">
     <div class="prose">
@@ -430,10 +450,10 @@ page("amenities/index.html", "Amenities", "Amenities",
      body=f'  <section class="article"><div class="wrap"><div class="grid-3">\n{cards}  </div></div></section>')
 
 # ============ AMENITY SUB-PAGES ============
-def amenity(u, title, h1, hero, lede, body):
+def amenity(u, title, h1, hero, lede, body, desc=""):
     page("amenities/"+u, title, h1,
          [home_link(), '<a href="index.html">Amenities</a>', h1.replace("&amp;","&")],
-         lede=lede, herobg=hero, body=body)
+         lede=lede, herobg=hero, body=body, desc=desc)
 
 amenity("clubhouse.html","Clubhouse","Clubhouse","assets/img/amenities/clubhouse.jpg",
  "The heart of the community, 6,000 square feet of gathering space overlooking the Pointe.",
@@ -498,7 +518,7 @@ amenity("pool-spa.html","Pool &amp; Spa","Pool &amp; Spa","assets/img/amenities/
 
 amenity("marina.html","Marina","Marina","assets/img/amenities/marina.jpg",
  "Indian Cove Marina, a 110-slip working marina tucked into a wooded cove.",
- """  <section class="article"><div class="wrap"><div class="split">
+ body="""  <section class="article"><div class="wrap"><div class="split">
     <div class="prose">
       <h2>Indian Cove Marina</h2>
       <p>The marina is a treasured amenity of the Pointe, set in a sheltered cove on the community's west side.</p>
@@ -529,7 +549,8 @@ amenity("marina.html","Marina","Marina","assets/img/amenities/marina.jpg",
       </ul>
       <p style="margin-top:14px"><a class="btn" href="https://app.condocontrol.com/login" target="_blank" rel="noopener">Owner Portal &#8599;</a></p>
     </aside>
-  </div></div></section>""")
+  </div></div></section>""",
+ desc="Indian Cove Marina at Hartstene Pointe: a private 110-slip marina on Harstine Island, WA. Slips are held by lot owners; short-term moorage for owners and guests via the Harbormaster.")
 
 amenity("boat-rv-storage.html","Boat &amp; RV Storage","Boat &amp; RV Storage","assets/img/amenities/boat-rv-storage.jpg",
  "On-site storage for boats, trailers, RVs, kayaks and canoes, available to all owners.",
@@ -828,6 +849,7 @@ page("community/exploring-the-area.html", "Exploring the Area", "Exploring the A
 page("community/considering-the-pointe.html", "Considering the Pointe", "Considering the Pointe",
      [home_link(), '<a href="index.html">Community</a>', "Considering the Pointe"],
      herobg="assets/img/pages/aerial-clubhouse.jpg",
+     desc="Thinking of buying at Hartstene Pointe? How this private, gated 532-home community on Harstine Island, WA works: HOA governance, assessments, amenities, CC&Rs, and marina slips.",
      lede="Thinking about a home at the Pointe? Here is what the community is, how it works, and where to find the details.",
      body="""  <section class="article"><div class="wrap"><div class="split">
     <div class="prose">
@@ -975,6 +997,16 @@ page("photos/index.html", "Photos", "Photo Gallery",
      [home_link(), "Photos"],
      lede=f"Scenes from around the Pointe, contributed by residents over the years: {_total} photographs across {len(ALBUMS)} albums. Click any photo to view it larger.",
      body=f'  <div class="album-jump"><div class="wrap"><span>Albums:</span> {_jump}</div></div>\n{_sections}')
+
+# ------------------------------------------------------------------ SITEMAP
+_sm = ['<?xml version="1.0" encoding="UTF-8"?>',
+       '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+       f'  <url><loc>{SITE}/</loc></url>']
+_sm += [f'  <url><loc>{u}</loc></url>' for u in WRITTEN]
+_sm.append('</urlset>')
+with open(os.path.join(ROOT, "sitemap.xml"), "w", encoding="utf-8") as f:
+    f.write("\n".join(_sm) + "\n")
+print("wrote sitemap.xml")
 
 print("ALL PAGES DONE")
 
