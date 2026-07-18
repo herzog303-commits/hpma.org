@@ -749,9 +749,9 @@ amenity("wildlife.html","Wildlife","Wildlife &amp; Habitat","assets/img/amenitie
 page("visiting/index.html", "Visiting the Pointe", "Visiting the Pointe",
      [home_link(), "Visiting"],
      herobg="assets/img/amenities/marina.jpg",
-     lede="Welcome to Hartstene Pointe. We're so glad you're here, and hope you have a wonderful stay.",
+     lede="How we care for the Pointe together: the essentials for all residents and their guests.",
      body="""  <section class="article"><div class="wrap"><div class="prose">
-    <p>If you are staying with us as a guest or renter, your host has arranged everything you need. The Pointe is a quiet, wooded community wrapped in three and a half miles of private beach, and a little shared care keeps it that way for everyone, neighbors, guests and the deer and eagles alike. Here are a few friendly notes to help you settle in and make the most of your time here.</p>
+    <p>The Pointe is a quiet, wooded community wrapped in three and a half miles of private beach, and a little shared care keeps it that way for everyone, neighbors, guests and the deer and eagles alike. These notes apply to all residents and their guests.</p>
 
     <h2>Settling in</h2>
     <ul>
@@ -762,7 +762,7 @@ page("visiting/index.html", "Visiting the Pointe", "Visiting the Pointe",
 
     <h2>Enjoying the outdoors</h2>
     <ul>
-      <li>Campfires are a treat at the Spit fire pits and the picnic-shelter fireplaces. When a burn ban is posted at the gate, we let the fires rest for a while.</li>
+      <li>Campfires are permitted only at the Spit fire pits and the picnic-shelter fireplaces. When a burn ban is posted at the gate, no fires are permitted.</li>
       <li>For the comfort of others and the safety of the forest, the Pointe is happily smoke-free and firework-free.</li>
       <li>Household garbage goes in the dumpsters just west of the Clubhouse.</li>
     </ul>
@@ -773,9 +773,9 @@ page("visiting/index.html", "Visiting the Pointe", "Visiting the Pointe",
       <li>Please don't feed the wildlife. It does them more harm than good, and they forage beautifully on their own. Our <a href="../amenities/wildlife.html">Wildlife &amp; Habitat</a> page introduces the animals you might meet.</li>
     </ul>
 
-    <div class="callout"><h4>Questions during your stay?</h4><p>Your host is the best first stop for anything about the home you're in and its amenities, and can reach the HPMA office whenever it's needed.</p></div>
+    <div class="callout"><h4>Questions?</h4><p>The <a href="../contact/">HPMA office</a> is glad to help with anything about the community and its amenities.</p></div>
 
-    <p style="margin-top:24px">Thank you for treating the Pointe with the same care the neighbors here do. Relax, breathe the salt air, and enjoy every minute.</p>
+    <p style="margin-top:24px">Thank you for treating the Pointe with care. Relax, breathe the salt air, and enjoy every minute.</p>
   </div></div></section>""")
 
 # ============ COMMUNITY ============
