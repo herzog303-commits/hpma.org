@@ -87,8 +87,10 @@ const CONFIG = {
     { name: "launch ramp sill", ft: 3.0, kind: "low", tag: "ramp dry" }                       // water level at which the ramp end is exposed
   ],
 
-  /* Surge transfer from Tacoma. Basin-wide residual → 1:1, no lag (see surge-extrapolation-notes.md). */
-  SURGE_GAIN: 1.0, SURGE_LAG_MIN: 0,
+  /* Surge transfer from Tacoma. Basin-wide residual → 1:1, no lag (see surge-extrapolation-notes.md).
+     Surge is always folded silently into the shown heights; at/above SURGE_MAJOR_FT an unusual high/low
+     also gets a "†" footnote mark keyed to the static "NOAA + live surge" note. Below it, only that note. */
+  SURGE_GAIN: 1.0, SURGE_LAG_MIN: 0, SURGE_MAJOR_FT: 1.5,
   SURGE_FORECAST_URL: "",   // optional JSON [{"t":"...Z","ft":0.8},...] from ETSS/SSCOFS via cron
   PERSIST_H: 12, FADE_H: 36, // carry-forward window when no forecast feed
 
@@ -285,15 +287,13 @@ function renderTidesSimple({ extremes, surge, live, met, cur, alerts, annual, no
   const exp = e => e.h + surge.fn(e.t);
   const nowFt = tideAt(extremes, nowMs) + surge.fn(nowMs), soon = tideAt(extremes, nowMs + 20 * 60000) + surge.fn(nowMs + 20 * 60000);
   const upcoming = extremes.filter(e => e.t > nowMs).slice(0, 6), next = upcoming[0];
-  const dv = surge.fn(nowMs);
-  const flag = e => unusual(exp(e), e.type, annual) ? `<span class="flag ${e.type === "H" ? "hi" : "lo"}">${e.type === "H" ? "▲" : "▼"}</span>` : "";
+  const flag = e => unusual(exp(e), e.type, annual) ? `<span class="flag ${e.type === "H" ? "hi" : "lo"}">${e.type === "H" ? "▲" : "▼"}${Math.abs(surge.fn(e.t)) >= CONFIG.SURGE_MAJOR_FT ? "†" : ""}</span>` : "";
   el("hero", `
     <div class="big"><span class="n">${nowFt.toFixed(1)}</span><span class="u">ft</span><span class="dir">${soon > nowFt + 0.02 ? "rising" : soon < nowFt - 0.02 ? "falling" : "slack"}</span></div>
     ${next ? `<div class="next"><b>${next.type === "H" ? "High" : "Low"} ${exp(next).toFixed(1)} ft at ${hhmm(next.t)}</b><span>in ${dur(next.t - nowMs)}</span></div>` : ""}
     <div class="list">${upcoming.slice(1).map(e => `<div><span>${e.type === "H" ? "High" : "Low"} <b>${exp(e).toFixed(1)}</b></span>${flag(e)}<span class="t">${dayTag(e.t, nowMs)}${hhmm(e.t)}</span></div>`).join("")}</div>`);
   const pills = [];
   if (alerts.length) pills.push(`<span class="pill warn">${alerts[0].event}</span>`);
-  if (Math.abs(dv) >= 0.3) pills.push(`<span class="pill surge">${dv > 0 ? "+" : "−"}${Math.abs(dv).toFixed(1)} ft storm surge included</span>`);
   el("pills", pills.join(""));
   el("line", sentence(extremes, surge, annual, nowMs));
   renderCurve(extremes, surge, annual, nowMs);
@@ -301,7 +301,7 @@ function renderTidesSimple({ extremes, surge, live, met, cur, alerts, annual, no
   if (met.wind) bits.push(`Wind ${met.wind.dir} ${met.wind.kt.toFixed(0)}${met.wind.gust > met.wind.kt + 5 ? `–${met.wind.gust.toFixed(0)}` : ""} kt`);
   if (cur && cur.length) { const sl = cur.find(c => c.t > nowMs && c.type === "slack"); if (sl) bits.push(`Slack ${hhmm(sl.t)}`); }
   if (met.waterF != null) bits.push(`Water ${met.waterF.toFixed(0)}°`);
-  el("strip", bits.map(b => `<span>${b}</span>`).join(""));
+  el("strip", bits.map(b => `<span>${b}</span>`).join("") + `<span class="dim">heights = NOAA tide + live surge</span>`);
 }
 
 function renderCurve(extremes, surge, annual, nowMs) {
@@ -329,13 +329,14 @@ function renderCurve(extremes, surge, annual, nowMs) {
   // Each high/low: its height, its time, and — only when it's an unusual-water day — a single accent triangle. No caption.
   const labels = extremes.filter(e => e.t > t0 && e.t < t1).map(e => {
     const v = e.h + surge.fn(e.t), px = x(e.t), py = y(v), up = e.type === "H", odd = unusual(v, e.type, annual);
+    const stormy = odd && Math.abs(surge.fn(e.t)) >= CONFIG.SURGE_MAJOR_FT;
     const anchor = px < L + 26 ? "start" : px > W - 30 ? "end" : "middle", valFill = odd ? accent : ink;
     const marker = odd
       ? `<path d="${up ? `M${px.toFixed(1)},${(py - 7).toFixed(1)} L${(px - 5).toFixed(1)},${(py + 2).toFixed(1)} L${(px + 5).toFixed(1)},${(py + 2).toFixed(1)}` : `M${px.toFixed(1)},${(py + 7).toFixed(1)} L${(px - 5).toFixed(1)},${(py - 2).toFixed(1)} L${(px + 5).toFixed(1)},${(py - 2).toFixed(1)}`} Z" fill="${accent}"/>`
       : `<circle cx="${px.toFixed(1)}" cy="${py.toFixed(1)}" r="3.5" fill="${color ? "#fcfcfb" : "#fff"}" stroke="${ink}" stroke-width="2"/>`;
     const valY = up ? py - 13 : py + 15, timeY = up ? py - 25 : py + 27;
     return `${marker}
-      <text x="${px.toFixed(1)}" y="${valY.toFixed(1)}" font-size="13.5" font-weight="600" text-anchor="${anchor}" fill="${valFill}">${v.toFixed(1)}</text>
+      <text x="${px.toFixed(1)}" y="${valY.toFixed(1)}" font-size="13.5" font-weight="600" text-anchor="${anchor}" fill="${valFill}">${v.toFixed(1)}${stormy ? "†" : ""}</text>
       <text x="${px.toFixed(1)}" y="${timeY.toFixed(1)}" font-size="10.5" text-anchor="${anchor}" fill="${muted}">${hhmm(e.t)}</text>`;
   }).join("");
   const nowX = x(nowMs), nowY = y(tideAt(extremes, nowMs) + surge.fn(nowMs));
