@@ -1,0 +1,482 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=800">
+<title>Indian Cove Marina</title>
+<style>
+  :root { --ink:#000; --paper:#fff; --muted:#000; --accent:#000; --pill:#fff; --pill-b:#000; --warn-bg:#fff; --warn-fg:#000; --surge-bg:#fff; --surge-fg:#000; }
+  body.color { --ink:#1a1a19; --paper:#fcfcfb; --muted:#8a8983; --accent:#D85A30; --pill:#f1efe8; --pill-b:#f1efe8; --warn-bg:#FCEBEB; --warn-fg:#791F1F; --surge-bg:#FAEEDA; --surge-fg:#633806; }
+  * { box-sizing:border-box; }
+  html, body { margin:0; background:var(--paper); color:var(--ink); }
+  body { width:800px; height:480px; overflow:hidden; padding:18px 22px 12px; font-family:"Inter","Helvetica Neue",Arial,sans-serif; font-variant-numeric:tabular-nums;
+         display:grid; grid-template-columns:minmax(0,1fr); grid-template-rows:auto auto 1fr auto; gap:8px; }
+  @media (min-width:900px) { html{background:#ddd;} body{margin:24px auto; outline:1px solid #000;} }
+
+  .top { display:flex; justify-content:space-between; align-items:baseline; }
+  .top h1 { font-size:18px; font-weight:700; margin:0; letter-spacing:.01em; }
+  .top .when { font-size:16px; color:var(--muted); }
+  .top .when b { color:var(--ink); font-weight:700; margin-left:6px; }
+
+  .main { display:grid; grid-template-columns:minmax(0,1fr) 236px; gap:14px; min-height:0; }
+  .side { display:flex; flex-direction:column; gap:6px; min-width:0; }
+  .big { display:flex; align-items:baseline; gap:6px; flex-wrap:wrap; }
+  .big .n { font-size:58px; font-weight:800; letter-spacing:-.03em; line-height:.95; }
+  .big .u { font-size:20px; font-weight:700; }
+  .big .dir { font-size:17px; color:var(--muted); width:100%; margin-top:-2px; }
+  .next { line-height:1.25; padding-bottom:6px; border-bottom:1.5px solid var(--ink); }
+  body.color .next { border-color:#d9d7cd; }
+  .next b { display:block; font-size:19px; }
+  .next span { display:block; font-size:14px; color:var(--muted); }
+  .list { font-size:14px; line-height:1.35; }
+  .list div { display:flex; justify-content:space-between; gap:6px; white-space:nowrap; }
+  .list .t { color:var(--muted); }
+  .list .flag { font-size:12px; font-weight:700; color:var(--accent); }
+
+  .lineRow { display:block; font-size:17px; line-height:1.35; min-height:24px; }
+  .lineRow #pills { margin-right:6px; }
+  .lineRow .pill { display:inline-block; margin:0 4px 2px 0; vertical-align:2px; }
+  body.color .lineRow { font-family:Georgia,"Times New Roman",serif; }
+  .pill.unusual { background:var(--warn-bg); color:var(--warn-fg); border-color:var(--warn-fg); }
+  .pill { font-size:12px; font-weight:700; padding:2px 9px; border-radius:10px; background:var(--pill); border:1.5px solid var(--pill-b); white-space:nowrap; font-family:"Inter","Helvetica Neue",Arial,sans-serif; }
+  .pill.warn { background:var(--warn-bg); color:var(--warn-fg); border-color:var(--warn-fg); }
+  .pill.surge { background:var(--surge-bg); color:var(--surge-fg); border-color:var(--surge-fg); }
+  body.color .pill { border-color:transparent; }
+
+  .chart { min-height:0; }
+  .chart svg { width:100%; height:100%; display:block; }
+
+  .bottom { display:flex; justify-content:space-between; align-items:baseline; border-top:1.5px solid var(--ink); padding-top:6px; font-size:14px; }
+  body.color .bottom { border-color:#d9d7cd; }
+  .bottom span { margin-right:14px; white-space:nowrap; }
+  .bottom > div { display:flex; flex-wrap:nowrap; overflow:hidden; min-width:0; }
+  .bottom b { font-weight:700; }
+  .bottom .dim { color:var(--muted); }
+  .bottom .nav a { color:var(--muted); text-decoration:none; margin-left:10px; font-size:13px; }
+  .bottom .nav a.on { color:var(--ink); font-weight:700; }
+  
+  .err { color:var(--warn-fg); font-weight:700; }
+</style>
+</head>
+<body data-pagefind-ignore>
+  <div class="top"><h1>Indian Cove Marina</h1><div class="when"><span id="date"></span><b id="time"></b></div></div>
+  <div class="lineRow"><span id="pills"></span><span id="line">Loading…</span></div>
+  <div class="main"><div class="chart" id="chart"></div><div class="side" id="hero"></div></div>
+  <div class="bottom"><div><span id="sun" class="tides-only"></span><span id="strip"></span></div><span class="nav" id="nav"></span></div>
+<script>
+/* ============================== CONFIG ============================== */
+const CONFIG = {
+  DP_STATION: "9446583",              // McMicken Island, Case Inlet — NOAA subordinate prediction station
+  REF_STATIONS: ["9446484", "9447130"], // Tacoma gauge for live residual, Seattle as fallback
+  MET_STATION: "9446484",              // barometer + wind (Tacoma PORTS)
+  NWS_ZONE: "PZZ135",                  // NWS marine zone: Puget Sound and Hood Canal (covers south Sound); check on weather.gov
+  LAT: 47.31, LON: -122.92,            // Indian Cove, Pickering Passage side of Harstine, ~1/4 mi south of Dougall Point — sun times only
+
+  /* Pickering Passage currents. NOAA current-prediction stations use alphanumeric ids (e.g. PUG####).
+     Find "Pickering Passage" under Washington at tidesandcurrents.noaa.gov/noaacurrents/Stations and paste the id.
+     Leave blank to hide the tile. FLOOD_DIR is the mean flood direction from that station's page, e.g. "N" — boats
+     turning north toward Dougall Point ride the flood; boats turning south down Pickering ride the ebb. */
+  CURRENT_STATION: "",
+  FLOOD_DIR: "",
+  TZ: "America/Los_Angeles",
+
+  /* Dock reference elevations, ft MLLW. Not shown on the clean board (see indian-cove-detailed.html);
+     kept here so the two files share one config. */
+  REFS: [
+    { name: "float freeboard", ft: 15.5, kind: "high", tag: "near freeboard", margin: 1.0 }, // top of piling guides / when floats get close
+    { name: "launch ramp sill", ft: 3.0, kind: "low", tag: "ramp dry" }                       // water level at which the ramp end is exposed
+  ],
+
+  /* Surge transfer from Tacoma. Basin-wide residual → 1:1, no lag (see surge-extrapolation-notes.md). */
+  SURGE_GAIN: 1.0, SURGE_LAG_MIN: 0,
+  SURGE_FORECAST_URL: "",   // optional JSON [{"t":"...Z","ft":0.8},...] from ETSS/SSCOFS via cron
+  PERSIST_H: 12, FADE_H: 36, // carry-forward window when no forecast feed
+
+  /* Fixed chart axis = this year's predicted range at McMicken Island. Computed from NOAA on load;
+     these are the fallback if that fetch fails (2026 predictions: lows to −4.6 ft in June, winter highs ~16 ft). */
+  ANNUAL_FALLBACK: { min: -4.6, max: 16.0, p95high: 15.0, p05low: -3.4 },
+
+  HOURS_BACK: 3, HOURS_AHEAD: 33, ROWS: 7
+};
+
+/* ============================== PURE ============================== */
+const RAD = Math.PI / 180;
+function sunEvents(y, m, d, lat, lon, zenithDeg) {
+  const jd = Date.UTC(y, m - 1, d, 12) / 86400000 + 2440587.5, T = (jd - 2451545) / 36525;
+  const L0 = (280.46646 + T * (36000.76983 + T * 0.0003032)) % 360;
+  const M = 357.52911 + T * (35999.05029 - 0.0001537 * T);
+  const e = 0.016708634 - T * (0.000042037 + 0.0000001267 * T);
+  const C = Math.sin(M * RAD) * (1.914602 - T * (0.004817 + 0.000014 * T)) + Math.sin(2 * M * RAD) * (0.019993 - 0.000101 * T) + Math.sin(3 * M * RAD) * 0.000289;
+  const omega = 125.04 - 1934.136 * T, lambda = L0 + C - 0.00569 - 0.00478 * Math.sin(omega * RAD);
+  const eps = 23 + (26 + (21.448 - T * (46.815 + T * (0.00059 - T * 0.001813))) / 60) / 60 + 0.00256 * Math.cos(omega * RAD);
+  const decl = Math.asin(Math.sin(eps * RAD) * Math.sin(lambda * RAD)), yv = Math.tan(eps * RAD / 2) ** 2;
+  const eqt = 4 / RAD * (yv * Math.sin(2 * L0 * RAD) - 2 * e * Math.sin(M * RAD) + 4 * e * yv * Math.sin(M * RAD) * Math.cos(2 * L0 * RAD) - 0.5 * yv * yv * Math.sin(4 * L0 * RAD) - 1.25 * e * e * Math.sin(2 * M * RAD));
+  const cosHA = Math.cos(zenithDeg * RAD) / (Math.cos(lat * RAD) * Math.cos(decl)) - Math.tan(lat * RAD) * Math.tan(decl);
+  if (cosHA < -1 || cosHA > 1) return null;
+  const ha = Math.acos(cosHA) / RAD, noon = 720 - 4 * lon - eqt, base = Date.UTC(y, m - 1, d);
+  return { rise: base + (noon - 4 * ha) * 60000, set: base + (noon + 4 * ha) * 60000 };
+}
+const sunDay = (y, m, d, lat, lon) => ({ nautical: sunEvents(y, m, d, lat, lon, 102), civil: sunEvents(y, m, d, lat, lon, 96), sun: sunEvents(y, m, d, lat, lon, 90.833) });
+
+function tideAt(extremes, t) {
+  if (t <= extremes[0].t) return extremes[0].h;
+  for (let i = 0; i < extremes.length - 1; i++) {
+    const a = extremes[i], b = extremes[i + 1];
+    if (t >= a.t && t <= b.t) return a.h + (b.h - a.h) * (1 - Math.cos(Math.PI * (t - a.t) / (b.t - a.t))) / 2;
+  }
+  return extremes[extremes.length - 1].h;
+}
+function makeSurgeFn({ manual, forecast, live, cfg }) {
+  if (manual != null && !isNaN(manual)) return { fn: () => manual * cfg.SURGE_GAIN, label: `manual ${manual >= 0 ? "+" : ""}${manual.toFixed(1)} ft` };
+  if (forecast && forecast.length) {
+    const p = forecast.map(x => ({ t: +new Date(x.t), ft: +x.ft })).sort((a, b) => a.t - b.t);
+    return { fn: t => { const tt = t - cfg.SURGE_LAG_MIN * 60000; if (tt <= p[0].t) return p[0].ft * cfg.SURGE_GAIN;
+      for (let i = 0; i < p.length - 1; i++) if (tt >= p[i].t && tt <= p[i + 1].t) return (p[i].ft + (p[i + 1].ft - p[i].ft) * (tt - p[i].t) / (p[i + 1].t - p[i].t)) * cfg.SURGE_GAIN;
+      return p[p.length - 1].ft * cfg.SURGE_GAIN; }, label: "forecast feed" };
+  }
+  if (live && live.value != null) {
+    const v = live.value * cfg.SURGE_GAIN, t0 = live.t;
+    return { fn: t => { const h = (t - t0) / 3600000; return h <= cfg.PERSIST_H ? v : h >= cfg.FADE_H ? 0 : v * (1 - (h - cfg.PERSIST_H) / (cfg.FADE_H - cfg.PERSIST_H)); }, label: `carried forward from ${live.station}` };
+  }
+  return { fn: () => 0, label: "astronomical only" };
+}
+const inverseBarometerFt = hPa => (1013.25 - hPa) * 0.0328;
+
+/* ============================== DATA ============================== */
+const NOAA = "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter";
+const p2 = n => String(n).padStart(2, "0");
+const noaaDate = ms => { const d = new Date(ms); return `${d.getUTCFullYear()}${p2(d.getUTCMonth() + 1)}${p2(d.getUTCDate())} ${p2(d.getUTCHours())}:${p2(d.getUTCMinutes())}`; };
+async function noaa(params) {
+  const q = new URLSearchParams({ format: "json", units: "english", time_zone: "gmt", datum: "MLLW", application: "indian_cove_board", ...params });
+  const r = await fetch(`${NOAA}?${q}`); if (!r.ok) throw new Error(`NOAA ${r.status}`);
+  const j = await r.json(); if (j.error) throw new Error(j.error.message); return j;
+}
+const parseGmt = s => +new Date(s.replace(" ", "T") + "Z");
+async function fetchExtremes(station, fromMs, hours) {
+  const j = await noaa({ product: "predictions", station, interval: "hilo", begin_date: noaaDate(fromMs), range: hours });
+  return j.predictions.map(p => ({ t: parseGmt(p.t), h: +p.v, type: p.type }));
+}
+// Whole calendar year of predicted highs/lows → axis limits and the "unusual" thresholds.
+async function fetchAnnual(station, nowMs) {
+  const y = localParts(nowMs).y;
+  try {
+    const j = await noaa({ product: "predictions", station, interval: "hilo", begin_date: `${y}0101`, end_date: `${y}1231` });
+    const highs = j.predictions.filter(p => p.type === "H").map(p => +p.v).sort((a, b) => a - b);
+    const lows = j.predictions.filter(p => p.type === "L").map(p => +p.v).sort((a, b) => a - b);
+    const q = (arr, f) => arr[Math.min(arr.length - 1, Math.floor(f * arr.length))];
+    return { min: lows[0], max: highs[highs.length - 1], p95high: q(highs, 0.95), p05low: q(lows, 0.05), year: y, source: "NOAA" };
+  } catch (e) { console.warn("annual", e); return { ...CONFIG.ANNUAL_FALLBACK, year: y, source: "fallback" }; }
+}
+async function fetchLiveAnomaly(stations, nowMs) {
+  for (const station of stations) try {
+    const begin = noaaDate(nowMs - 6 * 3600000);
+    const [obs, pred] = await Promise.all([noaa({ product: "water_level", station, begin_date: begin, range: 7 }), noaa({ product: "predictions", station, interval: "6", begin_date: begin, range: 7 })]);
+    const pm = new Map(pred.predictions.map(p => [p.t, +p.v]));
+    const pairs = obs.data.filter(o => o.v !== "" && pm.has(o.t)).map(o => ({ t: parseGmt(o.t), a: +o.v - pm.get(o.t) }));
+    if (!pairs.length) continue;
+    const last = pairs[pairs.length - 1], recent = pairs.filter(p => p.t >= last.t - 3 * 3600000);
+    return { station: station === "9446484" ? "Tacoma" : "Seattle", t: last.t, value: last.a, mean3h: recent.reduce((s, p) => s + p.a, 0) / recent.length };
+  } catch (e) { console.warn("anomaly", station, e); }
+  return null;
+}
+async function fetchMet(station, nowMs) {
+  const out = {};
+  try { const j = await noaa({ product: "air_pressure", station, begin_date: noaaDate(nowMs - 3 * 3600000), range: 4 });
+    const d = j.data.filter(x => x.v !== ""); if (d.length) { out.hPa = +d[d.length - 1].v; out.trend3h = +d[d.length - 1].v - +d[0].v; } } catch (e) {}
+  try { const j = await noaa({ product: "wind", station, date: "latest" }); const w = j.data && j.data[0];
+    if (w && w.s !== "") out.wind = { kt: +w.s, gust: +w.g, dir: w.dr }; } catch (e) {}
+  try { const j = await noaa({ product: "water_temperature", station, date: "latest" }); const w = j.data && j.data[0]; if (w && w.v !== "") out.waterF = +w.v; } catch (e) {}
+  return out;
+}
+async function fetchCurrents(station, nowMs) {
+  if (!station) return null;
+  try {
+    const j = await noaa({ product: "currents_predictions", station, interval: "MAX_SLACK", begin_date: noaaDate(nowMs - 3 * 3600000), range: 30 });
+    const cp = (j.current_predictions && j.current_predictions.cp) || [];
+    return cp.map(c => ({ t: parseGmt(c.Time), v: +c.Velocity_Major, type: c.Type })).filter(c => !isNaN(c.t));
+  } catch (e) { console.warn("currents", e); return null; }
+}
+async function fetchAlerts(zone) {
+  try { const r = await fetch(`https://api.weather.gov/alerts/active?zone=${zone}`, { headers: { Accept: "application/geo+json" } });
+    const j = await r.json(); return (j.features || []).map(f => ({ event: f.properties.event, ends: f.properties.ends || f.properties.expires })); } catch (e) { return []; }
+}
+
+/* ============================== WEATHER VIEW ============================== */
+const WMO = { 0: "clear", 1: "mostly clear", 2: "partly cloudy", 3: "overcast", 45: "fog", 48: "fog", 51: "drizzle", 53: "drizzle", 55: "drizzle", 56: "fz drizzle", 57: "fz drizzle", 61: "light rain", 63: "rain", 65: "heavy rain", 66: "fz rain", 67: "fz rain", 71: "light snow", 73: "snow", 75: "heavy snow", 77: "snow grains", 80: "showers", 81: "showers", 82: "heavy showers", 85: "snow showers", 86: "snow showers", 95: "thunderstorm", 96: "thunderstorm", 99: "thunderstorm" };
+const COMPASS = ["N","NNE","NE","ENE","E","ESE","SE","SSE","S","SSW","SW","WSW","W","WNW","NW","NNW"];
+const compass = deg => COMPASS[Math.round(((deg % 360) + 360) % 360 / 22.5) % 16];
+
+async function fetchOpenMeteo(lat, lon) {
+  const q = new URLSearchParams({ latitude: lat, longitude: lon, timeformat: "unixtime", timezone: "UTC", past_hours: 6, forecast_days: 3,
+    wind_speed_unit: "kn", temperature_unit: "fahrenheit", precipitation_unit: "inch",
+    current: "temperature_2m,apparent_temperature,precipitation,wind_speed_10m,wind_gusts_10m,wind_direction_10m,pressure_msl,weather_code",
+    minutely_15: "precipitation",
+    hourly: "temperature_2m,precipitation,precipitation_probability,pressure_msl,wind_speed_10m,wind_gusts_10m,wind_direction_10m,weather_code",
+    daily: "temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,wind_gusts_10m_max,wind_direction_10m_dominant,weather_code" });
+  const r = await fetch(`https://api.open-meteo.com/v1/forecast?${q}`); if (!r.ok) throw new Error(`Open-Meteo ${r.status}`);
+  const j = await r.json(), H = j.hourly, M = j.minutely_15, D = j.daily, C = j.current;
+  return {
+    current: { t: C.time * 1000, tempF: C.temperature_2m, feelsF: C.apparent_temperature, kt: C.wind_speed_10m, gust: C.wind_gusts_10m, dir: C.wind_direction_10m, hPa: C.pressure_msl, code: C.weather_code, precip: C.precipitation },
+    minutely: M.time.map((t, i) => ({ t: t * 1000, inch: M.precipitation[i] })),
+    hourly: H.time.map((t, i) => ({ t: t * 1000, tempF: H.temperature_2m[i], inch: H.precipitation[i], pop: H.precipitation_probability[i], hPa: H.pressure_msl[i], kt: H.wind_speed_10m[i], gust: H.wind_gusts_10m[i], dir: H.wind_direction_10m[i], code: H.weather_code[i] })),
+    daily: D.time.map((t, i) => ({ t: t * 1000, hi: D.temperature_2m_max[i], lo: D.temperature_2m_min[i], inch: D.precipitation_sum[i], pop: D.precipitation_probability_max[i], gust: D.wind_gusts_10m_max[i], dir: D.wind_direction_10m_dominant[i], code: D.weather_code[i] }))
+  };
+}
+async function fetchZoneText(zone) {
+  for (const type of ["forecast", "coastal"]) try {
+    const r = await fetch(`https://api.weather.gov/zones/${type}/${zone}/forecast`, { headers: { Accept: "application/geo+json" } });
+    if (!r.ok) continue; const j = await r.json(); const p = (j.properties && j.properties.periods) || [];
+    if (p.length) return p.slice(0, 2).map(x => `${x.name}: ${x.detailedForecast}`).join("  ");
+  } catch (e) {}
+  return "";
+}
+
+const fmt = (ms, o) => new Intl.DateTimeFormat("en-US", { timeZone: CONFIG.TZ, ...o }).format(new Date(ms));
+const hhmm = ms => fmt(ms, { hour: "numeric", minute: "2-digit", hour12: true }).replace(" AM", "a").replace(" PM", "p");
+function localParts(ms) { const p = Object.fromEntries(new Intl.DateTimeFormat("en-US", { timeZone: CONFIG.TZ, year: "numeric", month: "numeric", day: "numeric", hour: "numeric", minute: "numeric", second: "numeric", hourCycle: "h23" }).formatToParts(new Date(ms)).map(x => [x.type, +x.value])); return { y: p.year, m: p.month, d: p.day, midnight: ms - ((p.hour * 60 + p.minute) * 60 + p.second) * 1000 }; }
+const sign = v => (v >= 0 ? "+" : "−") + Math.abs(v).toFixed(1);
+const refHigh = () => CONFIG.REFS.find(r => r.kind === "high"), refLow = () => CONFIG.REFS.find(r => r.kind === "low");
+
+function demoData(nowMs) {
+  const base = nowMs - (nowMs % 3600000) - 20 * 3600000;
+  const seq = [[0, 2.1, "L"], [6.3, 12.8, "H"], [12.4, 5.9, "L"], [18.3, 14.6, "H"], [25.0, 1.4, "L"], [31.2, 13.1, "H"], [37.3, -1.8, "L"], [43.1, 15.1, "H"], [49.7, 0.6, "L"], [56.0, 13.6, "H"], [62.2, 6.8, "L"]];
+  return { extremes: seq.map(([h, v, type]) => ({ t: base + h * 3600000, h: v, type })),
+    live: { station: "Tacoma", t: nowMs - 8 * 60000, value: 1.0, mean3h: 0.9 },
+    met: { hPa: 993, trend3h: -4, wind: { kt: 22, gust: 31, dir: "SSW" }, waterF: 48 },
+    alerts: [{ event: "Coastal Flood Advisory", ends: new Date(nowMs + 4 * 3600000).toISOString() }],
+    cur: [{ t: nowMs - 2 * 3600000, v: 1.8, type: "flood" }, { t: nowMs + 41 * 60000, v: 0, type: "slack" }, { t: nowMs + 3.3 * 3600000, v: -2.4, type: "ebb" }, { t: nowMs + 6.5 * 3600000, v: 0, type: "slack" }],
+    wx: demoWeather(nowMs),
+    annual: { min: -4.6, max: 16.0, p95high: 15.0, p05low: -3.4, year: 2026, source: "demo" },
+    zone: "This afternoon: S wind 15 to 25 kt with gusts to 35 kt. Wind waves 2 to 3 ft. Rain. Tonight: S wind 20 to 30 kt becoming SW 15 to 20 kt after midnight. Wind waves 2 to 3 ft subsiding to 1 to 2 ft. Rain in the evening, then showers." };
+}
+function demoWeather(nowMs) {
+  const h0 = nowMs - (nowMs % 3600000) - 6 * 3600000, hourly = [];
+  for (let i = 0; i < 78; i++) { const t = h0 + i * 3600000, a = (i - 6) / 78;
+    const storm = Math.exp(-((i - 16) ** 2) / 40), kt = 8 + 18 * storm, hPa = 1004 - 12 * storm, rain = i >= 9 && i <= 22 ? 0.06 + 0.12 * storm : i >= 30 && i <= 34 ? 0.03 : 0;
+    hourly.push({ t, tempF: 46 + 4 * Math.sin((i - 8) / 24 * Math.PI * 2), inch: +rain.toFixed(2), pop: rain ? 80 : 15, hPa, kt, gust: kt * 1.45, dir: 190 + 30 * Math.sin(i / 9), code: rain > 0.1 ? 63 : rain ? 61 : 3 }); }
+  const m0 = nowMs - (nowMs % (15 * 60000)), minutely = [];
+  for (let i = 0; i < 12; i++) minutely.push({ t: m0 + i * 15 * 60000, inch: i < 3 ? 0 : +(0.02 + 0.01 * i).toFixed(2) });
+  const d0 = localParts(nowMs).midnight;
+  return { current: { t: nowMs - 20 * 60000, tempF: 47, feelsF: 41, kt: 17, gust: 26, dir: 195, hPa: 996, code: 3, precip: 0 }, minutely, hourly,
+    daily: [{ t: d0, hi: 49, lo: 43, inch: 0.85, pop: 90, gust: 35, dir: 200, code: 63 }, { t: d0 + 86400000, hi: 47, lo: 40, inch: 0.2, pop: 55, gust: 22, dir: 230, code: 80 }, { t: d0 + 2 * 86400000, hi: 45, lo: 36, inch: 0, pop: 10, gust: 12, dir: 20, code: 1 }] };
+}
+
+/* ============================== SIMPLE RENDER ============================== */
+const isColor = () => document.body.classList.contains("color");
+const dur = ms => { const m = Math.round(ms / 60000); return m < 60 ? `${m} min` : `${Math.floor(m / 60)} h ${String(m % 60).padStart(2, "0")} min`; };
+const dayWord = (ms, nowMs) => { const a = localParts(ms), b = localParts(nowMs); return a.d === b.d && a.m === b.m ? "" : (a.d === localParts(nowMs + 86400000).d ? "tomorrow " : fmt(ms, { weekday: "long" }) + " "); };
+// Compact day tag for lists: "" today, else the short weekday (Mon, Tue, …) — never "tom".
+const dayTag = (ms, nowMs) => { const a = localParts(ms), b = localParts(nowMs); return a.d === b.d && a.m === b.m ? "" : fmt(ms, { weekday: "short" }) + " "; };
+const el = (id, html) => { document.getElementById(id).innerHTML = html; };
+
+function sentence(extremes, surge, annual, nowMs) {
+  const ahead = extremes.filter(e => e.t > nowMs && e.t < nowMs + CONFIG.HOURS_AHEAD * 3600000), exp = e => e.h + surge.fn(e.t);
+  const highs = ahead.filter(e => e.type === "H"), lows = ahead.filter(e => e.type === "L"), parts = [];
+  if (highs.length) { const big = highs.reduce((a, b) => (exp(b) > exp(a) ? b : a)), v = exp(big);
+    parts.push(`${v >= annual.p95high ? "Unusually high water" : "Highest water"} ${dayWord(big.t, nowMs)}at ${hhmm(big.t)}, ${v.toFixed(1)} ft.`); }
+  if (lows.length) { const low = lows.reduce((a, b) => (exp(b) < exp(a) ? b : a)), v = exp(low);
+    if (v <= annual.p05low) parts.push(`Unusually low water ${dayWord(low.t, nowMs)}at ${hhmm(low.t)}, ${v.toFixed(1)} ft.`);
+    else if (v < 0) parts.push(`Minus tide ${dayWord(low.t, nowMs)}at ${hhmm(low.t)}.`); }
+  return parts.join(" ");
+}
+
+function unusual(v, type, annual) { return type === "H" ? v >= annual.p95high : v <= annual.p05low; }
+function renderTidesSimple({ extremes, surge, live, met, cur, alerts, annual, nowMs }) {
+  const exp = e => e.h + surge.fn(e.t);
+  const nowFt = tideAt(extremes, nowMs) + surge.fn(nowMs), soon = tideAt(extremes, nowMs + 20 * 60000) + surge.fn(nowMs + 20 * 60000);
+  const upcoming = extremes.filter(e => e.t > nowMs).slice(0, 6), next = upcoming[0];
+  const dv = surge.fn(nowMs);
+  const flag = e => unusual(exp(e), e.type, annual) ? `<span class="flag ${e.type === "H" ? "hi" : "lo"}">${e.type === "H" ? "▲" : "▼"}</span>` : "";
+  el("hero", `
+    <div class="big"><span class="n">${nowFt.toFixed(1)}</span><span class="u">ft</span><span class="dir">${soon > nowFt + 0.02 ? "rising" : soon < nowFt - 0.02 ? "falling" : "slack"}</span></div>
+    ${next ? `<div class="next"><b>${next.type === "H" ? "High" : "Low"} ${exp(next).toFixed(1)} ft at ${hhmm(next.t)}</b><span>in ${dur(next.t - nowMs)}</span></div>` : ""}
+    <div class="list">${upcoming.slice(1).map(e => `<div><span>${e.type === "H" ? "High" : "Low"} <b>${exp(e).toFixed(1)}</b></span>${flag(e)}<span class="t">${dayTag(e.t, nowMs)}${hhmm(e.t)}</span></div>`).join("")}</div>`);
+  const pills = [];
+  if (alerts.length) pills.push(`<span class="pill warn">${alerts[0].event}</span>`);
+  if (Math.abs(dv) >= 0.3) pills.push(`<span class="pill surge">${dv > 0 ? "+" : "−"}${Math.abs(dv).toFixed(1)} ft storm surge included</span>`);
+  el("pills", pills.join(""));
+  el("line", sentence(extremes, surge, annual, nowMs));
+  renderCurve(extremes, surge, annual, nowMs);
+  const bits = [];
+  if (met.wind) bits.push(`Wind ${met.wind.dir} ${met.wind.kt.toFixed(0)}${met.wind.gust > met.wind.kt + 5 ? `–${met.wind.gust.toFixed(0)}` : ""} kt`);
+  if (cur && cur.length) { const sl = cur.find(c => c.t > nowMs && c.type === "slack"); if (sl) bits.push(`Slack ${hhmm(sl.t)}`); }
+  if (met.waterF != null) bits.push(`Water ${met.waterF.toFixed(0)}°`);
+  el("strip", bits.map(b => `<span>${b}</span>`).join(""));
+}
+
+function renderCurve(extremes, surge, annual, nowMs) {
+  const color = isColor(), W = 520, H = 300, L = 14, R = 12, T = 8, B = 24;
+  const t0 = nowMs - CONFIG.HOURS_BACK * 3600000, t1 = nowMs + CONFIG.HOURS_AHEAD * 3600000, x = t => L + (t - t0) / (t1 - t0) * (W - L - R);
+  const N = 220, pts = []; for (let i = 0; i <= N; i++) { const t = t0 + (t1 - t0) * i / N; pts.push([t, tideAt(extremes, t) + surge.fn(t)]); }
+  // Fixed axis = this year's predicted range, but with the headroom trimmed close so the curve fills the frame.
+  // A little room is kept above the year max so a surge-boosted high can still be drawn above the tide tables.
+  const ymin = annual.min - 0.6, ymax = annual.max + 2.0, y = h => T + (ymax - h) / (ymax - ymin) * (H - T - B);
+  const ink = color ? "#1a1a19" : "#000", accent = color ? "#d85a30" : "#000", muted = color ? "#9b9a93" : "#000";
+  const nightc = color ? "#efece4" : "#ececec", zeroc = color ? "#dad8ce" : "#c7c7c7";  // solid shades, no hatching
+  // Night blocks — one quiet fill per night. They also separate the days, so no vertical gridlines are needed.
+  let night = ""; const days = [-1, 0, 1, 2].map(k => localParts(nowMs + k * 86400000)), suns = days.map(p => sunDay(p.y, p.m, p.d, CONFIG.LAT, CONFIG.LON).sun);
+  for (let i = 0; i < suns.length - 1; i++) { const a = Math.max(suns[i].set, t0), b = Math.min(suns[i + 1].rise, t1);
+    if (b > a) night += `<rect x="${x(a).toFixed(1)}" y="${T}" width="${(x(b) - x(a)).toFixed(1)}" height="${H - T - B}" rx="5" fill="${nightc}"/>`; }
+  // The one reference line worth keeping: 0 ft (MLLW), where a minus tide begins.
+  const zero = `<line x1="${L}" y1="${y(0).toFixed(1)}" x2="${W - R}" y2="${y(0).toFixed(1)}" stroke="${zeroc}" stroke-width="1"/>
+    <text x="${L}" y="${(y(0) - 5).toFixed(1)}" font-size="10" fill="${muted}">0 ft</text>`;
+  // Day and noon markers as plain labels along the base — no ticks, no dashes.
+  const dayLbls = days.map(p => p.midnight).filter(m => m > t0 + 30 * 60000 && m < t1).map(m => `<text x="${x(m).toFixed(1)}" y="${H - 7}" font-size="11" text-anchor="middle" fill="${muted}">${fmt(m + 3600000, { weekday: "short" })}</text>`).join("");
+  const noonLbls = days.map(p => p.midnight + 12 * 3600000).filter(m => m > t0 + 30 * 60000 && m < t1).map(m => `<text x="${x(m).toFixed(1)}" y="${H - 7}" font-size="11" text-anchor="middle" fill="${muted}">noon</text>`).join("");
+  const d = pts.map((p, i) => `${i ? "L" : "M"}${x(p[0]).toFixed(1)},${y(p[1]).toFixed(1)}`).join(" ");
+  const fill = color ? `<path d="${d} L${x(t1).toFixed(1)},${(H - B).toFixed(1)} L${x(t0).toFixed(1)},${(H - B).toFixed(1)} Z" fill="url(#water)"/>` : "";
+  const curve = `<path d="${d}" fill="none" stroke="${ink}" stroke-width="3.2" stroke-linejoin="round" stroke-linecap="round"/>`;
+  // Each high/low: its height, its time, and — only when it's an unusual-water day — a single accent triangle. No caption.
+  const labels = extremes.filter(e => e.t > t0 && e.t < t1).map(e => {
+    const v = e.h + surge.fn(e.t), px = x(e.t), py = y(v), up = e.type === "H", odd = unusual(v, e.type, annual);
+    const anchor = px < L + 26 ? "start" : px > W - 30 ? "end" : "middle", valFill = odd ? accent : ink;
+    const marker = odd
+      ? `<path d="${up ? `M${px.toFixed(1)},${(py - 7).toFixed(1)} L${(px - 5).toFixed(1)},${(py + 2).toFixed(1)} L${(px + 5).toFixed(1)},${(py + 2).toFixed(1)}` : `M${px.toFixed(1)},${(py + 7).toFixed(1)} L${(px - 5).toFixed(1)},${(py - 2).toFixed(1)} L${(px + 5).toFixed(1)},${(py - 2).toFixed(1)}`} Z" fill="${accent}"/>`
+      : `<circle cx="${px.toFixed(1)}" cy="${py.toFixed(1)}" r="3.5" fill="${color ? "#fcfcfb" : "#fff"}" stroke="${ink}" stroke-width="2"/>`;
+    const valY = up ? py - 13 : py + 15, timeY = up ? py - 25 : py + 27;
+    return `${marker}
+      <text x="${px.toFixed(1)}" y="${valY.toFixed(1)}" font-size="13.5" font-weight="600" text-anchor="${anchor}" fill="${valFill}">${v.toFixed(1)}</text>
+      <text x="${px.toFixed(1)}" y="${timeY.toFixed(1)}" font-size="10.5" text-anchor="${anchor}" fill="${muted}">${hhmm(e.t)}</text>`;
+  }).join("");
+  const nowX = x(nowMs), nowY = y(tideAt(extremes, nowMs) + surge.fn(nowMs));
+  document.getElementById("chart").innerHTML = `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
+    <defs><linearGradient id="water" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1a1a19" stop-opacity="0.07"/><stop offset="1" stop-color="#1a1a19" stop-opacity="0"/></linearGradient></defs>
+    ${night}${zero}${dayLbls}${noonLbls}${fill}${curve}${labels}
+    <line x1="${nowX.toFixed(1)}" y1="${T}" x2="${nowX.toFixed(1)}" y2="${(H - B).toFixed(1)}" stroke="${accent}" stroke-width="2"/>
+    <circle cx="${nowX.toFixed(1)}" cy="${nowY.toFixed(1)}" r="5" fill="${accent}" stroke="${color ? "#fcfcfb" : "#fff"}" stroke-width="2"/></svg>`;
+}
+
+function renderSunSimple(nowMs) {
+  const lp = localParts(nowMs), s = sunDay(lp.y, lp.m, lp.d, CONFIG.LAT, CONFIG.LON);
+  el("sun", `<span>Sunrise <b>${hhmm(s.sun.rise)}</b></span><span>Sunset <b>${hhmm(s.sun.set)}</b></span><span class="dim">Dark after <b>${hhmm(s.civil.set)}</b></span>`);
+}
+
+/* ---- weather ----
+   High-level only: temperature is the curve, rain chance a quiet bottom band, and wind is
+   described in plain part-of-day language ("windy this morning, calm this evening") — no
+   granular hourly wind/gust plot, no per-hour rain-amount bars. */
+const windWord = g => g >= 34 ? "gale-force" : g >= 22 ? "windy" : g >= 14 ? "breezy" : "calm";
+
+// Peak gust for each upcoming part of day, next ~30 h, collapsed into a short phrase.
+function windPhrase(wx, nowMs) {
+  const PARTS = [{ h0: 6, h1: 12, label: "morning" }, { h0: 12, h1: 18, label: "afternoon" }, { h0: 18, h1: 22, label: "evening" }, { h0: 22, h1: 30, label: "overnight" }];
+  const segs = [];
+  for (let day = 0; day <= 1; day++) { const mid = localParts(nowMs + day * 86400000).midnight;
+    for (const p of PARTS) { const a = mid + p.h0 * 3600000, b = mid + p.h1 * 3600000;
+      if (b <= nowMs || a > nowMs + 30 * 3600000) continue;
+      const hrs = wx.hourly.filter(h => h.t >= Math.max(a, nowMs) && h.t < b); if (!hrs.length) continue;
+      const g = Math.max(...hrs.map(h => h.gust));
+      const when = p.label === "overnight" ? (day === 0 ? "overnight" : "tomorrow night") : `${day === 0 ? "this" : "tomorrow"} ${p.label}`;
+      segs.push({ when, word: windWord(g) }); } }
+  if (!segs.length) return "";
+  const runs = segs.filter((s, i) => i === 0 || s.word !== segs[i - 1].word); // drop repeats, keep first of each run
+  if (runs.length === 1) return runs[0].word === "calm" ? "Winds staying calm." : `${cap(runs[0].word)} much of the day.`;
+  const cap0 = `${cap(runs[0].word)} ${runs[0].when}`, rest = runs.slice(1, 2).map(s => `${s.word} ${s.when}`);
+  return `${[cap0, ...rest].join(", ")}.`;
+}
+const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
+
+function wxLine(wx, nowMs) {
+  const next2h = wx.minutely.filter(m => m.t > nowMs - 15 * 60000 && m.t <= nowMs + 2 * 3600000), wet = m => m.inch >= 0.005;
+  const rainingNow = wx.current.precip >= 0.005 || (next2h[0] && wet(next2h[0]));
+  let rain;
+  if (rainingNow) { const stop = next2h.find(m => m.t > nowMs && !wet(m)); rain = stop ? `Rain easing around ${hhmm(stop.t)}.` : "Rain for the next couple of hours."; }
+  else { const first = next2h.find(m => m.t > nowMs && wet(m)); if (first) rain = `Rain starting about ${hhmm(first.t)}.`;
+    else { const later = wx.hourly.find(h => h.t > nowMs + 2 * 3600000 && h.t < nowMs + 24 * 3600000 && h.inch >= 0.01); rain = later ? `Dry until about ${dayWord(later.t, nowMs)}${hhmm(later.t)}.` : "Dry through tomorrow."; } }
+  return `${rain} ${windPhrase(wx, nowMs)}`.trim();
+}
+function renderWeatherSimple({ wx, met, alerts, nowMs }) {
+  const c = wx.current, today = wx.daily[0];
+  const rainBit = d => d && d.pop != null && d.pop >= 20 ? `${d.pop.toFixed(0)}% rain` : "";
+  const dayRight = d => [rainBit(d), windWord(d.gust)].filter(Boolean).join(" · ");
+  const subline = [rainBit(today), `${windWord(today.gust)} wind`].filter(Boolean).join(" · ");
+  el("hero", `<div class="big"><span class="n">${c.tempF.toFixed(0)}°</span><span class="dir">${WMO[c.code] || ""} · feels ${c.feelsF.toFixed(0)}°</span></div>
+    <div class="next"><b>High ${today.hi.toFixed(0)}° · Low ${today.lo.toFixed(0)}°</b><span>${subline}</span></div>
+    <div class="list">${wx.daily.slice(0, 3).map((d, i) => `<div><span><b>${i === 0 ? "Today" : fmt(d.t + 12 * 3600000, { weekday: "short" })}</b> ${d.hi.toFixed(0)}°/${d.lo.toFixed(0)}°</span><span class="t">${dayRight(d)}</span></div>`).join("")}</div>`);
+  el("pills", alerts.length ? `<span class="pill warn">${alerts[0].event}</span>` : "");
+  el("line", wxLine(wx, nowMs));
+  renderWeatherChart(wx, nowMs);
+  el("strip", met.waterF != null ? `<span>Water ${met.waterF.toFixed(0)}°</span>` : "");
+}
+// Temperature curve up top, rain-chance (%) as a quiet band along the base. Night blocks separate the days.
+function renderWeatherChart(wx, nowMs) {
+  const color = isColor(), W = 520, H = 300, L = 14, R = 12, T = 10, B = 24, PB = 46;
+  const t0 = nowMs - CONFIG.HOURS_BACK * 3600000, t1 = nowMs + CONFIG.HOURS_AHEAD * 3600000, x = t => L + (t - t0) / (t1 - t0) * (W - L - R);
+  const hrs = wx.hourly.filter(h => h.t >= t0 - 3600000 && h.t <= t1 + 3600000), inWin = hrs.filter(h => h.t >= t0 && h.t <= t1);
+  const temps = inWin.map(h => h.tempF), lo = Math.min(...temps), hi = Math.max(...temps);
+  const span = Math.max(10, hi - lo), pad = (span - (hi - lo)) / 2 + 3, tmin = lo - pad, tmax = hi + pad;
+  const yTop = T, yBot = H - B - PB, yT = f => yTop + (tmax - f) / (tmax - tmin) * (yBot - yTop);        // temperature band
+  const rTop = H - B - PB + 6, rBot = H - B, yR = pop => rBot - (pop / 100) * (rBot - rTop);            // rain-chance band (0–100%)
+  const ink = color ? "#1a1a19" : "#000", accent = color ? "#D85A30" : "#000", muted = color ? "#9b9a93" : "#000";
+  const nightc = color ? "#efece4" : "#ececec", blue = color ? "#185FA5" : "#000", rainFill = color ? "#185FA5" : "#000";
+  // Night blocks double as day separators (no gridlines), same as the tide curve.
+  let night = ""; const days = [-1, 0, 1, 2].map(k => localParts(nowMs + k * 86400000)), suns = days.map(p => sunDay(p.y, p.m, p.d, CONFIG.LAT, CONFIG.LON).sun);
+  for (let i = 0; i < suns.length - 1; i++) { const a = Math.max(suns[i].set, t0), b = Math.min(suns[i + 1].rise, t1);
+    if (b > a) night += `<rect x="${x(a).toFixed(1)}" y="${T}" width="${(x(b) - x(a)).toFixed(1)}" height="${(H - T - B).toFixed(1)}" rx="5" fill="${nightc}"/>`; }
+  const dayLbls = days.map(p => p.midnight).filter(m => m > t0 + 30 * 60000 && m < t1).map(m => `<text x="${x(m).toFixed(1)}" y="${H - 7}" font-size="11" text-anchor="middle" fill="${muted}">${fmt(m + 3600000, { weekday: "short" })}</text>`).join("");
+  const noonLbls = days.map(p => p.midnight + 12 * 3600000).filter(m => m > t0 + 30 * 60000 && m < t1).map(m => `<text x="${x(m).toFixed(1)}" y="${H - 7}" font-size="11" text-anchor="middle" fill="${muted}">noon</text>`).join("");
+  // Rain-chance band: a soft area whose height is the hourly chance of rain. Only drawn where there's a real chance.
+  const anyRain = inWin.some(h => h.pop >= 15);
+  const rd = inWin.map((h, i) => `${i ? "L" : "M"}${x(h.t).toFixed(1)},${yR(h.pop || 0).toFixed(1)}`).join(" ");
+  const rainArea = anyRain ? `<path d="${rd} L${x(inWin[inWin.length - 1].t).toFixed(1)},${rBot.toFixed(1)} L${x(inWin[0].t).toFixed(1)},${rBot.toFixed(1)} Z" fill="${rainFill}" opacity="${color ? 0.14 : 0.16}"/>
+    <path d="${rd}" fill="none" stroke="${blue}" stroke-width="${color ? 1.5 : 1.2}"/>` : "";
+  const rainCap = `<text x="${(W - R).toFixed(1)}" y="${(rTop - 3).toFixed(1)}" font-size="10" text-anchor="end" fill="${muted}">${anyRain ? "rain chance" : "no rain expected"}</text>`;
+  const rainPk = inWin.filter(h => h.t > nowMs).reduce((a, b) => (b.pop > (a ? a.pop : -1) ? b : a), null);
+  const rainPkLbl = anyRain && rainPk && rainPk.pop >= 40 ? `<text x="${x(rainPk.t).toFixed(1)}" y="${(yR(rainPk.pop) - 4).toFixed(1)}" font-size="10.5" font-weight="700" text-anchor="middle" fill="${blue}">${rainPk.pop.toFixed(0)}%</text>` : "";
+  // Temperature curve — in color, hue tracks the actual temperature (cold blues → warm reds); e-ink stays black.
+  const tempColor = f => `hsl(${(210 - (Math.max(30, Math.min(90, f)) - 30) / 60 * 200).toFixed(0)} 62% 46%)`;
+  const td = inWin.map((h, i) => `${i ? "L" : "M"}${x(h.t).toFixed(1)},${yT(h.tempF).toFixed(1)}`).join(" ");
+  const topC = tempColor(tmax - 3);
+  const fill = color ? `<path d="${td} L${x(inWin[inWin.length - 1].t).toFixed(1)},${yBot.toFixed(1)} L${x(inWin[0].t).toFixed(1)},${yBot.toFixed(1)} Z" fill="url(#warm)"/>` : "";
+  const curve = color
+    ? inWin.slice(1).map((h, i) => { const a = inWin[i]; return `<path d="M${x(a.t).toFixed(1)},${yT(a.tempF).toFixed(1)} L${x(h.t).toFixed(1)},${yT(h.tempF).toFixed(1)}" fill="none" stroke="${tempColor((a.tempF + h.tempF) / 2)}" stroke-width="3.6" stroke-linecap="round"/>`; }).join("")
+    : `<path d="${td}" fill="none" stroke="${ink}" stroke-width="3.2" stroke-linejoin="round" stroke-linecap="round"/>`;
+  const nowT = hrs.reduce((a, b) => (Math.abs(b.t - nowMs) < Math.abs(a.t - nowMs) ? b : a)), nowY = yT(nowT.tempF), nowX = x(nowMs);
+  // One high and (if the day swings enough) one low temperature marker per day that holds a real chunk of the window.
+  let marks = "";
+  for (const p of days) { const dayHrs = inWin.filter(h => { const q = localParts(h.t); return q.d === p.d && q.m === p.m; }); if (dayHrs.length < 5) continue;
+    const dHi = dayHrs.reduce((a, b) => (b.tempF > a.tempF ? b : a)), dLo = dayHrs.reduce((a, b) => (b.tempF < a.tempF ? b : a));
+    const picks = [[dHi, true]]; if (dHi.tempF - dLo.tempF >= 2) picks.push([dLo, false]);
+    for (const [pick, up] of picks) {
+      const px = x(pick.t), py = yT(pick.tempF); if (px < L + 2 || px > W - R - 2 || Math.abs(px - nowX) < 16) continue;
+      const anchor = px < L + 22 ? "start" : px > W - 26 ? "end" : "middle", vy = up ? py - 11 : py + 16;
+      marks += `<circle cx="${px.toFixed(1)}" cy="${py.toFixed(1)}" r="3.2" fill="${color ? "#fcfcfb" : "#fff"}" stroke="${ink}" stroke-width="2"/>
+        <text x="${px.toFixed(1)}" y="${vy.toFixed(1)}" font-size="13" font-weight="600" text-anchor="${anchor}" fill="${ink}">${pick.tempF.toFixed(0)}°</text>`; } }
+  document.getElementById("chart").innerHTML = `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
+    <defs><linearGradient id="warm" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${color ? topC : "#D85A30"}" stop-opacity="0.16"/><stop offset="1" stop-color="${color ? topC : "#D85A30"}" stop-opacity="0"/></linearGradient></defs>
+    ${night}${dayLbls}${noonLbls}${rainArea}${rainCap}${rainPkLbl}${fill}${curve}${marks}
+    <line x1="${nowX.toFixed(1)}" y1="${T}" x2="${nowX.toFixed(1)}" y2="${(H - B).toFixed(1)}" stroke="${accent}" stroke-width="2"/>
+    <circle cx="${nowX.toFixed(1)}" cy="${nowY.toFixed(1)}" r="5" fill="${accent}" stroke="${color ? "#fcfcfb" : "#fff"}" stroke-width="2"/></svg>`;
+}
+
+/* ============================== MAIN ============================== */
+async function main() {
+  const url = new URL(location.href);
+  document.body.classList.add("color");   // COLOR build: always renders in color, no ?theme needed
+  const view = url.searchParams.get("view") === "weather" ? "weather" : "tides";
+  document.body.classList.add(view);
+  const nowMs = url.searchParams.get("at") ? +new Date(url.searchParams.get("at")) : Date.now();
+  el("date", fmt(nowMs, { weekday: "long", month: "short", day: "numeric" }));
+  el("time", hhmm(nowMs));
+  const link = v => { const u = new URL(location.href); u.searchParams.set("view", v); return u.search; };
+  el("nav", `<a class="${view === "tides" ? "on" : ""}" href="${link("tides")}">Tides</a><a class="${view === "weather" ? "on" : ""}" href="${link("weather")}">Weather</a>`);
+  renderSunSimple(nowMs);
+  const manual = url.searchParams.has("surge") ? parseFloat(url.searchParams.get("surge")) : null, demo = url.searchParams.has("demo");
+  try {
+    let extremes, live = null, met = {}, alerts = [], forecast = null, cur = null, wx = null, annual = null;
+    if (demo) ({ extremes, live, met, alerts, cur, wx, annual } = demoData(nowMs));
+    else {
+      const jobs = [fetchExtremes(CONFIG.DP_STATION, nowMs - 24 * 3600000, 96), fetchMet(CONFIG.MET_STATION, nowMs), fetchAlerts(CONFIG.NWS_ZONE), fetchLiveAnomaly(CONFIG.REF_STATIONS, nowMs), fetchAnnual(CONFIG.DP_STATION, nowMs)];
+      jobs.push(view === "tides" ? fetchCurrents(CONFIG.CURRENT_STATION, nowMs) : fetchOpenMeteo(CONFIG.LAT, CONFIG.LON));
+      const r = await Promise.all(jobs); extremes = r[0]; met = r[1]; alerts = r[2]; live = r[3]; annual = r[4]; if (view === "tides") cur = r[5]; else wx = r[5];
+      if (CONFIG.SURGE_FORECAST_URL) forecast = await fetch(CONFIG.SURGE_FORECAST_URL).then(x => x.json()).catch(() => null);
+    }
+    const surge = makeSurgeFn({ manual, forecast, live, cfg: CONFIG });
+    if (view === "tides") renderTidesSimple({ extremes, surge, live, met, cur, alerts, annual, nowMs });
+    else renderWeatherSimple({ wx, met, extremes, alerts, nowMs });
+  } catch (e) { el("line", `<span class="err">${e.message}</span>`); console.error(e); }
+}
+if (typeof document !== "undefined") main();
+</script>
+</body>
+</html>
