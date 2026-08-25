@@ -1,0 +1,45 @@
+name: Publish marina nowcast
+
+# Regenerates amenities/nowcast.json (the board's 1h + 1-4h rain projection).
+# Keyless: nowcast.py only calls the free Open-Meteo API and reads the committed
+# calibration in amenities/nowcast/microclimate.json. No secrets required.
+#
+# NOTE: GitHub's scheduled runs are best-effort and can be delayed or skipped
+# under load, and are auto-disabled after 60 days of repo inactivity. Good enough
+# for a marina board; use the "Run workflow" button for an on-demand refresh.
+
+on:
+  schedule:
+    - cron: "*/30 * * * *"    # every ~30 min (best-effort)
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: marina-nowcast
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Generate nowcast.json
+        env:
+          NOWCAST_OUT: amenities/nowcast.json
+        run: python amenities/nowcast/nowcast.py
+      - name: Commit & push if changed
+        run: |
+          git config user.name "hpma-nowcast-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add amenities/nowcast.json
+          if git diff --cached --quiet; then
+            echo "No change; nothing to commit."
+          else
+            git commit -m "nowcast: refresh [skip ci]"
+            git push
+          fi

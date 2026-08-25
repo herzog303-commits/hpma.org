@@ -1,0 +1,130 @@
+{
+  "_about": "Learned parameters for the Indian Cove nowcast. Produced by the microclimate study (Phase 1/2), consumed by nowcast.py -> nowcast.json -> the board. Bias offsets fill in as join_log.csv accumulates real rain events; everything else is seeded from the Phase 1 measurements.",
+  "version": "0.1-seed",
+  "generated_note": "seed built 2026-08-24 from phase1 beam/blockage run",
+  "cove": {
+    "name": "Indian Cove",
+    "lat": 47.295894,
+    "lon": -122.861632
+  },
+  "radar": {
+    "confidence_cove": 0.15,
+    "why": "Both NEXRADs overshoot ~a mile over the cove (KATX 5661 ft @103 km, KLGX 4646 ft @92 km; measured blockage 0% / 14%). Low-level rain is invisible. Direct radar/MRMS reflectivity is near-useless here and must be down-weighted; model + surface obs carry the nowcast."
+  },
+  "stations": {
+    "primary_obs": "KSHN",
+    "primary_taf": "KOLM",
+    "fallback_obs": [
+      "KTIW",
+      "KTCM",
+      "KPWT"
+    ],
+    "bias_offsets": {
+      "_status": "awaiting rain events in join_log.csv; null = use raw value",
+      "KSHN": {
+        "precip_ratio": null,
+        "temp_offset_f": null
+      }
+    }
+  },
+  "wind_regimes": [
+    {
+      "name": "frontal-SW",
+      "dir_min": 170,
+      "dir_max": 250,
+      "wet_prior": 0.181,
+      "note": "onshore SW flow -- systems arrive from here",
+      "wet_prior_guess": 0.75,
+      "wet_prior_measured_hours": 14278
+    },
+    {
+      "name": "pre-frontal-S",
+      "dir_min": 140,
+      "dir_max": 170,
+      "wet_prior": 0.348,
+      "note": "veering ahead of a front, rain increasing",
+      "wet_prior_guess": 0.6,
+      "wet_prior_measured_hours": 574
+    },
+    {
+      "name": "post-frontal-NW",
+      "dir_min": 280,
+      "dir_max": 360,
+      "wet_prior": 0.122,
+      "note": "showery, but convergence usually parks north of us",
+      "wet_prior_guess": 0.35,
+      "wet_prior_measured_hours": 401
+    },
+    {
+      "name": "offshore-dry",
+      "dir_min": 20,
+      "dir_max": 140,
+      "wet_prior": 0.077,
+      "note": "rain-shadow / high pressure -- reliably dry",
+      "wet_prior_guess": 0.1,
+      "wet_prior_measured_hours": 8301
+    },
+    {
+      "name": "slack",
+      "dir_min": -1,
+      "dir_max": 361,
+      "wet_prior": 0.071,
+      "note": "light/variable, no clear regime",
+      "wet_prior_guess": 0.3,
+      "wet_prior_measured_hours": 11901
+    }
+  ],
+  "baro": {
+    "falling_fast_hpa_3h": -1.0,
+    "rising_fast_hpa_3h": 1.0,
+    "wet_nudge": 0.15,
+    "dry_nudge": -0.1,
+    "note": "surface pressure tendency (Open-Meteo pressure_msl or Tacoma PORTS). Falling fast => system inbound; boosts wet confidence."
+  },
+  "blend": {
+    "_about": "Crossfade from obs-extrapolation to model as lead time grows. weights sum ~1 across {minutely, hourly, regime}.",
+    "crossfade": [
+      {
+        "label": "0-30 min",
+        "upto_min": 30,
+        "weights": {
+          "minutely": 0.7,
+          "hourly": 0.2,
+          "regime": 0.1
+        }
+      },
+      {
+        "label": "30-90 min",
+        "upto_min": 90,
+        "weights": {
+          "minutely": 0.35,
+          "hourly": 0.5,
+          "regime": 0.15
+        }
+      },
+      {
+        "label": "90-240 min",
+        "upto_min": 240,
+        "weights": {
+          "minutely": 0.0,
+          "hourly": 0.8,
+          "regime": 0.2
+        }
+      }
+    ],
+    "rain_threshold": 0.45
+  },
+  "model_calibration": {
+    "temp_offset_f": 0.8,
+    "temp_offset_by_season_f": {
+      "JJA": -0.07,
+      "SON": 0.4,
+      "DJF": 1.5,
+      "MAM": 1.02
+    },
+    "precip_ratio": 1.05,
+    "source": "G2160 4-yr archive vs Open-Meteo ERA5",
+    "note": "add temp_offset_f to model temp; multiply model precip by precip_ratio (rain shadow)",
+    "precip_ratio_source": "Jarrell Cove CoCoRaHS (US1WAMS0032) vs Open-Meteo, 862 days -- accurate hand-gauge, supersedes G2160"
+  }
+}

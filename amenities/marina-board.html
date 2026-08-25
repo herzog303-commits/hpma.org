@@ -92,6 +92,7 @@ const CONFIG = {
      also gets a "†" footnote mark keyed to the static "NOAA + live surge" note. Below it, only that note. */
   SURGE_GAIN: 1.0, SURGE_LAG_MIN: 0, SURGE_MAJOR_FT: 1.5,
   SURGE_FORECAST_URL: "",   // optional JSON [{"t":"...Z","ft":0.8},...] from ETSS/SSCOFS via cron
+  NOWCAST_URL: "nowcast.json",  // 1h + 1-4h rain projection from nowcast.py, served alongside the board
   PERSIST_H: 12, FADE_H: 36, // carry-forward window when no forecast feed
 
   /* Fixed chart axis = this year's predicted range at McMicken Island. Computed from NOAA on load;
@@ -386,7 +387,21 @@ function wxLine(wx, nowMs) {
     else { const later = wx.hourly.find(h => h.t > nowMs + 2 * 3600000 && h.t < nowMs + 24 * 3600000 && h.inch >= 0.01); rain = later ? `Dry until about ${dayWord(later.t, nowMs)}${hhmm(later.t)}.` : "Dry through tomorrow."; } }
   return `${rain} ${windPhrase(wx, nowMs)}`.trim();
 }
-function renderWeatherSimple({ wx, met, alerts, nowMs }) {
+const NC_BLOCKS = ["▁", "▂", "▃", "▄", "▅", "▆", "▇", "█"];
+const ncWord = r => r >= 0.45 ? "rain likely" : r >= 0.27 ? "showers possible" : "dry";
+// The 1h + 1-4h projection as one line: a 3-bucket sparkline (0-30, 30-90, 90-240 min),
+// the next-hour and 1-4h calls, the driving regime, and confidence. Text-only for e-ink.
+function nowcastLine(nc) {
+  const tl = nc.timeline || [];
+  if (tl.length < 3) return "";
+  const spark = tl.map(b => NC_BLOCKS[Math.max(0, Math.min(7, Math.round((b.risk || 0) * 7)))]).join("");
+  const nextHr = Math.max(tl[0].risk, tl[1].risk), later = tl[2].risk;
+  const wet = Math.max(nextHr, later) >= 0.45;
+  const temp = nc.temp_cove_f != null ? ` · ${nc.temp_cove_f.toFixed(0)}°` : "";
+  return `<b>Nowcast</b> <span style="letter-spacing:1px;${wet ? "color:var(--warn-fg)" : ""}">${spark}</span> ` +
+    `next hr <b>${ncWord(nextHr)}</b>, 1–4h <b>${ncWord(later)}</b> · ${nc.detail || ""} · ${nc.confidence || ""}${temp}`;
+}
+function renderWeatherSimple({ wx, met, alerts, nowMs, nowcast }) {
   const c = wx.current, today = wx.daily[0];
   const rainBit = d => d && d.pop != null && d.pop >= 20 ? `${d.pop.toFixed(0)}% rain` : "";
   const dayRight = d => [rainBit(d), windWord(d.gust)].filter(Boolean).join(" · ");
@@ -395,7 +410,7 @@ function renderWeatherSimple({ wx, met, alerts, nowMs }) {
     <div class="next"><b>High ${today.hi.toFixed(0)}° · Low ${today.lo.toFixed(0)}°</b><span>${subline}</span></div>
     <div class="list">${wx.daily.slice(0, 3).map((d, i) => `<div><span><b>${i === 0 ? "Today" : fmt(d.t + 12 * 3600000, { weekday: "short" })}</b> ${d.hi.toFixed(0)}°/${d.lo.toFixed(0)}°</span><span class="t">${dayRight(d)}</span></div>`).join("")}</div>`);
   el("pills", alerts.length ? `<span class="pill warn">${alerts[0].event}</span>` : "");
-  el("line", wxLine(wx, nowMs));
+  el("line", nowcast ? nowcastLine(nowcast) : wxLine(wx, nowMs));
   renderWeatherChart(wx, nowMs);
   el("strip", met.waterF != null ? `<span>Water ${met.waterF.toFixed(0)}°</span>` : "");
 }
@@ -472,9 +487,12 @@ async function main() {
       const r = await Promise.all(jobs); extremes = r[0]; met = r[1]; alerts = r[2]; live = r[3]; annual = r[4]; if (view === "tides") cur = r[5]; else wx = r[5];
       if (CONFIG.SURGE_FORECAST_URL) forecast = await fetch(CONFIG.SURGE_FORECAST_URL).then(x => x.json()).catch(() => null);
     }
+    let nowcast = null;
+    if (view === "weather" && !demo && CONFIG.NOWCAST_URL)
+      nowcast = await fetch(CONFIG.NOWCAST_URL).then(x => x.json()).catch(() => null);
     const surge = makeSurgeFn({ manual, forecast, live, cfg: CONFIG });
     if (view === "tides") renderTidesSimple({ extremes, surge, live, met, cur, alerts, annual, nowMs });
-    else renderWeatherSimple({ wx, met, extremes, alerts, nowMs });
+    else renderWeatherSimple({ wx, met, extremes, alerts, nowMs, nowcast });
   } catch (e) { el("line", `<span class="err">${e.message}</span>`); console.error(e); }
 }
 if (typeof document !== "undefined") main();
