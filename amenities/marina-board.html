@@ -394,12 +394,15 @@ const ncWord = r => r >= 0.45 ? "rain likely" : r >= 0.27 ? "showers possible" :
 function nowcastLine(nc) {
   const tl = nc.timeline || [];
   if (tl.length < 3) return "";
-  const spark = tl.map(b => NC_BLOCKS[Math.max(0, Math.min(7, Math.round((b.risk || 0) * 7)))]).join("");
   const nextHr = Math.max(tl[0].risk, tl[1].risk), later = tl[2].risk;
-  const wet = Math.max(nextHr, later) >= 0.45;
+  const maxR = Math.max(nextHr, later), wet = maxR >= 0.45;
+  // sparkline only once rain is developing -- a flat all-dry line just reads as "___"
+  const spark = maxR >= 0.27
+    ? `<span style="letter-spacing:1px;${wet ? "color:var(--warn-fg)" : ""}">` +
+      tl.map(b => NC_BLOCKS[Math.max(0, Math.min(7, Math.round((b.risk || 0) * 7)))]).join("") + "</span> "
+    : "";
   const temp = nc.temp_cove_f != null ? ` · ${nc.temp_cove_f.toFixed(0)}°` : "";
-  return `<b>Nowcast</b> <span style="letter-spacing:1px;${wet ? "color:var(--warn-fg)" : ""}">${spark}</span> ` +
-    `next hr <b>${ncWord(nextHr)}</b>, 1–4h <b>${ncWord(later)}</b> · ${nc.detail || ""} · ${nc.confidence || ""}${temp}`;
+  return `<b>Nowcast</b> ${spark}next hr <b>${ncWord(nextHr)}</b>, 1–4h <b>${ncWord(later)}</b> · ${nc.detail || ""} · ${nc.confidence || ""}${temp}`;
 }
 function renderWeatherSimple({ wx, met, alerts, nowMs, nowcast }) {
   const c = wx.current, today = wx.daily[0];
