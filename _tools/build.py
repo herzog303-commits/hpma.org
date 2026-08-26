@@ -1,6 +1,10 @@
 # -*- coding: utf-8 -*-
 """Static-site generator for hpma.org. Emits plain HTML files (no runtime dep)."""
 import os, glob, html, json
+try:
+    from PIL import Image as _PILImage  # optional: enables intrinsic gallery dimensions
+except Exception:
+    _PILImage = None
 
 # Repo root = parent of this _tools/ folder, so the script is portable.
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -968,6 +972,17 @@ ALBUM_BLURB = {
     14: "The quiet lagoon at the North Beach, a favorite spot for kayakers and herons.",
 }
 
+def _dims(fname):
+    # Intrinsic width/height so the browser reserves space (avoids layout shift).
+    # No-op if Pillow is unavailable, so the build never hard-depends on it.
+    if _PILImage is None:
+        return ""
+    try:
+        with _PILImage.open(os.path.join(GAL, fname)) as im:
+            return f' width="{im.width}" height="{im.height}"'
+    except Exception:
+        return ""
+
 def caption(p):
     t, c = p.get("title", "").strip(), p.get("credit", "").strip()
     if t and c:
@@ -983,7 +998,7 @@ def gallery_block(alb):
         cap = html.escape(caption(p), quote=True)
         alt = html.escape(caption(p) or "Hartstene Pointe")
         tiles += (f'      <a href="../assets/img/gallery/{f}" data-caption="{cap}">'
-                  f'<img loading="lazy" src="../assets/img/gallery/{f}" alt="{alt}"></a>\n')
+                  f'<img loading="lazy"{_dims(p["file"])} src="../assets/img/gallery/{f}" alt="{alt}"></a>\n')
     n = len(alb["photos"])
     blurb = ALBUM_BLURB.get(alb["id"], "")
     return (f'    <div class="album">\n'
