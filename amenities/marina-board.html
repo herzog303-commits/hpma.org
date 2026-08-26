@@ -303,7 +303,7 @@ function renderTidesSimple({ extremes, surge, live, met, cur, alerts, annual, no
   if (met.wind) bits.push(`Wind ${met.wind.dir} ${met.wind.kt.toFixed(0)}${met.wind.gust > met.wind.kt + 5 ? `–${met.wind.gust.toFixed(0)}` : ""} kt`);
   if (cur && cur.length) { const sl = cur.find(c => c.t > nowMs && c.type === "slack"); if (sl) bits.push(`Slack ${hhmm(sl.t)}`); }
   if (met.waterF != null) bits.push(`Water ${met.waterF.toFixed(0)}°`);
-  el("strip", bits.map(b => `<span>${b}</span>`).join("") + `<span class="dim">heights = NOAA tide + live surge</span>`);
+  el("strip", bits.map(b => `<span>${b}</span>`).join("") + `<span class="dim">Height = NOAA + live surge</span>`);
 }
 
 function renderCurve(extremes, surge, annual, nowMs) {
