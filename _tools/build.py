@@ -616,7 +616,6 @@ amenity("outdoor-recreation.html","Outdoor Recreation","Outdoor Recreation","ass
  "Beyond the beaches, there are outdoor facilities for all ages to enjoy.",
  """  <section class="article"><div class="wrap"><div class="prose">
     <p>In addition to the beautiful beaches that surround the Pointe, there are outdoor recreational facilities for all ages to enjoy. Here is a snapshot of just a few:</p>
-    <figure><img src="../assets/img/pages/aerial-clubhouse.jpg" alt="Aerial view of the tennis courts, pool and Clubhouse"><figcaption>The tennis and pickleball courts, pool and Clubhouse from above.</figcaption></figure>
     <ul>
       <li><strong>Tennis courts</strong>, two near the Clubhouse, one by the spit</li>
       <li><strong>Basketball &amp; pickleball court</strong>, near the Clubhouse</li>
