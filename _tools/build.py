@@ -52,7 +52,7 @@ NAV = """  <ul class="nav-menu">
     </li>
     <li><a href="{p}visiting/">Visiting</a></li>
     <li><a href="{p}photos/">Photos</a></li>
-    <li class="nav-search"><button class="search-toggle" aria-label="Search this site"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4.1-4.1"/></svg><span class="label">Search</span></button></li>
+    <li class="nav-search"><button type="button" class="search-toggle" aria-label="Search this site"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4.1-4.1"/></svg><span class="label">Search</span></button></li>
     <li><a href="https://app.condocontrol.com/login" class="portal" target="_blank" rel="noopener">Owner Portal</a></li>
   </ul>"""
 
@@ -90,13 +90,13 @@ HEAD = """<!DOCTYPE html>
   </span>
 </div>
 
-<nav class="nav">
+<nav class="nav" aria-label="Primary">
   <a class="brand" href="{p}index.html" aria-label="Hartstene Pointe Maintenance Association home">
     <img class="brand-mark" src="{p}assets/img/logo.png" alt="Hartstene Pointe crest" width="42" height="42">
     <span class="wm">HARTSTENE POINTE</span>
   </a>
-  <button class="search-toggle" aria-label="Search this site"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4.1-4.1"/></svg><span class="label">Search</span></button>
-  <button class="nav-toggle" aria-label="Menu" aria-expanded="false"><span></span><span></span><span></span></button>
+  <button type="button" class="search-toggle" aria-label="Search this site"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4.1-4.1"/></svg><span class="label">Search</span></button>
+  <button type="button" class="nav-toggle" aria-label="Menu" aria-expanded="false"><span></span><span></span><span></span></button>
 {nav}
 </nav>
 
@@ -104,7 +104,7 @@ HEAD = """<!DOCTYPE html>
   <header class="page-hero">
     <div class="bg" style="background-image:url('{p}{herobg}')"></div>
     <div class="wrap">
-      <nav class="crumbs" data-pagefind-ignore>{crumbs}</nav>
+      <nav class="crumbs" aria-label="Breadcrumb" data-pagefind-ignore>{crumbs}</nav>
       <h1>{h1}</h1>
       {lede}
     </div>
@@ -284,8 +284,13 @@ page("about/history.html", "Our Stories &amp; History", "Our Stories &amp; Histo
       </ul>
       <p>It was onto this quiet, wooded island, a few years after the bridge replaced the ferry, that Hartstene Pointe was drawn.</p>
 
+      <h2>Weyerhaeuser, Quadrant, and the making of the Pointe</h2>
+      <p>The northern tip of the island had long been a working tree farm, some 215 wooded acres owned by the <strong>Weyerhaeuser Company</strong>. In the late 1960s Weyerhaeuser kept it as a quiet retreat, a place for its people to camp among the firs. When the bridge opened in 1969 and the island became a drive rather than a ferry ride away, the company saw the tree farm in a new light and turned the idea of a residential community over to its real-estate arm, <strong>The Quadrant Corporation</strong>. Quadrant is the name on the early maps, the brochure and the crest for a simple reason: it was Weyerhaeuser's development company, and it was Quadrant that drew Hartstene Pointe onto the land.</p>
+      <p>What Quadrant built is still what you find today: the paved roads and buried utilities, the clubhouse, the pool, the water and sewer lines, and the permanently deeded greenbelts that give every lot its screen of trees. To introduce it all, the company mounted a famously spirited campaign, a promotional blimp over Seattle, chartered boats and island barbecues to bring city families across the bridge to see the place for themselves.</p>
+      <p>By the early 1980s, with the lots filling in, Weyerhaeuser and Quadrant handed the roads, the utilities and the association itself over to the residents. A corporate tree farm had become a community that governs itself, and the greenbelts, the Pacific Northwest lines of the older homes, and the green shield at the top of this page, its mountain, sun and water the mark Quadrant chose for Hartstene Pointe, all trace straight back to Quadrant's original design.</p>
+
       <h2>The original vision</h2>
-      <p>Not long ago a resident turned up the original sales brochure that The Quadrant Corporation, a Weyerhaeuser company, used to introduce Hartstene Pointe when lots first went on the market in the mid-1970s. Its photographs and typewritten pages are a window into how the Pointe was imagined at the very beginning.</p>
+      <p>Not long ago a resident turned up the original sales brochure that The Quadrant Corporation used to introduce Hartstene Pointe when lots first went on the market in the mid-1970s. Its photographs and typewritten pages are a window into how the Pointe was imagined at the very beginning.</p>
       <blockquote>There's something about an island like Hartstene in Puget Sound that takes you &ldquo;out of this world&rdquo; the minute you cross the bridge from the mainland. It's a quieter, live-and-let-live world, developed by the people who care. Hartstene Pointe is one of those rare, nearby getaway places where the trees still outnumber the people, and always will.</blockquote>
       <figure><img src="../assets/img/history/island-house-sketch.jpg" alt="Pen-and-ink drawing of an Island House on its deck among the trees, from the 1970s brochure"><figcaption>An Island House, as drawn for the original brochure.</figcaption></figure>
       <p>The brochure describes a community where each lot &ldquo;adjoins a wooded, permanently deeded green belt,&rdquo; where &ldquo;even the lodge, tennis courts, and swimming pool are embraced by forest,&rdquo; and where about half the land belongs to everyone, including more than three miles of beach. Owners were invited to swim in the heated clubhouse pool, water ski in the calm waters of Pickering Passage, fish for sea run cutthroat, or walk the sandy beach and dig for butter clams.</p>
@@ -295,7 +300,6 @@ page("about/history.html", "Our Stories &amp; History", "Our Stories &amp; Histo
         <figure><img src="../assets/img/history/view-from-pointe-1970s.jpg" alt="1970s photograph looking out from Hartstene Pointe across the water to a wooded island"><figcaption>&ldquo;View from Pointe,&rdquo; from the brochure.</figcaption></figure>
         <figure><img src="../assets/img/history/picnic-area-1970s.jpg" alt="1970s photograph of one of the shoreline picnic areas at Hartstene Pointe"><figcaption>&ldquo;One of four picnic areas,&rdquo; in the 1970s.</figcaption></figure>
       </div>
-      <p>Even the crest at the top of this site traces back to that first brochure: the green shield with its mountain, sun and water was the mark Quadrant chose for Hartstene Pointe, and it has watched over the community ever since.</p>
 
       <h2>Contribute a story</h2>
       <p>We invite contributions of stories to enhance our history. Send them to the office via our <a href="../contact/">contact page</a>.</p>
@@ -347,7 +351,7 @@ page("governance/index.html", "Governance", "Governance",
         <li>Bylaws</li>
         <li>Rules &amp; Regulations</li>
       </ul>
-      <p>You can read all of these on the <a href="documents.html">Governing Documents</a> page. The Board has also established several committees in the Bylaws; these committees advise the Board, though decisions remain the Board's to make.</p>
+      <p>You can read the CC&amp;Rs, Bylaws, and Rules &amp; Regulations on the <a href="documents.html">Governing Documents</a> page; the office can provide the Articles of Incorporation. The Board has also established several committees in the Bylaws; these committees advise the Board, though decisions remain the Board's to make.</p>
 
       <h2>How it works in practice</h2>
       <p>Property owners elect a seven-member Board of Directors each June; terms run three years, so two or three seats come up for election in any given year. The Board elects its own officers: President, Vice-President, Secretary and Treasurer.</p>
@@ -441,7 +445,7 @@ AM = [
  ("wildlife.html","Wildlife &amp; Habitat","assets/img/amenities/wildlife.jpg","The deer, eagles, shorebirds and wildflowers that make their home alongside us."),
 ]
 cards = "".join(
- f'<a class="acard" href="{u}"><div class="ph" style="background-image:url(\'../{img}\')"></div>'
+ f'<a class="acard" href="{u}"><div class="ph" style="background-image:url(\'../{img.replace("amenities/","amenities/thumbs/")}\')"></div>'
  f'<div class="bd"><h4>{t}</h4><p>{d}</p><span class="go">Explore &rarr;</span></div></a>\n'
  for (u,t,img,d) in AM)
 page("amenities/index.html", "Amenities", "Amenities",
@@ -452,7 +456,7 @@ page("amenities/index.html", "Amenities", "Amenities",
 # ============ AMENITY SUB-PAGES ============
 def amenity(u, title, h1, hero, lede, body, desc=""):
     page("amenities/"+u, title, h1,
-         [home_link(), '<a href="index.html">Amenities</a>', h1.replace("&amp;","&")],
+         [home_link(), '<a href="index.html">Amenities</a>', h1],
          lede=lede, herobg=hero, body=body, desc=desc)
 
 amenity("clubhouse.html","Clubhouse","Clubhouse","assets/img/amenities/clubhouse.jpg",
@@ -503,7 +507,7 @@ amenity("pool-spa.html","Pool &amp; Spa","Pool &amp; Spa","assets/img/amenities/
         <li>Equipment for the courts can be checked out at the pool.</li>
         <li>No reservation needed, just come on down.</li>
       </ul>
-      <figure><img src="../assets/img/pages/aerial-clubhouse.jpg" alt="Aerial view of the pool, spa and Clubhouse"><figcaption>The pool and spa sit just behind the Clubhouse, with the courts nearby.</figcaption></figure>
+      <figure><img src="../assets/img/pages/pool-spa-view.jpg" alt="The heated pool and spa on a bright day, the Clubhouse beyond the deck and firs"><figcaption>The pool and spa on a summer morning, the Clubhouse just beyond.</figcaption></figure>
       <figure><img src="../assets/img/pages/community-pool.jpg" alt="A summer day at the Hartstene Pointe pool"><figcaption>A summer afternoon at the pool.</figcaption></figure>
       <figure><img src="../assets/img/pages/pool-spa.jpg" alt="The heated pool and spa ringed by fir trees behind the Clubhouse"><figcaption>The heated pool and spa, ringed by firs behind the Clubhouse.</figcaption></figure>
     </div>

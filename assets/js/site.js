@@ -37,6 +37,17 @@
   // reset if the viewport grows back to desktop
   mq.addEventListener('change', function (e) { if (!e.matches) collapseSubs(); });
 
+  // desktop: submenus open on hover/focus via CSS; keep aria-expanded in sync
+  Array.prototype.forEach.call(document.querySelectorAll('.has-sub'), function (li) {
+    var a = li.querySelector(':scope > a');
+    if (!a) return;
+    function sync(open) { if (!mq.matches) a.setAttribute('aria-expanded', open ? 'true' : 'false'); }
+    li.addEventListener('mouseenter', function () { sync(true); });
+    li.addEventListener('mouseleave', function () { sync(false); });
+    li.addEventListener('focusin', function () { sync(true); });
+    li.addEventListener('focusout', function (e) { if (!li.contains(e.relatedTarget)) sync(false); });
+  });
+
   // gallery lightbox
   var links = Array.prototype.slice.call(document.querySelectorAll('.gallery a'));
   if (!links.length) return;
@@ -112,7 +123,7 @@
     modal.innerHTML =
       '<div class="search-panel">' +
       '<div class="search-head"><h2>Search Hartstene Pointe</h2>' +
-      '<button class="search-close" aria-label="Close search">&times;</button></div>' +
+      '<button type="button" class="search-close" aria-label="Close search">&times;</button></div>' +
       '<div class="search-body"><div id="pf-search"></div>' +
       '<p class="search-error" style="display:none">Search isn&rsquo;t available right now. ' +
       'Please try again later, or browse using the menu above.</p></div></div>';

@@ -4,11 +4,25 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Page not found &middot; Hartstene Pointe</title>
+<script>
+/* Derive the site root so this page works both at the GitHub Pages project
+   preview (/hpma.org/...) and at the final custom domain (/...). Runs before
+   the stylesheet/links below so <base> can resolve their relative URLs. */
+(function () {
+  var root = "/";
+  if (location.hostname.indexOf("github.io") !== -1) {
+    var seg = location.pathname.split("/").filter(Boolean);
+    if (seg.length) root = "/" + seg[0] + "/";
+  }
+  window.__siteRoot = root;
+  document.write('<base href="' + root + '">');
+})();
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="icon" type="image/png" href="/assets/img/logo.png">
-<link rel="stylesheet" href="/assets/css/site.css">
+<link rel="icon" type="image/png" href="assets/img/logo.png">
+<link rel="stylesheet" href="assets/css/site.css">
 <style>
   .nf{min-height:70vh;display:grid;place-items:center;text-align:center;padding:60px 24px;
       background:linear-gradient(180deg,var(--bg),var(--bg-2))}
@@ -22,34 +36,37 @@
     <span class="eyebrow">Hartstene Pointe</span>
     <h1>Page not found</h1>
     <p>The page you're looking for has moved or no longer exists. Let's get you back to familiar ground.</p>
-    <a class="btn" href="/index.html">Return home</a>
+    <a class="btn" href="index.html">Return home</a>
   </div>
 </div>
 <script>
-/* Send links from the old hpma.org (PHP-era URLs) to their new homes. */
+/* Send links from the old hpma.org (PHP-era URLs) to their new homes.
+   Paths are built from the site root so they resolve on preview and production. */
 (function () {
+  var root = window.__siteRoot || "/";
   var map = {
-    "15f99046a4e2cc": "/amenities/picnic-shelters.html",
-    "16010c616bf804": "/amenities/trails.html",
-    "164bcab86f3612": "/amenities/marina.html",
-    "25f9903fee2954": "/amenities/",
-    "25f9904c0ecae2": "/amenities/wildlife.html",
-    "263e34d730d293": "/governance/documents.html",
-    "363e34ccc2141b": "/about/history.html",
-    "85f99048767abc": "/amenities/pea-patch.html",
-    "85f9904a69fe9b": "/amenities/pool-spa.html",
-    "86010c5d5b5372": "/amenities/fitness-center.html",
-    "863e34c8e1e9d7": "/about/",
-    "96010c5fbe22b6": "/amenities/outdoor-recreation.html"
+    "15f99046a4e2cc": "amenities/picnic-shelters.html",
+    "16010c616bf804": "amenities/trails.html",
+    "164bcab86f3612": "amenities/marina.html",
+    "25f9903fee2954": "amenities/",
+    "25f9904c0ecae2": "amenities/wildlife.html",
+    "263e34d730d293": "governance/documents.html",
+    "363e34ccc2141b": "about/history.html",
+    "85f99048767abc": "amenities/pea-patch.html",
+    "85f9904a69fe9b": "amenities/pool-spa.html",
+    "86010c5d5b5372": "amenities/fitness-center.html",
+    "863e34c8e1e9d7": "about/",
+    "96010c5fbe22b6": "amenities/outdoor-recreation.html"
   };
   var path = location.pathname;
-  if (path === "/info.php") {
+  function ends(s) { return path.slice(-s.length) === s; }
+  if (ends("/info.php")) {
     var pnum = new URLSearchParams(location.search).get("pnum");
-    location.replace(map[pnum] || "/");
-  } else if (path === "/contact.php") {
-    location.replace("/contact/");
-  } else if (path === "/default.php") {
-    location.replace("/");
+    location.replace(root + (map[pnum] || ""));
+  } else if (ends("/contact.php")) {
+    location.replace(root + "contact/");
+  } else if (ends("/default.php")) {
+    location.replace(root);
   }
 })();
 </script>
