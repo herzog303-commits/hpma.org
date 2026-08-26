@@ -222,6 +222,7 @@ page("about/index.html", "About the Pointe", "About the Pointe",
 
 page("about/our-place.html", "Our Place", "Our Place",
      [home_link(), '<a href="index.html">About</a>', "Our Place"],
+     herobg="assets/img/heroes/spit-rainier-windsock.jpg",
      lede="Where we are, how the island came to be, and what it's like to live at the Pointe.",
      body="""  <section class="article"><div class="wrap"><div class="prose">
     <h2>Harstine Island</h2>
