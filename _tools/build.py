@@ -256,6 +256,7 @@ page("about/our-place.html", "Our Place", "Our Place",
 
 page("about/history.html", "Our Stories &amp; History", "Our Stories &amp; History",
      [home_link(), '<a href="index.html">About</a>', "History"],
+     herobg="assets/img/heroes/golden-hour-beach.jpg",
      lede="The people and memories behind the Pointe, gathered from residents past and present.",
      body="""  <section class="article"><div class="wrap"><div class="split">
     <div class="prose">
@@ -343,6 +344,7 @@ COMMITTEE_LIS = "\n        ".join(f"<li>{c}</li>" for c in COMMITTEES) \
 
 page("governance/index.html", "Governance", "Governance",
      [home_link(), "Governance"],
+     herobg="assets/img/amenities/clubhouse.jpg",
      lede="How decisions are made at the Pointe, and how owners take part in making them.",
      body="""  <section class="article"><div class="wrap"><div class="split">
     <div class="prose">
@@ -376,6 +378,7 @@ page("governance/index.html", "Governance", "Governance",
 
 page("governance/committees.html", "Committees", "Committees",
      [home_link(), '<a href="index.html">Governance</a>', "Committees"],
+     herobg="assets/img/amenities/clubhouse.jpg",
      lede="Many owners volunteer to serve on committees that help the community in countless ways.",
      body="""  <section class="article"><div class="wrap"><div class="split">
     <div class="prose">
@@ -433,6 +436,7 @@ DOCS = """  <section class="article"><div class="wrap"><div class="prose">
   </div></div></section>"""
 page("governance/documents.html", "Governing Documents", "Governing Documents",
      [home_link(), '<a href="index.html">Governance</a>', "Documents"],
+     herobg="assets/img/amenities/clubhouse.jpg",
      lede="Articles, CC&amp;Rs, Bylaws, Rules &amp; Regulations, moorage documents and maps.",
      body=DOCS)
 
@@ -455,6 +459,7 @@ cards = "".join(
  for (u,t,img,d) in AM)
 page("amenities/index.html", "Amenities", "Amenities",
      [home_link(), "Amenities"],
+     herobg="assets/img/pages/pool-spa-view.jpg",
      lede="The Pointe is fortunate to have a wide range of amenities for owners and their guests to enjoy, cared for by the General Manager and staff with advice from the Recreation, Moorage and Common Area Stewardship committees.",
      body=f'  <section class="article"><div class="wrap"><div class="grid-3">\n{cards}  </div></div></section>')
 
@@ -759,7 +764,7 @@ amenity("wildlife.html","Wildlife","Wildlife &amp; Habitat","assets/img/amenitie
 # ============ VISITING (guest / renter rules) ============
 page("visiting/index.html", "Visiting the Pointe", "Visiting the Pointe",
      [home_link(), "Visiting"],
-     herobg="assets/img/amenities/marina.jpg",
+     herobg="assets/img/pages/beach-evening.jpg",
      lede="How we care for the Pointe together: the essentials for all residents and their guests.",
      body="""  <section class="article"><div class="wrap"><div class="prose">
     <p>The Pointe is a quiet, wooded community wrapped in three and a half miles of private beach, and a little shared care keeps it that way for everyone, neighbors, guests and the deer and eagles alike. These notes apply to all residents and their guests.</p>
@@ -792,6 +797,7 @@ page("visiting/index.html", "Visiting the Pointe", "Visiting the Pointe",
 # ============ COMMUNITY ============
 page("community/index.html", "Community", "Community",
      [home_link(), "Community"],
+     herobg="assets/img/pages/community-life.jpg",
      lede="A place to be part of something, or simply to be by yourself and enjoy the natural world.",
      body="""  <section class="article"><div class="wrap"><div class="prose">
     <p>Hartstene Pointe is a community, but also a place where people can be by themselves and enjoy the natural environment. No one is pressured to take part, and everyone is welcome to: neighbors join together in activities and governance as much, or as little, as suits them. It's your choice.</p>
@@ -932,6 +938,7 @@ page("community/considering-the-pointe.html", "Considering the Pointe", "Conside
 # ============ CONTACT ============
 page("contact/index.html", "Contact", "Contact",
      [home_link(), "Contact"],
+     herobg="assets/img/heroes/orca-daytime.jpg",
      lede="The HPMA office is here to help owners, residents and guests.",
      body="""  <section class="article"><div class="wrap">
     <div class="contact-grid">
@@ -1018,6 +1025,7 @@ for a in ALBUMS:
 _total = sum(len(a["photos"]) for a in ALBUMS)
 page("photos/index.html", "Photos", "Photo Gallery",
      [home_link(), "Photos"],
+     herobg="assets/img/heroes/rainier-pink-sunset.jpg",
      lede=f"Scenes from around the Pointe, contributed by residents over the years: {_total} photographs across {len(ALBUMS)} albums. Click any photo to view it larger.",
      body=f'  <div class="album-jump"><div class="wrap"><span>Albums:</span> {_jump}</div></div>\n{_sections}')
 
