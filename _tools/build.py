@@ -1027,7 +1027,9 @@ page("photos/index.html", "Photos", "Photo Gallery",
      [home_link(), "Photos"],
      herobg="assets/img/heroes/rainier-pink-sunset.jpg",
      lede=f"Scenes from around the Pointe, contributed by residents over the years: {_total} photographs across {len(ALBUMS)} albums. Click any photo to view it larger.",
-     body=f'  <div class="album-jump"><div class="wrap"><span>Albums:</span> {_jump}</div></div>\n{_sections}')
+     body=f'  <div class="album-jump"><div class="wrap"><span>Albums:</span> {_jump}</div></div>\n'
+          f'  <div class="wrap" style="padding:16px 28px 0"><p style="font-size:14px;color:var(--rock)">Have photos of the Pointe to share? <a href="we-need.html" style="color:var(--madrona);font-weight:600">See what we need &rarr;</a></p></div>\n'
+          f'{_sections}')
 
 # ============ PHOTOS WE NEED (resident call for photos) ============
 # Standalone page shared with residents. As pictures come in, delete the
