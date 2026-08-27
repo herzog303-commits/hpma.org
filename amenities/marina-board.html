@@ -428,7 +428,7 @@ function renderWeatherSimple({ wx, met, alerts, nowMs, nowcast }) {
 }
 // Temperature curve up top, rain-chance (%) as a quiet band along the base. Night blocks separate the days.
 function renderWeatherChart(wx, nowMs) {
-  const color = isColor(), W = 520, H = 300, L = 14, R = 12, T = 10, B = 24, PB = 46;
+  const color = isColor(), W = 520, H = 300, L = 14, R = 12, T = 10, B = 24, PB = 66;
   const t0 = nowMs - CONFIG.HOURS_BACK * 3600000, t1 = nowMs + CONFIG.HOURS_AHEAD * 3600000, x = t => L + (t - t0) / (t1 - t0) * (W - L - R);
   const hrs = wx.hourly.filter(h => h.t >= t0 - 3600000 && h.t <= t1 + 3600000), inWin = hrs.filter(h => h.t >= t0 && h.t <= t1);
   const temps = inWin.map(h => h.tempF), lo = Math.min(...temps), hi = Math.max(...temps);
@@ -446,11 +446,11 @@ function renderWeatherChart(wx, nowMs) {
   // Rain-chance band: a soft area whose height is the hourly chance of rain. Only drawn where there's a real chance.
   const anyRain = inWin.some(h => h.pop >= 15);
   const rd = inWin.map((h, i) => `${i ? "L" : "M"}${x(h.t).toFixed(1)},${yR(h.pop || 0).toFixed(1)}`).join(" ");
-  const rainArea = anyRain ? `<path d="${rd} L${x(inWin[inWin.length - 1].t).toFixed(1)},${rBot.toFixed(1)} L${x(inWin[0].t).toFixed(1)},${rBot.toFixed(1)} Z" fill="${rainFill}" opacity="${color ? 0.14 : 0.16}"/>
-    <path d="${rd}" fill="none" stroke="${blue}" stroke-width="${color ? 1.5 : 1.2}"/>` : "";
-  const rainCap = `<text x="${(W - R).toFixed(1)}" y="${(rTop - 3).toFixed(1)}" font-size="10" text-anchor="end" fill="${muted}">${anyRain ? "rain chance" : "no rain expected"}</text>`;
+  const rainArea = anyRain ? `<path d="${rd} L${x(inWin[inWin.length - 1].t).toFixed(1)},${rBot.toFixed(1)} L${x(inWin[0].t).toFixed(1)},${rBot.toFixed(1)} Z" fill="${rainFill}" opacity="${color ? 0.20 : 0.22}"/>
+    <path d="${rd}" fill="none" stroke="${blue}" stroke-width="${color ? 2 : 1.8}"/>` : "";
+  const rainCap = `<text x="${(W - R).toFixed(1)}" y="${(rTop - 3).toFixed(1)}" font-size="10" text-anchor="end" fill="${anyRain ? blue : muted}">${anyRain ? "rain chance" : "no rain expected"}</text>`;
   const rainPk = inWin.filter(h => h.t > nowMs).reduce((a, b) => (b.pop > (a ? a.pop : -1) ? b : a), null);
-  const rainPkLbl = anyRain && rainPk && rainPk.pop >= 40 ? `<text x="${x(rainPk.t).toFixed(1)}" y="${(yR(rainPk.pop) - 4).toFixed(1)}" font-size="10.5" font-weight="700" text-anchor="middle" fill="${blue}">${rainPk.pop.toFixed(0)}%</text>` : "";
+  const rainPkLbl = anyRain && rainPk && rainPk.pop >= 15 ? `<text x="${x(rainPk.t).toFixed(1)}" y="${(yR(rainPk.pop) - 4).toFixed(1)}" font-size="10.5" font-weight="700" text-anchor="middle" fill="${blue}">${rainPk.pop.toFixed(0)}%</text>` : "";
   // Temperature curve — in color, hue tracks the actual temperature (cold blues → warm reds); e-ink stays black.
   const tempColor = f => `hsl(${(210 - (Math.max(30, Math.min(90, f)) - 30) / 60 * 200).toFixed(0)} 62% 46%)`;
   const td = inWin.map((h, i) => `${i ? "L" : "M"}${x(h.t).toFixed(1)},${yT(h.tempF).toFixed(1)}`).join(" ");
