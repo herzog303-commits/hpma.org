@@ -1029,6 +1029,60 @@ page("photos/index.html", "Photos", "Photo Gallery",
      lede=f"Scenes from around the Pointe, contributed by residents over the years: {_total} photographs across {len(ALBUMS)} albums. Click any photo to view it larger.",
      body=f'  <div class="album-jump"><div class="wrap"><span>Albums:</span> {_jump}</div></div>\n{_sections}')
 
+# ============ PHOTOS WE NEED (resident call for photos) ============
+# Standalone page shared with residents. As pictures come in, delete the
+# matching <li> items below and rebuild; remove the whole page when done.
+page("photos/we-need.html", "Photos We Need", "Photos We Need",
+     [home_link(), '<a href="index.html">Photos</a>', "Photos We Need"],
+     herobg="assets/img/heroes/orange-sunset-water.jpg",
+     desc="The photographs most needed for the Hartstene Pointe website, and how residents can contribute their own.",
+     lede="Our photo library is thin on bright daytime pictures. Here is what we most need from residents, and how to send yours in.",
+     body="""  <section class="article"><div class="wrap"><div class="split">
+    <div class="prose">
+      <p>Our website tells the Pointe's story well, but its photo library is thin, and it leans heavily toward sunsets and evening light. A few good daytime pictures from residents would make the biggest difference. Here is what we are looking for, most useful first.</p>
+
+      <h2>Where new photos help most</h2>
+      <ol>
+        <li><strong>A daytime aerial of the whole Pointe.</strong> We have no single overview of the community. One good drone shot on a clear day would strengthen several pages at once, and retire the older aerial we currently reuse.</li>
+        <li><strong>Bright, blue-sky landscape shots.</strong> Three or four horizontal daytime scenics. The library skews to sunsets and night, so daytime frames let us keep the site bright and give pages fresh headers.</li>
+        <li><strong>Our different beaches, in daylight.</strong> North Beach, South Beach and Cuttysark, the Spit, West Beach and Indian Cove, and the lagoon. Each is distinct, and the beaches are underrepresented today.</li>
+      </ol>
+
+      <h2>Amenities and subjects still missing</h2>
+      <ul>
+        <li><strong>Clubhouse interior</strong>, the multipurpose room and the library in use, in good light.</li>
+        <li><strong>Marina in daylight</strong>, boats in the slips on a clear day.</li>
+        <li><strong>The courts</strong>, a clean ground-level view of tennis, pickleball and basketball.</li>
+        <li><strong>Trails</strong>, a walk in the woods with dappled daylight through the firs.</li>
+        <li><strong>Fitness center</strong>, a current, well-lit photo of the room.</li>
+        <li><strong>Picnic shelters</strong>, the North Beach gazebo or a shelter in use on a summer day.</li>
+        <li><strong>Pea Patch</strong>, the community garden in full growing season.</li>
+        <li><strong>Community life</strong>, potlucks, a North Beach concert, a work party, book club.</li>
+        <li><strong>Wildlife</strong>, nice to have; we have a decent set already.</li>
+      </ul>
+
+      <h2>How to shoot them</h2>
+      <ul>
+        <li><strong>Hold the phone sideways.</strong> Horizontal photos fit the page, at as high a resolution as your camera allows.</li>
+        <li><strong>Send the full picture.</strong> Please don't crop before sending, we frame it to fit.</li>
+        <li><strong>Good daylight.</strong> Bright or lightly overcast is ideal; avoid strong backlight and silhouettes for anything meant as a page banner.</li>
+        <li><strong>Leave room up top.</strong> A little open sky near the top of the frame gives page titles somewhere to sit.</li>
+      </ul>
+
+      <div class="callout"><h4>Please send only photos that are yours to give</h4><p>Send photos you took yourself, or that you clearly have the right to share. We can't publish images that belong to someone else, so please, nothing pulled from the internet, real-estate listings, or another photographer's collection. And if a photo shows people who can be recognized, let us know it is alright to publish them.</p></div>
+    </div>
+    <aside class="aside">
+      <h4>Send us your photos</h4>
+      <p>Email your pictures to <a href="mailto:hpmatech@gmail.com">hpmatech@gmail.com</a>, with your name for the credit and a note of where and roughly when each one was taken.</p>
+      <h4 style="margin-top:20px">Quick checklist</h4>
+      <div class="info-row"><b>Orientation</b><span>Horizontal</span></div>
+      <div class="info-row"><b>Size</b><span>Highest available, uncropped</span></div>
+      <div class="info-row"><b>Light</b><span>Bright daylight</span></div>
+      <div class="info-row"><b>Yours to give</b><span>You took it, or may share it</span></div>
+      <div class="info-row"><b>Credit</b><span>Your name</span></div>
+    </aside>
+  </div></div></section>""")
+
 # ------------------------------------------------------------------ SITEMAP
 _sm = ['<?xml version="1.0" encoding="UTF-8"?>',
        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
