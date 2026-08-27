@@ -33,7 +33,7 @@ def fetch(cove):
     lat, lon = cove["lat"], cove["lon"]
     url = "https://api.open-meteo.com/v1/forecast?" + urllib.parse.urlencode({
         "latitude": lat, "longitude": lon,
-        "current": "precipitation,temperature_2m,wind_speed_10m,wind_direction_10m,pressure_msl",
+        "current": "precipitation,temperature_2m,wind_speed_10m,wind_direction_10m,pressure_msl,cloud_cover,is_day",
         "minutely_15": "precipitation",
         "hourly": "precipitation,precipitation_probability,pressure_msl,temperature_2m",
         "temperature_unit": "fahrenheit",
@@ -54,6 +54,43 @@ def classify_regime(params, wind_dir, wind_kt):
         if reg["dir_min"] <= d <= reg["dir_max"]:
             return reg
     return next(r for r in params["wind_regimes"] if r["name"] == "slack")
+
+
+def marina_wind(params, regime, wkt, wdir, cur):
+    """Downscale the regional (free-stream) forecast wind to the marina using the
+    WindNinja wind_shelter table. On light, clear nights, fall through to the
+    stable cold-air-drainage estimate (near-calm) instead of the mechanical factor.
+    Returns None if no wind_shelter table is present."""
+    ws = params.get("wind_shelter")
+    if not ws:
+        return None
+    reg = ws["by_regime"].get(regime["name"]) or ws["by_regime"].get("slack")
+    m = reg["marina"]
+    factor, shift = m["factor"], m.get("dir_shift", 0)
+    local_kt = round(wkt * factor, 1)
+    local_dir = round((wdir + shift) % 360) if wdir is not None else None
+    mode = "mechanical"
+    # stable drainage: light regional wind + night + clear sky -> cove pools near-calm
+    clear = (cur.get("cloud_cover") if cur.get("cloud_cover") is not None else 100) < 40
+    night = cur.get("is_day") == 0
+    if wkt < 6 and night and clear:
+        drain = ws.get("stable_night", {}).get("by_point", {}).get("marina", {})
+        stable_kt = drain.get("stable_kt")
+        if stable_kt is not None:
+            local_kt = round(min(local_kt, stable_kt), 1)
+            local_dir = drain.get("stable_dir", local_dir)
+            mode = "drainage"
+    return {
+        "regional_kt": round(wkt, 1),
+        "regional_dir_deg": wdir,
+        "marina_kt": local_kt,
+        "marina_dir_deg": local_dir,
+        "shelter_factor": factor,
+        "mode": mode,
+        "note": ("cold-air drainage: cove near-calm on this clear light night"
+                 if mode == "drainage" else
+                 f"marina sheltered to {int(round(factor*100))}% of open-water wind ({regime['name']})"),
+    }
 
 
 def baro_tendency(data):
@@ -133,6 +170,7 @@ def main():
     wdir = cur.get("wind_direction_10m")
     wkt = (cur.get("wind_speed_10m") or 0) * 0.539957  # km/h -> kt
     regime = classify_regime(params, wdir, wkt)
+    wind = marina_wind(params, regime, wkt, wdir, cur)
     tend = baro_tendency(data)
     baro_word = ("falling" if tend <= params["baro"]["falling_fast_hpa_3h"]
                  else "rising" if tend >= params["baro"]["rising_fast_hpa_3h"]
@@ -184,6 +222,7 @@ def main():
         "baro_hpa_3h": round(tend, 1),
         "wind_dir_deg": wdir,
         "wind_kt": round(wkt, 1),
+        "wind": wind,
         "radar_note": "radar excluded: overshoots the cove (see microclimate.json)",
         "precip_ratio": ratio,
         "temp_model_f": tnow,
@@ -199,6 +238,9 @@ def main():
     print("=" * 60)
     print(f"  {headline.upper()}   [{conf} confidence]")
     print(f"  {detail}  (wind {wdir}deg {wkt:.0f} kt, dP/3h {tend:+.1f} hPa)")
+    if wind:
+        print(f"  MARINA WIND {wind['marina_kt']:.0f} kt "
+              f"(regional {wind['regional_kt']:.0f} kt, x{wind['shelter_factor']:.2f}, {wind['mode']})")
     print("  " + "-" * 46)
     for b in buckets:
         bar = "#" * int(b["risk"] * 20)

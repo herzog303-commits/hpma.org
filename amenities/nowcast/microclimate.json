@@ -114,6 +114,157 @@
     ],
     "rain_threshold": 0.45
   },
+  "wind_shelter": {
+    "_about": "Local wind = free-stream (forecast) speed x factor, per regime, per point; direction rotates by dir_shift deg. Factor = local speed / open-water free-stream. Look up by the wind_regimes[].name that the forecast direction falls in.",
+    "_method": "WindNinja 3.12.2 on a fine custom landscape (windninja/cove_landscape.lcp, 5 m, built from 1 m LIDAR DTM+canopy). STRONG winds: momentum/CFD solver (OpenFOAM RANS) -- resolves the cliff-lee eddy that mass-conservation misses. LIGHT calm nights: mass-conserving + diurnal slope-flow + non-neutral stability -- cold-air drainage/pooling. Supersedes the earlier 30 m LANDFIRE mass-solver seed.",
+    "points": {
+      "marina": {
+        "lat": 47.29588,
+        "lon": -122.86164,
+        "desc": "gangway / moorage"
+      },
+      "DougallPt": {
+        "lat": 47.30205,
+        "lon": -122.84988,
+        "desc": "exposed N headland"
+      },
+      "HarstinePointe_SW": {
+        "lat": 47.29001,
+        "lon": -122.87201,
+        "desc": "SW-facing community shore"
+      },
+      "CaseInlet_Eshore": {
+        "lat": 47.29447,
+        "lon": -122.85093,
+        "desc": "E-facing Case Inlet shore"
+      }
+    },
+    "by_regime": {
+      "pre-frontal-S": {
+        "marina": {
+          "factor": 0.66,
+          "dir_shift": 11
+        },
+        "DougallPt": {
+          "factor": 0.95,
+          "dir_shift": -3
+        },
+        "HarstinePointe_SW": {
+          "factor": 0.69,
+          "dir_shift": 4
+        },
+        "CaseInlet_Eshore": {
+          "factor": 1.01,
+          "dir_shift": 0
+        }
+      },
+      "frontal-SW": {
+        "marina": {
+          "factor": 0.64,
+          "dir_shift": -4
+        },
+        "DougallPt": {
+          "factor": 0.84,
+          "dir_shift": 3
+        },
+        "HarstinePointe_SW": {
+          "factor": 0.69,
+          "dir_shift": -2
+        },
+        "CaseInlet_Eshore": {
+          "factor": 1.01,
+          "dir_shift": 1
+        }
+      },
+      "post-frontal-NW": {
+        "marina": {
+          "factor": 0.98,
+          "dir_shift": -1
+        },
+        "DougallPt": {
+          "factor": 1.07,
+          "dir_shift": -3
+        },
+        "HarstinePointe_SW": {
+          "factor": 1.54,
+          "dir_shift": 0
+        },
+        "CaseInlet_Eshore": {
+          "factor": 0.93,
+          "dir_shift": 0
+        }
+      },
+      "offshore-dry": {
+        "marina": {
+          "factor": 0.8,
+          "dir_shift": -2
+        },
+        "DougallPt": {
+          "factor": 1.01,
+          "dir_shift": 3
+        },
+        "HarstinePointe_SW": {
+          "factor": 0.66,
+          "dir_shift": -5
+        },
+        "CaseInlet_Eshore": {
+          "factor": 1.0,
+          "dir_shift": -1
+        }
+      },
+      "slack": {
+        "marina": {
+          "factor": 0.62,
+          "dir_shift": -6
+        },
+        "DougallPt": {
+          "factor": 1.03,
+          "dir_shift": 1
+        },
+        "HarstinePointe_SW": {
+          "factor": 0.66,
+          "dir_shift": 0
+        },
+        "CaseInlet_Eshore": {
+          "factor": 0.98,
+          "dir_shift": 0
+        }
+      }
+    },
+    "stable_night": {
+      "_about": "Clear calm winter pre-dawn (05:00, 0 cloud, 3 kt ambient offshore). stable_kt = near-surface wind; the marina is nearly calm (~2 kt) and the drainage deepens it below the neutral baseline while exposed shores hold ~3.5 kt. stable_dir = direction the flow comes from (deg).",
+      "by_point": {
+        "marina": {
+          "neutral_kt": 2.6,
+          "stable_kt": 2.2,
+          "stable_dir": 94,
+          "stable_factor_vs_ambient": 0.74
+        },
+        "DougallPt": {
+          "neutral_kt": 3.4,
+          "stable_kt": 3.5,
+          "stable_dir": 78,
+          "stable_factor_vs_ambient": 1.16
+        },
+        "HarstinePointe_SW": {
+          "neutral_kt": 3.0,
+          "stable_kt": 2.7,
+          "stable_dir": 61,
+          "stable_factor_vs_ambient": 0.9
+        },
+        "CaseInlet_Eshore": {
+          "neutral_kt": 3.5,
+          "stable_kt": 3.3,
+          "stable_dir": 67,
+          "stable_factor_vs_ambient": 1.09
+        }
+      }
+    },
+    "notes": "post-frontal-NW HarstinePointe_SW factor 1.54 is a terrain-gap/edge speedup with high CFD uncertainty -- treat as 'exposed/accelerated', not a precise value.",
+    "_speed_independent": "Validated speed-independent: CFD at 15 vs 30 kt changed the marina factor by <=0.02 (mean |d|=0.004, max any point 0.05). So a single factor per regime applies at all strong-wind speeds; no speed axis needed. local = regional_kt x factor.",
+    "source": "windninja/extract_cove.py -> cove_shelter.json; maps windninja/cove_mass_vs_momentum.png + cove_stable_night.png",
+    "solver": "momentum: OpenFOAM RANS 300 it, 15 m mesh, neutral; drainage: mass-conserving diurnal + non_neutral_stability, 15 m mesh"
+  },
   "model_calibration": {
     "temp_offset_f": 0.8,
     "temp_offset_by_season_f": {

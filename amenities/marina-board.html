@@ -416,7 +416,15 @@ function renderWeatherSimple({ wx, met, alerts, nowMs, nowcast }) {
   el("pills", alerts.length ? `<span class="pill warn">${alerts[0].event}</span>` : "");
   el("line", nowcast ? nowcastLine(nowcast) : wxLine(wx, nowMs));
   renderWeatherChart(wx, nowMs);
-  el("strip", met.waterF != null ? `<span>Water ${met.waterF.toFixed(0)}°</span>` : "");
+  const w = nowcast && nowcast.wind;
+  const windSpan = w && w.marina_kt != null
+    ? `<span>Marina wind <b>${w.marina_kt.toFixed(0)} kt</b>${w.marina_dir_deg != null ? " " + compass(w.marina_dir_deg) : ""}`
+      + (w.mode === "drainage" ? ` <span style="opacity:.6">near-calm</span>`
+         : w.regional_kt >= w.marina_kt + 2 ? ` <span style="opacity:.6">sheltered from ${w.regional_kt.toFixed(0)}</span>` : "")
+      + `</span>`
+    : "";
+  const waterSpan = met.waterF != null ? `<span>Water ${met.waterF.toFixed(0)}°</span>` : "";
+  el("strip", [windSpan, waterSpan].filter(Boolean).join(""));
 }
 // Temperature curve up top, rain-chance (%) as a quiet band along the base. Night blocks separate the days.
 function renderWeatherChart(wx, nowMs) {
