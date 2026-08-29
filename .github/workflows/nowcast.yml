@@ -1,8 +1,10 @@
 name: Publish marina nowcast
 
 # Regenerates amenities/nowcast.json (the board's 1h + 1-4h rain projection).
-# Keyless: nowcast.py only calls the free Open-Meteo API and reads the committed
-# calibration in amenities/nowcast/microclimate.json. No secrets required.
+# Mostly keyless: nowcast.py calls the free Open-Meteo API + keyless METAR, and
+# reads the committed calibration in amenities/nowcast/microclimate.json.
+# OPTIONAL: set a repo secret SYNOPTIC_TOKEN to also check the closest rain gauge
+# (G2160 Grapeview). Absent -> that check is skipped and METAR still runs.
 #
 # NOTE: GitHub's scheduled runs are best-effort and can be delayed or skipped
 # under load, and are auto-disabled after 60 days of repo inactivity. Good enough
@@ -31,6 +33,7 @@ jobs:
       - name: Generate nowcast.json
         env:
           NOWCAST_OUT: amenities/nowcast.json
+          SYNOPTIC_TOKEN: ${{ secrets.SYNOPTIC_TOKEN }}
         run: python amenities/nowcast/nowcast.py
       - name: Commit & push if changed
         run: |

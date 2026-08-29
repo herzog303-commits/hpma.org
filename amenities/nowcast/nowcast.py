@@ -55,11 +55,49 @@ def _haversine_mi(lat1, lon1, lat2, lon2):
     return 3958.8 * 2 * asin(sqrt(a))
 
 
-def fetch_metar_obs(params, reports=None):
-    """Keyless METAR check: is precipitation actually being OBSERVED at nearby
-    stations? This catches the light marine rain that Open-Meteo (and radar)
-    routinely miss over the cove. Returns an 'observed' dict or None on failure.
-    Pass `reports` (a list of METAR dicts) to bypass the network for testing."""
+def fetch_synoptic_rain(params, series=None):
+    """Closest-gauge rain check via Synoptic (needs SYNOPTIC_TOKEN env -- a GitHub
+    secret in the Action; absent -> skipped, METAR still runs). G2160 Grapeview
+    (~4.5 mi up Case Inlet) is the nearest gauge; it reports a running daily
+    accumulation, so a RISE over the last hour means rain is falling now. Pass
+    `series` ({stid: [(lat,lon,accum), ...]}) to bypass the network for testing."""
+    tok = os.environ.get("SYNOPTIC_TOKEN")
+    gauges = params["stations"].get("precip_gauges") or []
+    if (not tok and series is None) or not gauges:
+        return []
+    cove = params["cove"]
+    if series is None:
+        q = urllib.parse.urlencode({"stid": ",".join(gauges), "recent": 90,
+                                    "vars": "precip_accum_since_local_midnight",
+                                    "units": "precip|in", "token": tok, "obtimezone": "utc"})
+        try:
+            with urllib.request.urlopen("https://api.synopticdata.com/v2/stations/timeseries?" + q, timeout=45) as r:
+                data = json.load(r)
+        except Exception as exc:  # noqa: BLE001
+            print(f"nowcast: Synoptic fetch failed ({exc})")
+            return []
+        series = {}
+        for s in data.get("STATION", []):
+            vals = [v for v in s["OBSERVATIONS"].get("precip_accum_since_local_midnight_set_1", []) if v is not None]
+            series[s["STID"]] = (float(s["LATITUDE"]), float(s["LONGITUDE"]), vals)
+    wet = []
+    for sid, val in series.items():
+        lat, lon, vals = val
+        if len(vals) < 2:
+            continue
+        delta = vals[-1] - vals[0] if vals[-1] >= vals[0] else vals[-1]   # guard midnight reset
+        if delta > 0.001:
+            wet.append({"station": sid, "wx": "rain (gauge)", "precip_in": round(delta, 2),
+                        "dist_mi": round(_haversine_mi(cove["lat"], cove["lon"], lat, lon), 1),
+                        "age_min": 0, "source": "synoptic"})
+    return wet
+
+
+def observe_precip(params, reports=None):
+    """Is precipitation actually being OBSERVED near the cove? Merges the closest
+    Synoptic gauge(s) (G2160 Grapeview) with keyless METAR stations -- catching the
+    light marine rain that Open-Meteo (and radar) routinely miss. Returns an
+    'observed' dict or None on failure. Pass `reports` to bypass METAR network in tests."""
     cove = params["cove"]
     st = params["stations"]
     ids = list(dict.fromkeys([st.get("primary_obs"), st.get("primary_taf"),
@@ -96,11 +134,12 @@ def fetch_metar_obs(params, reports=None):
             continue
         wet.append({"station": sid, "wx": wx or None, "precip_in": pr,
                     "dist_mi": round(_haversine_mi(cove["lat"], cove["lon"], m["lat"], m["lon"]), 1),
-                    "age_min": age})
+                    "age_min": age, "source": "metar"})
+    wet = fetch_synoptic_rain(params) + wet         # closest gauge (Grapeview) first
     wet.sort(key=lambda w: w["dist_mi"])
     return {
         "raining_nearby": bool(wet),
-        "checked": ids,
+        "checked": ids + (params["stations"].get("precip_gauges") or []),
         "wet_stations": wet,
         "nearest_wet": wet[0] if wet else None,
         "note": (f"precip observed at {wet[0]['station']} ({wet[0]['dist_mi']:.0f} mi, "
@@ -236,7 +275,7 @@ def main():
     wkt = (cur.get("wind_speed_10m") or 0) * 0.539957  # km/h -> kt
     regime = classify_regime(params, wdir, wkt)
     wind = marina_wind(params, regime, wkt, wdir, cur)
-    obs = fetch_metar_obs(params)          # keyless: is rain actually being observed nearby?
+    obs = observe_precip(params)           # closest gauge (Grapeview) + keyless METAR
     tend = baro_tendency(data)
     baro_word = ("falling" if tend <= params["baro"]["falling_fast_hpa_3h"]
                  else "rising" if tend >= params["baro"]["rising_fast_hpa_3h"]
