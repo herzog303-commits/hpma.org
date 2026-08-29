@@ -44,6 +44,71 @@ def fetch(cove):
         return json.load(r)
 
 
+# present-weather tokens that mean precipitation is falling (mist/fog/haze excluded)
+_PRECIP_WX = ("RA", "DZ", "SN", "SG", "GR", "GS", "PL", "IC", "UP", "SH", "TS")
+
+
+def _haversine_mi(lat1, lon1, lat2, lon2):
+    from math import radians, sin, cos, asin, sqrt
+    dlat, dlon = radians(lat2 - lat1), radians(lon2 - lon1)
+    a = sin(dlat/2)**2 + cos(radians(lat1))*cos(radians(lat2))*sin(dlon/2)**2
+    return 3958.8 * 2 * asin(sqrt(a))
+
+
+def fetch_metar_obs(params, reports=None):
+    """Keyless METAR check: is precipitation actually being OBSERVED at nearby
+    stations? This catches the light marine rain that Open-Meteo (and radar)
+    routinely miss over the cove. Returns an 'observed' dict or None on failure.
+    Pass `reports` (a list of METAR dicts) to bypass the network for testing."""
+    cove = params["cove"]
+    st = params["stations"]
+    ids = list(dict.fromkeys([st.get("primary_obs"), st.get("primary_taf"),
+                              *st.get("fallback_obs", [])]))
+    ids = [i for i in ids if i]
+    if reports is None:
+        url = "https://aviationweather.gov/api/data/metar?" + urllib.parse.urlencode(
+            {"ids": ",".join(ids), "format": "json", "hours": 2})
+        try:
+            req = urllib.request.Request(url, headers={"User-Agent": "hpma-marina-board"})
+            with urllib.request.urlopen(req, timeout=30) as r:
+                reports = json.load(r)
+        except Exception as exc:  # noqa: BLE001
+            print(f"nowcast: METAR fetch failed ({exc})")
+            return None
+    latest = {}
+    for m in reports:                                   # keep the most recent per station
+        sid = m.get("icaoId")
+        if sid and (sid not in latest or m.get("reportTime", "") > latest[sid].get("reportTime", "")):
+            latest[sid] = m
+    now = datetime.now(timezone.utc)
+    wet = []
+    for sid, m in latest.items():
+        wx = (m.get("wxString") or "").upper()
+        pr = m.get("precip")
+        if not (any(tok in wx for tok in _PRECIP_WX) or (pr and pr > 0)):
+            continue
+        try:
+            rt = datetime.fromisoformat(m["reportTime"].replace("Z", "+00:00"))
+            age = round((now - rt).total_seconds() / 60)
+        except Exception:  # noqa: BLE001
+            age = None
+        if age is not None and age > 75:                # stale -> not "now"
+            continue
+        wet.append({"station": sid, "wx": wx or None, "precip_in": pr,
+                    "dist_mi": round(_haversine_mi(cove["lat"], cove["lon"], m["lat"], m["lon"]), 1),
+                    "age_min": age})
+    wet.sort(key=lambda w: w["dist_mi"])
+    return {
+        "raining_nearby": bool(wet),
+        "checked": ids,
+        "wet_stations": wet,
+        "nearest_wet": wet[0] if wet else None,
+        "note": (f"precip observed at {wet[0]['station']} ({wet[0]['dist_mi']:.0f} mi, "
+                 f"{wet[0]['wx'] or 'trace'}) -- model shows dry" if wet else
+                 "no precip observed at nearby stations"),
+    }
+
+
 def classify_regime(params, wind_dir, wind_kt):
     if wind_dir is None or (wind_kt is not None and wind_kt < 3):
         return next(r for r in params["wind_regimes"] if r["name"] == "slack")
@@ -171,6 +236,7 @@ def main():
     wkt = (cur.get("wind_speed_10m") or 0) * 0.539957  # km/h -> kt
     regime = classify_regime(params, wdir, wkt)
     wind = marina_wind(params, regime, wkt, wdir, cur)
+    obs = fetch_metar_obs(params)          # keyless: is rain actually being observed nearby?
     tend = baro_tendency(data)
     baro_word = ("falling" if tend <= params["baro"]["falling_fast_hpa_3h"]
                  else "rising" if tend >= params["baro"]["rising_fast_hpa_3h"]
@@ -212,6 +278,17 @@ def main():
         headline = "Dry through 4h"
     detail = f"{regime['name']} flow, baro {baro_word}"
 
+    # OBSERVED precip nearby overrides the model headline (the model/radar miss
+    # light marine rain -- a real gauge report is ground truth, so lead with it).
+    if obs and obs["raining_nearby"]:
+        wx = obs["nearest_wet"]["wx"] or ""
+        word = ("Showers" if "SH" in wx else "Drizzle" if "DZ" in wx
+                else "Light rain" if ("-" in wx and "RA" in wx) else "Rain" if "RA" in wx
+                else "Snow" if "SN" in wx else "Precip")
+        headline = f"{word} observed nearby"
+        nw = obs["nearest_wet"]
+        detail = f"{nw['station']} {nw['wx'] or 'precip'} {nw['dist_mi']:.0f} mi · forecast: {detail}"
+
     nowcast = {
         "generated_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "cove": cove["name"],
@@ -223,6 +300,7 @@ def main():
         "wind_dir_deg": wdir,
         "wind_kt": round(wkt, 1),
         "wind": wind,
+        "observed": obs,
         "radar_note": "radar excluded: overshoots the cove (see microclimate.json)",
         "precip_ratio": ratio,
         "temp_model_f": tnow,
@@ -241,6 +319,8 @@ def main():
     if wind:
         print(f"  MARINA WIND {wind['marina_kt']:.0f} kt "
               f"(regional {wind['regional_kt']:.0f} kt, x{wind['shelter_factor']:.2f}, {wind['mode']})")
+    if obs:
+        print(f"  OBSERVED: {obs['note']}")
     print("  " + "-" * 46)
     for b in buckets:
         bar = "#" * int(b["risk"] * 20)

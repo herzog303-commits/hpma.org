@@ -403,7 +403,9 @@ function nowcastLine(nc) {
       tl.map(b => NC_BLOCKS[Math.max(0, Math.min(7, Math.round((b.risk || 0) * 7)))]).join("") + "</span> "
     : "";
   const temp = nc.temp_cove_f != null ? ` · ${nc.temp_cove_f.toFixed(0)}°` : "";
-  return `<b>Nowcast</b> ${spark}next hr <b>${ncWord(nextHr)}</b>, 1–4h <b>${ncWord(later)}</b> · ${nc.detail || ""} · ${nc.confidence || ""}${temp}`;
+  const obsNow = nc.observed && nc.observed.raining_nearby;
+  const nhWord = obsNow ? `<span style="color:var(--warn-fg)">rain nearby</span>` : ncWord(nextHr);
+  return `<b>Nowcast</b> ${spark}next hr <b>${nhWord}</b>, 1–4h <b>${ncWord(later)}</b> · ${nc.detail || ""} · ${nc.confidence || ""}${temp}`;
 }
 function renderWeatherSimple({ wx, met, alerts, nowMs, nowcast }) {
   const c = wx.current, today = wx.daily[0];
