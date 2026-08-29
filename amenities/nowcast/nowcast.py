@@ -55,6 +55,24 @@ def _haversine_mi(lat1, lon1, lat2, lon2):
     return 3958.8 * 2 * asin(sqrt(a))
 
 
+def _bearing_deg(lat1, lon1, lat2, lon2):
+    """Compass bearing FROM point 1 TO point 2 (deg). For an upwind station this
+    is the direction the weather is coming from."""
+    from math import radians, degrees, sin, cos, atan2
+    dl = radians(lon2 - lon1)
+    y = sin(dl) * cos(radians(lat2))
+    x = cos(radians(lat1))*sin(radians(lat2)) - sin(radians(lat1))*cos(radians(lat2))*cos(dl)
+    return (degrees(atan2(y, x)) + 360) % 360
+
+
+_COMPASS = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE",
+            "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"]
+
+
+def _compass(deg):
+    return _COMPASS[round(deg / 22.5) % 16]
+
+
 def fetch_synoptic_rain(params, series=None):
     """Closest-gauge rain check via Synoptic (needs SYNOPTIC_TOKEN env -- a GitHub
     secret in the Action; absent -> skipped, METAR still runs). G2160 Grapeview
@@ -89,15 +107,21 @@ def fetch_synoptic_rain(params, series=None):
         if delta > 0.001:
             wet.append({"station": sid, "wx": "rain (gauge)", "precip_in": round(delta, 2),
                         "dist_mi": round(_haversine_mi(cove["lat"], cove["lon"], lat, lon), 1),
+                        "bearing_deg": round(_bearing_deg(cove["lat"], cove["lon"], lat, lon)),
                         "age_min": 0, "source": "synoptic"})
     return wet
 
 
-def observe_precip(params, reports=None):
-    """Is precipitation actually being OBSERVED near the cove? Merges the closest
-    Synoptic gauge(s) (G2160 Grapeview) with keyless METAR stations -- catching the
-    light marine rain that Open-Meteo (and radar) routinely miss. Returns an
-    'observed' dict or None on failure. Pass `reports` to bypass METAR network in tests."""
+NOW_MI = 8            # a wet station this close = rain AT the cove (vs upwind = inbound)
+
+
+def observe_precip(params, regime=None, regional_kt=0, reports=None):
+    """Is precipitation being OBSERVED near the cove, and is more inbound? Merges the
+    closest Synoptic gauge (G2160 Grapeview) with keyless METAR stations, then splits
+    the signal: 'now' = a wet station within NOW_MI (rain at the cove); 'inbound' = a
+    wet station UPWIND for the current regime (weather advecting toward us), with a
+    lead-time estimate from the regional wind. Catches the light marine rain the model
+    misses. Returns an 'observed' dict or None on failure. Pass `reports` for tests."""
     cove = params["cove"]
     st = params["stations"]
     ids = list(dict.fromkeys([st.get("primary_obs"), st.get("primary_taf"),
@@ -134,17 +158,41 @@ def observe_precip(params, reports=None):
             continue
         wet.append({"station": sid, "wx": wx or None, "precip_in": pr,
                     "dist_mi": round(_haversine_mi(cove["lat"], cove["lon"], m["lat"], m["lon"]), 1),
+                    "bearing_deg": round(_bearing_deg(cove["lat"], cove["lon"], m["lat"], m["lon"])),
                     "age_min": age, "source": "metar"})
     wet = fetch_synoptic_rain(params) + wet         # closest gauge (Grapeview) first
     wet.sort(key=lambda w: w["dist_mi"])
+
+    # 'now' = wet at/near the cove; 'inbound' = wet UPWIND for this regime, advecting in
+    upwind = set()
+    for r in params.get("wind_regimes", []):
+        if regime and r["name"] == regime:
+            upwind = set(r.get("upwind", []))
+    now = next((w for w in wet if w["dist_mi"] <= NOW_MI), None)
+    inbound = None
+    for w in wet:
+        if w["dist_mi"] > NOW_MI and w["station"] in upwind:
+            adv_mph = max(15.0, regional_kt * 1.15)          # advection speed (>= a floor)
+            lead = w["dist_mi"] / adv_mph
+            inbound = {**w, "from_dir": _compass(w["bearing_deg"]),
+                       "lead_h": round(lead * 2) / 2 or 0.5}  # nearest 0.5 h, min 0.5
+            break
+
+    if now:
+        note = (f"rain now near cove: {now['station']} {now['dist_mi']:.0f} mi "
+                f"({now['wx'] or 'gauge'})")
+    elif inbound:
+        note = (f"rain inbound from {inbound['from_dir']}: {inbound['station']} "
+                f"{inbound['dist_mi']:.0f} mi, ~{inbound['lead_h']:g} h out")
+    else:
+        note = "no precip observed near or upwind of the cove"
     return {
-        "raining_nearby": bool(wet),
+        "raining_nearby": bool(now),
+        "now": now,
+        "inbound": inbound,
         "checked": ids + (params["stations"].get("precip_gauges") or []),
         "wet_stations": wet,
-        "nearest_wet": wet[0] if wet else None,
-        "note": (f"precip observed at {wet[0]['station']} ({wet[0]['dist_mi']:.0f} mi, "
-                 f"{wet[0]['wx'] or 'trace'}) -- model shows dry" if wet else
-                 "no precip observed at nearby stations"),
+        "note": note,
     }
 
 
@@ -275,7 +323,7 @@ def main():
     wkt = (cur.get("wind_speed_10m") or 0) * 0.539957  # km/h -> kt
     regime = classify_regime(params, wdir, wkt)
     wind = marina_wind(params, regime, wkt, wdir, cur)
-    obs = observe_precip(params)           # closest gauge (Grapeview) + keyless METAR
+    obs = observe_precip(params, regime["name"], wkt)   # now (closest gauge) + inbound (upwind)
     tend = baro_tendency(data)
     baro_word = ("falling" if tend <= params["baro"]["falling_fast_hpa_3h"]
                  else "rising" if tend >= params["baro"]["rising_fast_hpa_3h"]
@@ -317,16 +365,22 @@ def main():
         headline = "Dry through 4h"
     detail = f"{regime['name']} flow, baro {baro_word}"
 
-    # OBSERVED precip nearby overrides the model headline (the model/radar miss
-    # light marine rain -- a real gauge report is ground truth, so lead with it).
-    if obs and obs["raining_nearby"]:
-        wx = obs["nearest_wet"]["wx"] or ""
-        word = ("Showers" if "SH" in wx else "Drizzle" if "DZ" in wx
+    # OBSERVED precip overrides the model headline (model/radar miss light marine
+    # rain -- a real gauge report is ground truth). 'now' = at the cove; else 'inbound'
+    # = rain upwind, advecting toward us with a lead-time estimate.
+    def _wxword(wx):
+        wx = wx or ""
+        return ("Showers" if "SH" in wx else "Drizzle" if "DZ" in wx
                 else "Light rain" if ("-" in wx and "RA" in wx) else "Rain" if "RA" in wx
                 else "Snow" if "SN" in wx else "Precip")
-        headline = f"{word} observed nearby"
-        nw = obs["nearest_wet"]
+    if obs and obs.get("now"):
+        nw = obs["now"]
+        headline = f"{_wxword(nw['wx'])} observed nearby"
         detail = f"{nw['station']} {nw['wx'] or 'precip'} {nw['dist_mi']:.0f} mi · forecast: {detail}"
+    elif obs and obs.get("inbound"):
+        ib = obs["inbound"]
+        headline = f"Rain inbound from {ib['from_dir']} (~{ib['lead_h']:g}h)"
+        detail = f"upwind {ib['station']} {ib['wx'] or 'precip'} {ib['dist_mi']:.0f} mi · forecast: {detail}"
 
     nowcast = {
         "generated_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
