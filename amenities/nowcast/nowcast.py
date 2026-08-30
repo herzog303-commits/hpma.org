@@ -186,10 +186,12 @@ def observe_precip(params, regime=None, regional_kt=0, reports=None):
                 f"{inbound['dist_mi']:.0f} mi, ~{inbound['lead_h']:g} h out")
     else:
         note = "no precip observed near or upwind of the cove"
+    synoptic_on = bool(os.environ.get("SYNOPTIC_TOKEN")) and bool(params["stations"].get("precip_gauges"))
     return {
         "raining_nearby": bool(now),
         "now": now,
         "inbound": inbound,
+        "synoptic": synoptic_on,   # true = closest gauge (G2160 Grapeview) active; false = METAR-only
         "checked": ids + (params["stations"].get("precip_gauges") or []),
         "wet_stations": wet,
         "note": note,
