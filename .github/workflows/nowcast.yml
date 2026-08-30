@@ -55,6 +55,14 @@ jobs:
           ALERT_TO: hpmatech@gmail.com
           ALERT_TEST: ${{ inputs.send_test }}
         run: python amenities/nowcast/surge_alert.py
+      - name: Score forecasts vs observed
+        continue-on-error: true
+        env:
+          SYNOPTIC_TOKEN: ${{ secrets.SYNOPTIC_TOKEN }}
+          NOWCAST_FILE: amenities/nowcast.json
+          SURGE_FORECAST_FILE: amenities/surge_forecast.json
+          SCORECARD_OUT: amenities/scorecard.json
+        run: python amenities/nowcast/score.py
       - name: Commit & push if changed
         run: |
           git config user.name "hpma-nowcast-bot"
@@ -62,6 +70,7 @@ jobs:
           git add amenities/nowcast.json
           git add amenities/surge_forecast.json 2>/dev/null || true
           git add amenities/nowcast/surge_alert_state.json 2>/dev/null || true
+          git add amenities/scorecard.json amenities/nowcast/forecast_log.jsonl 2>/dev/null || true
           if git diff --cached --quiet; then
             echo "No change; nothing to commit."
           else
