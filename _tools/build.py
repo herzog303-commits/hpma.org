@@ -1044,24 +1044,24 @@ page("photos/we-need.html", "Photos We Need", "Photos We Need",
      [home_link(), '<a href="index.html">Photos</a>', "Photos We Need"],
      herobg="assets/img/heroes/orange-sunset-water.jpg",
      desc="The photographs most needed for the Hartstene Pointe website, and how residents can contribute their own.",
-     lede="Our photo library is thin on bright daytime pictures. Here is what we most need from residents, and how to send yours in.",
+     lede="Thanks to residents, the Pointe's photo library is getting stronger. Here is what has come in, what would still help, and how to send yours.",
      body="""  <section class="article"><div class="wrap"><div class="split">
     <div class="prose">
-      <p>Our website tells the Pointe's story well, but its photo library is thin, and it leans heavily toward sunsets and evening light. A few good daytime pictures from residents would make the biggest difference. Here is what we are looking for, most useful first.</p>
+      <p>Our website tells the Pointe's story well, and residents are quickly making its photos better too. Below is what has already come in, with our thanks, and what would still help most.</p>
 
-      <h2>Where new photos help most</h2>
-      <ol>
-        <li><strong>A daytime aerial of the whole Pointe.</strong> We have no single overview of the community. One good drone shot on a clear day would strengthen several pages at once, and retire the older aerial we currently reuse.</li>
-        <li><strong>Bright, blue-sky landscape shots.</strong> Three or four horizontal daytime scenics. The library skews to sunsets and night, so daytime frames let us keep the site bright and give pages fresh headers.</li>
-        <li><strong>Our different beaches, in daylight.</strong> North Beach, South Beach and Cuttysark, the Spit, West Beach and Indian Cove, and the lagoon. Each is distinct, and the beaches are underrepresented today.</li>
-      </ol>
-
-      <h2>Amenities and subjects still missing</h2>
+      <div class="callout"><h4>Recently received &mdash; with our thanks</h4><p>Residents have already filled several of the biggest gaps. Warm thanks to <strong>Kim DeCew</strong> and <strong>Liz Wolk</strong>, whose photographs are now on the site:</p>
       <ul>
+        <li>&#10003; <strong>A daytime aerial of the whole Pointe</strong> &mdash; Kim DeCew</li>
+        <li>&#10003; <strong>The marina in daylight</strong> &mdash; Kim DeCew</li>
+        <li>&#10003; <strong>Bright, blue-sky landscapes</strong> &mdash; Liz Wolk &amp; Kim DeCew</li>
+        <li>&#10003; <strong>Trails through the forest</strong> &mdash; Kim DeCew</li>
+      </ul></div>
+
+      <h2>Still looking for</h2>
+      <ul>
+        <li><strong>Our different beaches, in daylight.</strong> North Beach, South Beach and Cuttysark, the Spit, West Beach and Indian Cove, and the lagoon. Each is distinct, and we would love one of each.</li>
         <li><strong>Clubhouse interior</strong>, the multipurpose room and the library in use, in good light.</li>
-        <li><strong>Marina in daylight</strong>, boats in the slips on a clear day.</li>
         <li><strong>The courts</strong>, a clean ground-level view of tennis, pickleball and basketball.</li>
-        <li><strong>Trails</strong>, a walk in the woods with dappled daylight through the firs.</li>
         <li><strong>Fitness center</strong>, a current, well-lit photo of the room.</li>
         <li><strong>Picnic shelters</strong>, the North Beach gazebo or a shelter in use on a summer day.</li>
         <li><strong>Pea Patch</strong>, the community garden in full growing season.</li>
@@ -1088,6 +1088,8 @@ page("photos/we-need.html", "Photos We Need", "Photos We Need",
       <div class="info-row"><b>Light</b><span>Bright daylight</span></div>
       <div class="info-row"><b>Yours to give</b><span>You took it, or may share it</span></div>
       <div class="info-row"><b>Credit</b><span>Your name</span></div>
+      <h4 style="margin-top:20px">With thanks to</h4>
+      <p style="font-size:13px;color:var(--rock)">Kim DeCew and Liz Wolk, whose photographs are now on the site.</p>
     </aside>
   </div></div></section>""")
 
