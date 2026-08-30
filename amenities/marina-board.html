@@ -497,7 +497,7 @@ async function main() {
   el("time", hhmm(nowMs));
   const link = v => { const u = new URL(location.href); u.searchParams.set("view", v); return u.search; };
   el("nav", `<a class="${view === "tides" ? "on" : ""}" href="${link("tides")}">Tides</a><a class="${view === "weather" ? "on" : ""}" href="${link("weather")}">Weather</a>`);
-  renderSunSimple(nowMs);
+  if (view === "tides") renderSunSimple(nowMs); else el("sun", "");   // sun times are tides-view only
   const manual = url.searchParams.has("surge") ? parseFloat(url.searchParams.get("surge")) : null, demo = url.searchParams.has("demo");
   try {
     let extremes, live = null, met = {}, alerts = [], forecast = null, cur = null, wx = null, annual = null;
