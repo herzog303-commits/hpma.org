@@ -5,6 +5,8 @@ name: Publish marina nowcast
 # reads the committed calibration in amenities/nowcast/microclimate.json.
 # OPTIONAL: set a repo secret SYNOPTIC_TOKEN to also check the closest rain gauge
 # (G2160 Grapeview). Absent -> that check is skipped and METAR still runs.
+# OPTIONAL: set repo secrets GMAIL_USER + GMAIL_APP_PASSWORD to email a surge+high-tide
+# alert (surge_alert.py) to ALERT_TO. Absent -> the alert step dry-runs (no email).
 #
 # NOTE: GitHub's scheduled runs are best-effort and can be delayed or skipped
 # under load, and are auto-disabled after 60 days of repo inactivity. Good enough
@@ -35,11 +37,19 @@ jobs:
           NOWCAST_OUT: amenities/nowcast.json
           SYNOPTIC_TOKEN: ${{ secrets.SYNOPTIC_TOKEN }}
         run: python amenities/nowcast/nowcast.py
+      - name: Surge + high tide alert (email)
+        continue-on-error: true          # never let an alert bug block the nowcast publish
+        env:
+          GMAIL_USER: ${{ secrets.GMAIL_USER }}
+          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+          ALERT_TO: hpmatech@gmail.com
+        run: python amenities/nowcast/surge_alert.py
       - name: Commit & push if changed
         run: |
           git config user.name "hpma-nowcast-bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add amenities/nowcast.json
+          git add amenities/nowcast/surge_alert_state.json 2>/dev/null || true
           if git diff --cached --quiet; then
             echo "No change; nothing to commit."
           else
