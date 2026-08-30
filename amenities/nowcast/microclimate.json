@@ -297,5 +297,20 @@
     "source": "G2160 4-yr archive vs Open-Meteo ERA5",
     "note": "add temp_offset_f to model temp; multiply model precip by precip_ratio (rain shadow)",
     "precip_ratio_source": "Jarrell Cove CoCoRaHS (US1WAMS0032) vs Open-Meteo, 862 days -- accurate hand-gauge, supersedes G2160"
-  }
+  },
+  "surge_model": {
+    "a_press_ft_per_hpa": 0.0338,
+    "bu_wind_ft_per_kt": -0.0089,
+    "bv_wind_ft_per_kt": -0.0086,
+    "offset_ft": 0.4827,
+    "p0_hpa": 1013.25,
+    "r2": 0.514,
+    "rmse_ft": 0.3,
+    "anchor_hours": 18,
+    "fit_window": "2025-10-01..2026-02-28",
+    "n": 3624,
+    "source": "calibrate_surge.py: Tacoma residual vs Open-Meteo ERA5 pressure/wind",
+    "_note": "surge_ft = a*(p0-pressure_hpa) + bu*ws_kt*sin(dir) + bv*ws_kt*cos(dir) + offset; anchored to live Tacoma residual, fading over anchor_hours."
+  },
+  "nws_zone": "PZZ135"
 }

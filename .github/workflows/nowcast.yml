@@ -42,6 +42,11 @@ jobs:
           NOWCAST_OUT: amenities/nowcast.json
           SYNOPTIC_TOKEN: ${{ secrets.SYNOPTIC_TOKEN }}
         run: python amenities/nowcast/nowcast.py
+      - name: Generate surge_forecast.json
+        continue-on-error: true          # forecast is optional; alert falls back to persistence
+        env:
+          SURGE_FORECAST_OUT: amenities/surge_forecast.json
+        run: python amenities/nowcast/surge_forecast.py
       - name: Surge + high tide alert (email)
         continue-on-error: true          # never let an alert bug block the nowcast publish
         env:
@@ -55,6 +60,7 @@ jobs:
           git config user.name "hpma-nowcast-bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add amenities/nowcast.json
+          git add amenities/surge_forecast.json 2>/dev/null || true
           git add amenities/nowcast/surge_alert_state.json 2>/dev/null || true
           if git diff --cached --quiet; then
             echo "No change; nothing to commit."
