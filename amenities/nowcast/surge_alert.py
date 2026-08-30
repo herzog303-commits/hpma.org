@@ -23,6 +23,8 @@ NOAA = "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter"
 DP, TAC = "9446583", "9446484"           # McMicken Island (cove predictions), Tacoma (surge)
 SURGE_MAJOR, PERSIST_H, FADE_H = 1.5, 12, 36
 P95_FALLBACK, LOOKAHEAD_H = 15.0, 36
+BOARD_URL = "https://herzog303-commits.github.io/hpma.org/amenities/marina-board.html?view=tides"
+NOAA_TACOMA_URL = "https://tidesandcurrents.noaa.gov/stationhome.html?id=9446484"
 
 def noaa(**kw):
     kw.setdefault("application", "hpma_marina_board"); kw.setdefault("format", "json")
@@ -96,6 +98,9 @@ def send(events, p95, residual, test=False):
             + f"\n\nCurrent surge (Tacoma residual): {residual:+.1f} ft, carried forward.\n"
             + f"Trips the alert when a high >= {p95:.1f} ft (year's 95th percentile) with surge >= {SURGE_MAJOR} ft\n"
             + "-- the same up-triangle + dagger the board shows.\n\n"
+            + "Check it live:\n"
+            + f"  Marina board:  {BOARD_URL}\n"
+            + f"  NOAA Tacoma:   {NOAA_TACOMA_URL}\n\n"
             + "Heights are NOAA prediction + live surge, MLLW. Short lead time (same tide cycle);\n"
             + "surge is persistence-based. Verify against NOAA/NWS before acting.\n")
     if not (user and pw):
