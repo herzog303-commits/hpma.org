@@ -944,6 +944,7 @@ page("community/considering-the-pointe.html", "Considering the Pointe", "Conside
 page("contact/index.html", "Contact", "Contact",
      [home_link(), "Contact"],
      herobg="assets/img/heroes/orca-daytime.jpg",
+     herocredit="Krista Gregg",
      lede="The HPMA office is here to help owners, residents and guests.",
      body="""  <section class="article"><div class="wrap">
     <div class="contact-grid">
