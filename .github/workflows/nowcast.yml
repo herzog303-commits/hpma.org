@@ -15,7 +15,12 @@ name: Publish marina nowcast
 on:
   schedule:
     - cron: "*/30 * * * *"    # every ~30 min (best-effort)
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      send_test:
+        description: "Send a TEST surge-alert email (verify Gmail setup)"
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -43,6 +48,7 @@ jobs:
           GMAIL_USER: ${{ secrets.GMAIL_USER }}
           GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
           ALERT_TO: hpmatech@gmail.com
+          ALERT_TEST: ${{ inputs.send_test }}
         run: python amenities/nowcast/surge_alert.py
       - name: Commit & push if changed
         run: |

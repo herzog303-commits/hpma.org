@@ -82,14 +82,16 @@ def fmt_local(t):
         t = t.astimezone(timezone(timedelta(hours=-8)))
     return t.strftime("%a %b %d, %I:%M %p").replace(" 0", " ")
 
-def send(events, p95, residual):
+def send(events, p95, residual, test=False):
     to = os.environ.get("ALERT_TO", "hpmatech@gmail.com")
     user, pw = os.environ.get("GMAIL_USER"), os.environ.get("GMAIL_APP_PASSWORD")
     lead = events[0]
-    subject = f"Indian Cove alert: surge + high tide {lead['total']:.1f} ft {fmt_local(lead['t'])}"
+    subject = ("[TEST] " if test else "") + f"Indian Cove alert: surge + high tide {lead['total']:.1f} ft {fmt_local(lead['t'])}"
     lines = [f"  {fmt_local(e['t'])}  ->  {e['total']:.1f} ft   (NOAA {e['h']:.1f} + surge {e['surge']:+.1f} ft)"
              for e in events]
-    body = ("Storm surge is coinciding with a high tide at Indian Cove Marina.\n\n"
+    body = (("*** THIS IS A TEST of the surge-alert email. The numbers below are made up; "
+             "no real event is happening. ***\n\n" if test else "")
+            + "Storm surge is coinciding with a high tide at Indian Cove Marina.\n\n"
             + "\n".join(lines)
             + f"\n\nCurrent surge (Tacoma residual): {residual:+.1f} ft, carried forward.\n"
             + f"Trips the alert when a high >= {p95:.1f} ft (year's 95th percentile) with surge >= {SURGE_MAJOR} ft\n"
@@ -108,6 +110,11 @@ def send(events, p95, residual):
 
 def main():
     now = datetime.now(timezone.utc)
+    if os.environ.get("ALERT_TEST") == "true":     # one-click test from the Action (does not touch dedup state)
+        demo = [{"t": now + timedelta(hours=6), "h": 14.2, "surge": 1.8, "total": 16.0}]
+        ok = send(demo, 15.2, 1.8, test=True)
+        print("test email:", "sent" if ok else "dry-run (GMAIL_* secrets missing)")
+        return
     state = {}
     if os.path.exists(STATE):
         try: state = json.load(open(STATE))
