@@ -33,7 +33,7 @@ def fetch(cove):
     lat, lon = cove["lat"], cove["lon"]
     url = "https://api.open-meteo.com/v1/forecast?" + urllib.parse.urlencode({
         "latitude": lat, "longitude": lon,
-        "current": "precipitation,temperature_2m,wind_speed_10m,wind_direction_10m,pressure_msl,cloud_cover,is_day",
+        "current": "precipitation,temperature_2m,wind_speed_10m,wind_gusts_10m,wind_direction_10m,pressure_msl,cloud_cover,is_day",
         "minutely_15": "precipitation",
         "hourly": "precipitation,precipitation_probability,pressure_msl,temperature_2m",
         "temperature_unit": "fahrenheit",
@@ -219,7 +219,9 @@ def marina_wind(params, regime, wkt, wdir, cur):
     reg = ws["by_regime"].get(regime["name"]) or ws["by_regime"].get("slack")
     m = reg["marina"]
     factor, shift = m["factor"], m.get("dir_shift", 0)
+    rgust = round((cur.get("wind_gusts_10m") or 0) * 0.539957, 1)   # km/h -> kt
     local_kt = round(wkt * factor, 1)
+    local_gust = round(rgust * factor, 1)
     local_dir = round((wdir + shift) % 360) if wdir is not None else None
     mode = "mechanical"
     # stable drainage: light regional wind + night + clear sky -> cove pools near-calm
@@ -230,18 +232,29 @@ def marina_wind(params, regime, wkt, wdir, cur):
         stable_kt = drain.get("stable_kt")
         if stable_kt is not None:
             local_kt = round(min(local_kt, stable_kt), 1)
+            local_gust = local_kt                       # calm drainage night: no gusts
             local_dir = drain.get("stable_dir", local_dir)
             mode = "drainage"
+    # exposed-point wind: Dougall Point (the headland people actually stand on) --
+    # the marina number badly understates it. Sustained + gust via its shelter factor.
+    ex_f = reg.get("DougallPt", {}).get("factor", 1.0)
+    exposed = None if mode == "drainage" else {
+        "point": "Dougall Pt", "factor": ex_f,
+        "kt": round(wkt * ex_f, 1), "gust_kt": round(rgust * ex_f, 1)}
     return {
         "regional_kt": round(wkt, 1),
+        "regional_gust_kt": rgust,
         "regional_dir_deg": wdir,
         "marina_kt": local_kt,
+        "marina_gust_kt": local_gust,
         "marina_dir_deg": local_dir,
         "shelter_factor": factor,
         "mode": mode,
+        "exposed": exposed,
         "note": ("cold-air drainage: cove near-calm on this clear light night"
                  if mode == "drainage" else
-                 f"marina sheltered to {int(round(factor*100))}% of open-water wind ({regime['name']})"),
+                 f"marina {local_kt:g} kt (x{factor}), exposed pts ~{exposed['kt']:g} "
+                 f"gusting {exposed['gust_kt']:g} ({regime['name']})"),
     }
 
 
@@ -410,8 +423,10 @@ def main():
     print(f"  {headline.upper()}   [{conf} confidence]")
     print(f"  {detail}  (wind {wdir}deg {wkt:.0f} kt, dP/3h {tend:+.1f} hPa)")
     if wind:
+        ex = wind.get("exposed")
+        exs = f" | exposed {ex['kt']:.0f} gusting {ex['gust_kt']:.0f}" if ex else ""
         print(f"  MARINA WIND {wind['marina_kt']:.0f} kt "
-              f"(regional {wind['regional_kt']:.0f} kt, x{wind['shelter_factor']:.2f}, {wind['mode']})")
+              f"(regional {wind['regional_kt']:.0f} kt, x{wind['shelter_factor']:.2f}, {wind['mode']}){exs}")
     if obs:
         print(f"  OBSERVED: {obs['note']}")
     print("  " + "-" * 46)

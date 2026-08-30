@@ -421,12 +421,17 @@ function renderWeatherSimple({ wx, met, alerts, nowMs, nowcast }) {
   el("line", nowcast ? nowcastLine(nowcast) : wxLine(wx, nowMs));
   renderWeatherChart(wx, nowMs);
   const w = nowcast && nowcast.wind;
-  const windSpan = w && w.marina_kt != null
-    ? `<span>Marina wind <b>${w.marina_kt.toFixed(0)} kt</b>${w.marina_dir_deg != null ? " " + compass(w.marina_dir_deg) : ""}`
-      + (w.mode === "drainage" ? ` <span style="opacity:.6">near-calm</span>`
-         : w.regional_kt >= w.marina_kt + 2 ? ` <span style="opacity:.6">sheltered from ${w.regional_kt.toFixed(0)}</span>` : "")
-      + `</span>`
-    : "";
+  let windSpan = "";
+  if (w && w.marina_kt != null) {
+    const dir = w.marina_dir_deg != null ? " " + compass(w.marina_dir_deg) : "";
+    if (w.mode === "drainage") {
+      windSpan = `<span>Marina <b>${w.marina_kt.toFixed(0)} kt</b>${dir} <span style="opacity:.6">near-calm</span></span>`;
+    } else {
+      const ex = w.exposed, windy = ex && (ex.kt >= 12 || ex.gust_kt >= 15);
+      const exBit = windy ? ` <span style="opacity:.75">· exposed <b>${ex.kt.toFixed(0)}</b> gusting <b>${ex.gust_kt.toFixed(0)}</b></span>` : "";
+      windSpan = `<span>Marina <b>${w.marina_kt.toFixed(0)} kt</b>${dir}${exBit}</span>`;
+    }
+  }
   const waterSpan = met.waterF != null ? `<span>Water ${met.waterF.toFixed(0)}°</span>` : "";
   el("strip", [windSpan, waterSpan].filter(Boolean).join(""));
 }
