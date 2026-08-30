@@ -112,6 +112,7 @@ HEAD = """<!DOCTYPE html>
       <h1>{h1}</h1>
       {lede}
     </div>
+    {herocredit}
   </header>
 """
 
@@ -158,16 +159,17 @@ FOOT = """</main>
 </html>
 """
 
-def page(path, title, h1, crumbs, body, herobg="assets/img/hero-marina.jpg", lede="", desc=""):
+def page(path, title, h1, crumbs, body, herobg="assets/img/hero-marina.jpg", lede="", desc="", herocredit=""):
     depth = path.count("/")
     p = "../" * depth
     lede_html = f"<p>{lede}</p>" if lede else ""
     crumb_html = ' <span style="opacity:.5">/</span> '.join(crumbs)
     # unescape-then-escape so pre-entitied strings ("&amp;") don't double-escape
     esc = lambda s: html.escape(html.unescape(s))
+    hc = f'<span class="hero-credit">Photo: {esc(herocredit)}</span>' if herocredit else ""
     out = HEAD.format(title=esc(title), desc=esc(desc or lede or h1), p=p,
                       nav=NAV.format(p=p), herobg=herobg, crumbs=crumb_html,
-                      h1=h1, lede=lede_html, url=canonical(path), site=SITE)
+                      h1=h1, lede=lede_html, url=canonical(path), site=SITE, herocredit=hc)
     out += "\n" + body + "\n"
     out += FOOT.format(p=p)
     full = os.path.join(ROOT, path.replace("/", os.sep))
@@ -464,10 +466,10 @@ page("amenities/index.html", "Amenities", "Amenities",
      body=f'  <section class="article"><div class="wrap"><div class="grid-3">\n{cards}  </div></div></section>')
 
 # ============ AMENITY SUB-PAGES ============
-def amenity(u, title, h1, hero, lede, body, desc=""):
+def amenity(u, title, h1, hero, lede, body, desc="", herocredit=""):
     page("amenities/"+u, title, h1,
          [home_link(), '<a href="index.html">Amenities</a>', h1],
-         lede=lede, herobg=hero, body=body, desc=desc)
+         lede=lede, herobg=hero, body=body, desc=desc, herocredit=herocredit)
 
 amenity("clubhouse.html","Clubhouse","Clubhouse","assets/img/amenities/clubhouse.jpg",
  "The heart of the community, 6,000 square feet of gathering space overlooking the Pointe.",
@@ -530,14 +532,14 @@ amenity("pool-spa.html","Pool &amp; Spa","Pool &amp; Spa","assets/img/amenities/
     </aside>
   </div></div></section>""")
 
-amenity("marina.html","Marina","Marina","assets/img/amenities/marina.jpg",
+amenity("marina.html","Marina","Marina","assets/img/pages/marina-decew.jpg",
  "Indian Cove Marina, a 110-slip working marina tucked into a wooded cove.",
  body="""  <section class="article"><div class="wrap"><div class="split">
     <div class="prose">
       <h2>Indian Cove Marina</h2>
       <p>The marina is a treasured amenity of the Pointe, set in a sheltered cove on the community's west side.</p>
       <div class="figrow">
-        <figure><img src="../assets/img/pages/marina-aerial.jpg" alt="Indian Cove Marina from above"><figcaption>Indian Cove Marina from above.</figcaption></figure>
+        <figure><img src="../assets/img/pages/marina-overhead-decew.jpg" alt="Indian Cove Marina from directly above, boats in their slips"><figcaption>Indian Cove Marina from above. Photo: Kim DeCew.</figcaption></figure>
         <figure><img src="../assets/img/pages/marina-twilight.jpg" alt="The marina at twilight"><figcaption>The docks at twilight.</figcaption></figure>
         <figure><img src="../assets/img/pages/marina-heron.jpg" alt="A great blue heron standing on the marina docks"><figcaption>A great blue heron patrols the docks.</figcaption></figure>
       </div>
@@ -567,7 +569,8 @@ amenity("marina.html","Marina","Marina","assets/img/amenities/marina.jpg",
       <p style="margin-top:14px"><a class="btn" href="https://app.condocontrol.com/login" target="_blank" rel="noopener">Owner Portal &#8599;</a></p>
     </aside>
   </div></div></section>""",
- desc="Indian Cove Marina at Hartstene Pointe: a private 110-slip marina on Harstine Island, WA. Slips are held by lot owners; short-term moorage for owners and guests via the Harbormaster.")
+ desc="Indian Cove Marina at Hartstene Pointe: a private 110-slip marina on Harstine Island, WA. Slips are held by lot owners; short-term moorage for owners and guests via the Harbormaster.",
+ herocredit="Kim DeCew")
 
 amenity("boat-rv-storage.html","Boat &amp; RV Storage","Boat &amp; RV Storage","assets/img/amenities/boat-rv-storage.jpg",
  "On-site storage for boats, trailers, RVs, kayaks and canoes, available to all owners.",
@@ -682,6 +685,7 @@ amenity("trails.html","Trails","Trails","assets/img/amenities/trails.jpg",
       <h3>West Bluff &amp; Nature Trail</h3>
       <p>More ups and downs than the east side, a walking stick may help on the steeper hills. On clear days there are views of the Olympic Mountains. Known as the Nature Trail, signs along the way describe the trees and vegetation common at the Pointe, a project of resident and biologist Jim Cary.</p>
       <figure><img src="../assets/img/amenities/nature-trail-sign.jpg" alt="Interpretive sign along the Nature Trail"><figcaption>Interpretive signs along the Nature Trail describe the Pointe's trees and vegetation.</figcaption></figure>
+      <figure><img src="../assets/img/pages/trail-footbridge-decew.jpg" alt="A wooden footbridge over a fern-filled ravine on a Hartstene Pointe trail"><figcaption>A footbridge over one of the ravines. Photo: Kim DeCew.</figcaption></figure>
       <h3>Indian Cove Trail</h3>
       <p>Park at the Clubhouse and walk down Pointes Drive West to the trailhead. Enjoy the ferny walk downhill to the bridge and across to the marina. Bring a snack and watch the marina at rest before retracing your steps up to Promontory Road.</p>
       <h3>East Bluff Trail</h3>
@@ -865,7 +869,8 @@ page("community/exploring-the-area.html", "Exploring the Area", "Exploring the A
 
 page("community/considering-the-pointe.html", "Considering the Pointe", "Considering the Pointe",
      [home_link(), '<a href="index.html">Community</a>', "Considering the Pointe"],
-     herobg="assets/img/pages/aerial-clubhouse.jpg",
+     herobg="assets/img/pages/pointe-shoreline-decew.jpg",
+     herocredit="Kim DeCew",
      desc="Thinking of buying at Hartstene Pointe? How this private, gated 532-home community on Harstine Island, WA works: HOA governance, assessments, amenities, CC&Rs, and marina slips.",
      lede="Thinking about a home at the Pointe? Here is what the community is, how it works, and where to find the details.",
      body="""  <section class="article"><div class="wrap"><div class="split">
