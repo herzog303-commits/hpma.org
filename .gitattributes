@@ -2,3 +2,11 @@
 # conflicting. The Mac Mini pipeline relies on this to auto-recover when a
 # push is rejected (see mini_cycle.py publish()).
 *.jsonl merge=union
+
+# Board JSON, regenerated whole every cycle -- see the study repo's note. Never
+# line-merge: a silent non-conflicting merge can serve the board a file holding
+# a headline from one cycle and a timeline from another.
+amenities/nowcast.json -merge
+amenities/surge_forecast.json -merge
+amenities/scorecard.json -merge
+amenities/nowcast/surge_alert_state.json -merge
