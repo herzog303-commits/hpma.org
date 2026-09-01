@@ -56,14 +56,20 @@
   .bottom .nav a { color:var(--muted); text-decoration:none; font-size:13px; font-weight:700; padding:2px 12px; border-radius:6px; }
   .bottom .nav a.on { background:var(--accent); color:var(--paper); }
   
+  .bottom .fresh { color:var(--muted); }
+  .bottom .fresh.warn { color:var(--warn-fg); font-weight:700; }
+  .stalebar { display:none; background:var(--warn-bg); color:var(--warn-fg); border:1.5px solid var(--warn-fg); border-radius:6px; padding:5px 10px; margin-bottom:6px; font-size:15px; font-weight:700; }
+  .stalebar.on { display:block; }
+
   .err { color:var(--warn-fg); font-weight:700; }
 </style>
 </head>
 <body data-pagefind-ignore>
   <div class="top"><h1>Indian Cove Marina</h1><div class="when"><span id="date"></span><b id="time"></b></div></div>
+  <div class="stalebar" id="stalebar"></div>
   <div class="lineRow"><span id="pills"></span><span id="line">Loading…</span></div>
   <div class="main"><div class="chart" id="chart"></div><div class="side" id="hero"></div></div>
-  <div class="bottom"><div><span id="sun" class="tides-only"></span><span id="strip"></span></div><span class="nav" id="nav"></span></div>
+  <div class="bottom"><div><span id="sun" class="tides-only"></span><span id="strip"></span><span id="fresh" class="fresh"></span></div><span class="nav" id="nav"></span></div>
 <script>
 /* ============================== CONFIG ============================== */
 const CONFIG = {
@@ -285,6 +291,36 @@ function sentence(extremes, surge, annual, nowMs) {
 }
 
 function unusual(v, type, annual) { return type === "H" ? v >= annual.p95high : v <= annual.p05low; }
+/* ---- data freshness -------------------------------------------------------
+   The board renders static JSON committed by the pipeline. If that pipeline
+   stops, the last-good files keep rendering and look completely normal -- there
+   is no failed fetch to catch. So surface the age of nowcast.json's
+   generated_utc: every cycle writes all the board files together in one commit,
+   which makes it the pipeline's heartbeat. Thresholds are anchored to the
+   15-minute cadence -- one missed cycle is unremarkable, several is not. */
+const FRESH_WARN_MIN = 40, FRESH_STALE_MIN = 180;
+function ageWords(min) {
+  if (min < 1) return "just now";
+  if (min < 60) return `${Math.round(min)} min`;
+  const h = Math.floor(min / 60), m = Math.round(min % 60);
+  return m ? `${h}h ${m}m` : `${h}h`;
+}
+function renderFreshness(generatedUtc, nowMs) {
+  const bar = document.getElementById("stalebar"), tag = document.getElementById("fresh");
+  if (!bar || !tag) return;
+  bar.classList.remove("on"); tag.classList.remove("warn");
+  const t = generatedUtc ? Date.parse(generatedUtc) : NaN;
+  if (!isFinite(t)) { tag.textContent = "update time unknown"; tag.classList.add("warn"); return; }
+  const min = (nowMs - t) / 60000;
+  if (min < FRESH_WARN_MIN) { tag.textContent = `updated ${ageWords(min)} ago`; return; }
+  tag.textContent = `\u26a0 data ${ageWords(min)} old`;
+  tag.classList.add("warn");
+  if (min >= FRESH_STALE_MIN) {
+    bar.textContent = `\u26a0 STALE: data ${ageWords(min)} old, the update pipeline may be down`;
+    bar.classList.add("on");
+  }
+}
+
 function renderTidesSimple({ extremes, surge, live, met, cur, alerts, annual, nowMs }) {
   const exp = e => e.h + surge.fn(e.t);
   const nowFt = tideAt(extremes, nowMs) + surge.fn(nowMs), soon = tideAt(extremes, nowMs + 20 * 60000) + surge.fn(nowMs + 20 * 60000);
@@ -508,12 +544,13 @@ async function main() {
       const r = await Promise.all(jobs); extremes = r[0]; met = r[1]; alerts = r[2]; live = r[3]; annual = r[4]; if (view === "tides") cur = r[5]; else wx = r[5];
       if (CONFIG.SURGE_FORECAST_URL) forecast = await fetch(CONFIG.SURGE_FORECAST_URL).then(x => x.json()).catch(() => null);
     }
-    let nowcast = null;
-    if (view === "weather" && !demo && CONFIG.NOWCAST_URL)
+    let nowcast = null;   // weather view renders it; tides view uses only generated_utc
+    if (!demo && CONFIG.NOWCAST_URL)
       nowcast = await fetch(CONFIG.NOWCAST_URL).then(x => x.json()).catch(() => null);
     const surge = makeSurgeFn({ manual, forecast, live, cfg: CONFIG });
     if (view === "tides") renderTidesSimple({ extremes, surge, live, met, cur, alerts, annual, nowMs });
     else renderWeatherSimple({ wx, met, extremes, alerts, nowMs, nowcast });
+    if (!demo) renderFreshness(nowcast && nowcast.generated_utc, nowMs);
   } catch (e) { el("line", `<span class="err">${e.message}</span>`); console.error(e); }
 }
 if (typeof document !== "undefined") main();
