@@ -70,8 +70,61 @@ def record(now):
             v = interp(sf, now + timedelta(hours=lead))
             if v is not None:
                 recs.append(("surge_ft", now + timedelta(hours=lead), lead * 60, round(v, 2)))
-    return [{"var": var, "valid": vt.strftime("%Y-%m-%dT%H:%M:%SZ"), "lead_min": lm, "fcst": f,
+    return [{"var": var, "src": "live", "valid": vt.strftime("%Y-%m-%dT%H:%M:%SZ"), "lead_min": lm, "fcst": f,
              "obs": None} for var, vt, lm, f in recs]
+
+# ---------------------------------------------------------------- bake-off (shadow forecast sources)
+NWS_HOURLY = "https://api.weather.gov/gridpoints/SEW/105,57/forecast/hourly"   # cove gridpoint (api.weather.gov/points)
+
+def _openmeteo_series(model=None):
+    """{hour_utc: (temp_f, wind_kt)} for the next day from Open-Meteo (best_match or a named model)."""
+    q = {"latitude": MC["cove"]["lat"], "longitude": MC["cove"]["lon"], "timezone": "GMT",
+         "hourly": "temperature_2m,wind_speed_10m", "forecast_days": 1,
+         "wind_speed_unit": "kn", "temperature_unit": "fahrenheit"}
+    if model:
+        q["models"] = model
+    h = json.load(urllib.request.urlopen("https://api.open-meteo.com/v1/forecast?" + urllib.parse.urlencode(q), timeout=30))["hourly"]
+    out = {}
+    for t, tp, ws in zip(h["time"], h["temperature_2m"], h["wind_speed_10m"]):
+        if None not in (tp, ws):
+            out[datetime.strptime(t, "%Y-%m-%dT%H:%M").replace(tzinfo=timezone.utc)] = (round(tp, 1), round(ws, 1))
+    return out
+
+def _nws_series():
+    """{hour_utc: (temp_f, wind_kt)} from the NWS gridpoint hourly forecast (NBM)."""
+    req = urllib.request.Request(NWS_HOURLY, headers={"User-Agent": "hpma-marina-board", "Accept": "application/geo+json"})
+    periods = json.load(urllib.request.urlopen(req, timeout=30))["properties"]["periods"]
+    out = {}
+    for p in periods:
+        try:
+            t = datetime.fromisoformat(p["startTime"]).astimezone(timezone.utc).replace(minute=0, second=0, microsecond=0)
+            tp = float(p["temperature"])                                   # already F
+            ws = float(str(p["windSpeed"]).split()[0]) * 0.868976          # mph -> kt
+            out[t] = (round(tp, 1), round(ws, 1))
+        except Exception:  # noqa: BLE001
+            continue
+    return out
+
+def record_bakeoff(now):
+    """Log temp/wind at +1h and +3h from each shadow source, scored against the same
+    Grapeview obs -- a head-to-head of forecast sources at the cove."""
+    srcs = {"openmeteo": lambda: _openmeteo_series(), "hrrr": lambda: _openmeteo_series("gfs_hrrr"), "nws": _nws_series}
+    recs = []
+    for src, fn in srcs.items():
+        try:
+            series = fn()
+        except Exception as exc:  # noqa: BLE001
+            print(f"score bakeoff: {src} failed ({exc})"); continue
+        for lead in (60, 180):
+            vt = (now + timedelta(minutes=lead)).replace(minute=0, second=0, microsecond=0)
+            key = min(series, key=lambda t: abs((t - vt).total_seconds()), default=None)
+            if key is None or abs((key - vt).total_seconds()) > 3600:
+                continue
+            tp, ws = series[key]
+            vs = key.strftime("%Y-%m-%dT%H:%M:%SZ")
+            recs.append({"var": "temp_f", "src": src, "valid": vs, "lead_min": lead, "fcst": tp, "obs": None})
+            recs.append({"var": "wind_kt", "src": src, "valid": vs, "lead_min": lead, "fcst": ws, "obs": None})
+    return recs
 
 # ---------------------------------------------------------------- observations
 def _noaa(**kw):
@@ -163,7 +216,7 @@ def scorecard(entries):
     done = [e for e in entries if e.get("obs") is not None]
     card = {"generated_utc": None, "n_verified": len(done), "n_pending": len(entries) - len(done), "variables": {}}
     for var in ("surge_ft", "wind_kt", "temp_f", "rain_next_hr"):
-        v = [e for e in done if e["var"] == var]
+        v = [e for e in done if e["var"] == var and e.get("src", "live") == "live"]   # production only
         if not v:
             continue
         if var == "rain_next_hr":
@@ -183,6 +236,24 @@ def scorecard(entries):
             card["variables"][var] = {"n": len(v), "bias": round(bias, 2), "mae": round(mae, 2), "rmse": round(rmse, 2),
                                       "suggested_adjustment": round(-bias, 2),
                                       "note": "bias = forecast - observed; add suggested_adjustment to de-bias"}
+
+    # bake-off: forecast sources head-to-head (same var, same lead, same obs)
+    bake = {}
+    for var in ("temp_f", "wind_kt"):
+        for lead in (60, 180):
+            per = {}
+            for src in ("openmeteo", "hrrr", "nws"):
+                s = [e for e in done if e["var"] == var and e.get("src") == src and e.get("lead_min") == lead]
+                if not s:
+                    continue
+                errs = [e["fcst"] - e["obs"] for e in s]
+                per[src] = {"n": len(s), "bias": round(sum(errs) / len(errs), 2),
+                            "rmse": round(math.sqrt(sum(x * x for x in errs) / len(errs)), 2)}
+            if len(per) >= 2:
+                per["_best_rmse"] = min(per, key=lambda k: per[k]["rmse"])
+                bake[f"{var}_+{lead // 60}h"] = per
+    if bake:
+        card["bakeoff"] = {"_note": "same variable, lead, and obs across sources; lowest rmse wins", **bake}
     return card
 
 def main():
@@ -195,12 +266,13 @@ def main():
                 try: entries.append(json.loads(ln))
                 except Exception: pass  # noqa: BLE001
 
-    # 1. record current forecasts (dedup by var + valid rounded to 15 min)
-    seen = {(e["var"], e["valid"][:15]) for e in entries}
+    # 1. record current forecasts + bake-off shadow sources (dedup by var+src+valid[15min])
+    key = lambda e: (e["var"], e.get("src", "live"), e["valid"][:15])
+    seen = {key(e) for e in entries}
     added = 0
-    for r in record(now):
-        if (r["var"], r["valid"][:15]) not in seen:
-            entries.append(r); seen.add((r["var"], r["valid"][:15])); added += 1
+    for r in record(now) + record_bakeoff(now):
+        if key(r) not in seen:
+            entries.append(r); seen.add(key(r)); added += 1
 
     # 2. verify ripe, unverified forecasts
     verified = 0
