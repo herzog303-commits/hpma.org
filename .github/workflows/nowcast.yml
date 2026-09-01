@@ -13,8 +13,15 @@ name: Publish marina nowcast
 # for a marina board; use the "Run workflow" button for an on-demand refresh.
 
 on:
-  schedule:
-    - cron: "*/30 * * * *"    # every ~30 min (best-effort)
+  # DISABLED 2026-09-01: the always-on Mac Mini is now the primary writer for
+  # these files (launchd, every 15 min -- see MIGRATION.md objective B). Two
+  # schedulers would race on the same board JSON. Kept as a break-glass
+  # fallback: to re-enable, unload the Mini's LaunchAgent FIRST
+  #   launchctl unload ~/Library/LaunchAgents/org.hpma.indiancove-nowcast.plist
+  # then uncomment the two lines below. workflow_dispatch still works for a
+  # manual refresh at any time without touching this.
+  # schedule:
+  #   - cron: "*/30 * * * *"    # every ~30 min (best-effort)
   workflow_dispatch:
     inputs:
       send_test:
