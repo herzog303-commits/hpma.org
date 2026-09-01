@@ -531,8 +531,15 @@ async function main() {
   const nowMs = url.searchParams.get("at") ? +new Date(url.searchParams.get("at")) : Date.now();
   el("date", fmt(nowMs, { weekday: "long", month: "short", day: "numeric" }));
   el("time", hhmm(nowMs));
-  const link = v => { const u = new URL(location.href); u.searchParams.set("view", v); return u.search; };
-  el("nav", `<a class="${view === "tides" ? "on" : ""}" href="${link("tides")}">Tides</a><a class="${view === "weather" ? "on" : ""}" href="${link("weather")}">Weather</a>`);
+  /* The view switcher carries the current query string back (?at, ?demo, ?surge),
+     so its href is URL-derived -- build it with DOM APIs, never innerHTML. */
+  const nav = document.getElementById("nav"); nav.textContent = "";
+  for (const [v, label] of [["tides", "Tides"], ["weather", "Weather"]]) {
+    const u = new URL(location.href); u.searchParams.set("view", v);
+    const a = document.createElement("a"); a.setAttribute("href", u.search); a.textContent = label;
+    if (v === view) a.className = "on";
+    nav.appendChild(a);
+  }
   if (view === "tides") renderSunSimple(nowMs); else el("sun", "");   // sun times are tides-view only
   const manual = url.searchParams.has("surge") ? parseFloat(url.searchParams.get("surge")) : null, demo = url.searchParams.has("demo");
   try {
