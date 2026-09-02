@@ -11,7 +11,7 @@ hours-only persistence).
 Output (JSON, the board's SURGE_FORECAST_URL format): [{"t": iso, "ft": x.xx}, ...]
 Env: SURGE_FORECAST_OUT (default ./surge_forecast.json).  python surge_forecast.py
 """
-import json, os, urllib.request, urllib.parse
+import json, os, time, urllib.request, urllib.parse
 from math import sin, cos, radians
 from datetime import datetime, timezone, timedelta
 
@@ -20,6 +20,25 @@ MC = json.load(open(os.path.join(HERE, "microclimate.json")))
 OUT = os.environ.get("SURGE_FORECAST_OUT") or os.path.join(HERE, "surge_forecast.json")
 TAC = "9446484"
 NOAA = "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter"
+
+
+def _get_json(url, tries=3):
+    """Fetch JSON, retrying transient upstream blips.
+
+    Both Open-Meteo and the NOAA datagetter fail occasionally -- observed twice
+    in ~5 h on 2026-09-01 (HTTP 503, then an empty body -> JSONDecodeError),
+    each self-healing within seconds. This step is best-effort so a blip never
+    breaks the cycle, but without a retry it silently costs that cycle its whole
+    surge forecast. Both observed failures would have cleared on attempt 2.
+    """
+    for attempt in range(tries):
+        try:
+            with urllib.request.urlopen(url, timeout=30) as r:
+                return json.load(r)
+        except Exception:                      # noqa: BLE001 -- any transient
+            if attempt == tries - 1:
+                raise
+            time.sleep(2 * (attempt + 1))
 
 def model_surge(P, ws, wd, m):
     return (m["a_press_ft_per_hpa"] * (m["p0_hpa"] - P)
@@ -32,8 +51,7 @@ def live_residual():
     def g(**kw):
         kw.setdefault("application", "hpma_marina_board"); kw.setdefault("format", "json")
         kw.setdefault("units", "english"); kw.setdefault("time_zone", "gmt"); kw.setdefault("datum", "MLLW")
-        with urllib.request.urlopen(NOAA + "?" + urllib.parse.urlencode(kw), timeout=30) as r:
-            return json.load(r)
+        return _get_json(NOAA + "?" + urllib.parse.urlencode(kw))
     try:
         obs = g(product="water_level", station=TAC, date="latest")["data"]
         if not obs:
@@ -55,7 +73,7 @@ def main():
     q = urllib.parse.urlencode({"latitude": cove["lat"], "longitude": cove["lon"], "timezone": "GMT",
                                 "forecast_days": 6, "wind_speed_unit": "kn",
                                 "hourly": "pressure_msl,wind_speed_10m,wind_direction_10m"})
-    h = json.load(urllib.request.urlopen("https://api.open-meteo.com/v1/forecast?" + q, timeout=30))["hourly"]
+    h = _get_json("https://api.open-meteo.com/v1/forecast?" + q)["hourly"]
     times = [datetime.strptime(t, "%Y-%m-%dT%H:%M").replace(tzinfo=timezone.utc) for t in h["time"]]
     now = datetime.now(timezone.utc)
 
