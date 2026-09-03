@@ -15,6 +15,7 @@ reads it -- same cron->JSON pattern as the surge feed.
 """
 import json
 import os
+import sys
 import urllib.request
 import urllib.parse
 from datetime import datetime, timezone
@@ -330,8 +331,15 @@ def main():
     try:
         data = fetch(cove)
     except Exception as exc:  # noqa: BLE001
+        # Exit NON-ZERO. Returning 0 here wrote no file but told the caller the
+        # step succeeded, so the cycle reported "nowcast: ok", republished the
+        # PREVIOUS nowcast.json unchanged, and left consecutive_failures at 0 --
+        # the pipeline believed it was healthy while producing nothing. Observed
+        # live during an Open-Meteo outage on 2026-09-02. The board's freshness
+        # indicator still catches it for readers (generated_utc genuinely ages),
+        # but the health-alert path needs a real failure signal.
         print(f"nowcast: live fetch failed ({exc})")
-        return
+        sys.exit(1)
 
     cur = data.get("current", {})
     wdir = cur.get("wind_direction_10m")
