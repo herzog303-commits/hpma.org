@@ -331,15 +331,13 @@ def main():
     try:
         data = fetch(cove)
     except Exception as exc:  # noqa: BLE001
-        # Exit NON-ZERO. Returning 0 here wrote no file but told the caller the
-        # step succeeded, so the cycle reported "nowcast: ok", republished the
-        # PREVIOUS nowcast.json unchanged, and left consecutive_failures at 0 --
-        # the pipeline believed it was healthy while producing nothing. Observed
-        # live during an Open-Meteo outage on 2026-09-02. The board's freshness
-        # indicator still catches it for readers (generated_utc genuinely ages),
-        # but the health-alert path needs a real failure signal.
+        # Return False, do NOT sys.exit here. main() is imported and called by
+        # run_cycle.py; SystemExit inherits from BaseException, so its
+        # `except Exception` would not catch it and the whole research capture
+        # would die -- losing that cycle's entire data_log record rather than
+        # just the nowcast. The CLI wrapper below turns False into exit 1.
         print(f"nowcast: live fetch failed ({exc})")
-        sys.exit(1)
+        return False
 
     cur = data.get("current", {})
     wdir = cur.get("wind_direction_10m")
@@ -449,4 +447,9 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    # Exit NON-ZERO when main() could not produce a nowcast. Exiting 0 with no
+    # file written told the cycle the step had succeeded, so it logged
+    # "nowcast: ok", republished the PREVIOUS nowcast.json unchanged, and left
+    # consecutive_failures at 0 -- the pipeline believed it was healthy while
+    # producing nothing. Observed during an Open-Meteo outage on 2026-09-02.
+    sys.exit(1 if main() is False else 0)
