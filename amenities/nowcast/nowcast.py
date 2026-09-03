@@ -16,6 +16,7 @@ reads it -- same cron->JSON pattern as the surge feed.
 import json
 import os
 import sys
+import time
 import urllib.request
 import urllib.parse
 from datetime import datetime, timezone
@@ -30,6 +31,26 @@ def load_params():
         return json.load(f)
 
 
+def _get_json(url, tries=3, timeout=30):
+    """Fetch JSON, retrying transient upstream failures.
+
+    Open-Meteo intermittently 500s, returns an empty body, or simply stops
+    responding. This request is heavier than surge_forecast.py's -- it asks for
+    current + minutely_15 + hourly blocks -- and on 2026-09-03 it timed out for
+    four consecutive cycles while surge_forecast.py, hitting the SAME API through
+    its own retry helper, succeeded throughout and direct probes ran 4/4 clean.
+    The distinguishing factor was the retry, not the upstream.
+    """
+    for attempt in range(tries):
+        try:
+            with urllib.request.urlopen(url, timeout=timeout) as r:
+                return json.load(r)
+        except Exception:                      # noqa: BLE001 -- any transient
+            if attempt == tries - 1:
+                raise
+            time.sleep(2 * (attempt + 1))
+
+
 def fetch(cove):
     lat, lon = cove["lat"], cove["lon"]
     url = "https://api.open-meteo.com/v1/forecast?" + urllib.parse.urlencode({
@@ -41,8 +62,7 @@ def fetch(cove):
         "timezone": "America/Los_Angeles",
         "forecast_hours": 6, "forecast_minutely_15": 12,
     })
-    with urllib.request.urlopen(url, timeout=30) as r:
-        return json.load(r)
+    return _get_json(url)
 
 
 # present-weather tokens that mean precipitation is falling (mist/fog/haze excluded)
