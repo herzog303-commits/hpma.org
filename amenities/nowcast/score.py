@@ -62,6 +62,16 @@ def record(now):
         w = nc.get("wind") or {}
         if w.get("regional_kt") is not None:
             recs.append(("wind_kt", now, 0, round(w["regional_kt"], 1)))
+        # Gusts are what a boater actually reads before going out, and they were
+        # computed, sheltered and shown on the board but never verified.
+        # REGIONAL gust is scored because G2160 (Fair Harbor, Grapeview) is a
+        # regional station ~5 mi NNE -- apples to apples with wind_kt above.
+        # NOTE: marina_gust_kt / marina_kt (regional x shelter_factor) remain
+        # UNVERIFIABLE until a sensor exists at the cove itself. That gap is the
+        # whole point of the study; do not mistake wind_kt's score for evidence
+        # about the shelter model.
+        if w.get("regional_gust_kt") is not None:
+            recs.append(("wind_gust_kt", now, 0, round(w["regional_gust_kt"], 1)))
         if nc.get("temp_cove_f") is not None:
             recs.append(("temp_f", now, 0, round(nc["temp_cove_f"], 1)))
     sf = _load(SURGE_FC)
@@ -178,6 +188,11 @@ def obs_wind(vt):
     ob = _synoptic(vt, "wind_speed")
     return round(_nearest(ob, "wind_speed_set_1", vt), 1) if ob and _nearest(ob, "wind_speed_set_1", vt) is not None else None
 
+def obs_gust(vt):
+    ob = _synoptic(vt, "wind_gust")
+    v = _nearest(ob, "wind_gust_set_1", vt) if ob else None
+    return round(v, 1) if v is not None else None
+
 def obs_temp(vt):
     ob = _synoptic(vt, "air_temp")
     return round(_nearest(ob, "air_temp_set_1", vt), 1) if ob and _nearest(ob, "air_temp_set_1", vt) is not None else None
@@ -208,7 +223,8 @@ def obs_rain(vt):
                 hit = True
     return 1 if hit else 0
 
-OBS = {"surge_ft": obs_surge, "wind_kt": obs_wind, "temp_f": obs_temp, "rain_next_hr": obs_rain}
+OBS = {"surge_ft": obs_surge, "wind_kt": obs_wind, "wind_gust_kt": obs_gust,
+       "temp_f": obs_temp, "rain_next_hr": obs_rain}
 
 # ---------------------------------------------------------------- scorecard
 def scorecard(entries):
