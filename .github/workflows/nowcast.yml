@@ -80,7 +80,27 @@ jobs:
           git add amenities/scorecard.json amenities/nowcast/forecast_log.jsonl 2>/dev/null || true
           if git diff --cached --quiet; then
             echo "No change; nothing to commit."
-          else
-            git commit -m "nowcast: refresh [skip ci]"
-            git push
+            exit 0
           fi
+          git commit -m "nowcast: refresh [skip ci]"
+          # Rebase-and-retry, mirroring mini_cycle.py's publish() on the Mac Mini.
+          # The Mini is the primary writer, so a manual workflow_dispatch run is
+          # LIKELY to find the remote ahead -- a bare `git push` would simply be
+          # rejected, which is the worst time for it since dispatch is the
+          # break-glass path used when the Mini is down.
+          #   -X theirs  keeps THIS run's freshly regenerated snapshots over the
+          #              stale remote copy (nowcast.json, surge_forecast.json,
+          #              scorecard.json, surge_alert_state.json).
+          #   *.jsonl    are union-merged via .gitattributes, so both writers'
+          #              appended lines survive rather than one side winning.
+          for attempt in 1 2 3; do
+            if git push; then
+              echo "pushed on attempt $attempt"
+              exit 0
+            fi
+            echo "push rejected; rebasing on remote (attempt $attempt)"
+            git pull --rebase --autostash -X theirs || git rebase --abort || true
+            sleep $((attempt * 3))
+          done
+          echo "push FAILED after 3 attempts"
+          exit 1
