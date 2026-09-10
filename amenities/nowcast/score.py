@@ -80,8 +80,11 @@ def record(now):
             v = interp(sf, now + timedelta(hours=lead))
             if v is not None:
                 recs.append(("surge_ft", now + timedelta(hours=lead), lead * 60, round(v, 2)))
-    return [{"var": var, "src": "live", "valid": vt.strftime("%Y-%m-%dT%H:%M:%SZ"), "lead_min": lm, "fcst": f,
+    base = [{"var": var, "src": "live", "valid": vt.strftime("%Y-%m-%dT%H:%M:%SZ"), "lead_min": lm, "fcst": f,
              "obs": None} for var, vt, lm, f in recs]
+    # shadow the 0-lead wind/temp as "cove" -- same forecast, verified at the cove (WU)
+    cove = [{**r, "src": "cove"} for r in base if r["var"] in ("wind_kt", "temp_f") and r["lead_min"] == 0]
+    return base + cove
 
 # ---------------------------------------------------------------- bake-off (shadow forecast sources)
 NWS_HOURLY = "https://api.weather.gov/gridpoints/SEW/105,57/forecast/hourly"   # cove gridpoint (api.weather.gov/points)
@@ -226,6 +229,31 @@ def obs_rain(vt):
 OBS = {"surge_ft": obs_surge, "wind_kt": obs_wind, "wind_gust_kt": obs_gust,
        "temp_f": obs_temp, "rain_next_hr": obs_rain}
 
+# Cove verification: the SAME live forecasts, verified against the Weather Underground
+# station AT the cove (KWASHELT285, 0.35 mi) instead of Grapeview (5 mi) -- so we can
+# see whether the wind/temp biases are real at the marina or partly a Grapeview artifact.
+try:
+    import wu
+except Exception:  # noqa: BLE001
+    wu = None
+
+def _cove_hourly(vt):
+    if wu is None:
+        return None
+    for st in (MC["stations"].get("wu_stations") or []):
+        o = wu.wu_hourly_at(vt, station=st)
+        if o and (o.get("temp_f") is not None or o.get("wind_kt") is not None):
+            return o
+    return None
+
+def obs_cove_wind(vt):
+    o = _cove_hourly(vt); return o.get("wind_kt") if o else None
+
+def obs_cove_temp(vt):
+    o = _cove_hourly(vt); return o.get("temp_f") if o else None
+
+COVE_OBS = {"wind_kt": obs_cove_wind, "temp_f": obs_cove_temp}
+
 # ---------------------------------------------------------------- scorecard
 def scorecard(entries):
     import math
@@ -252,6 +280,21 @@ def scorecard(entries):
             card["variables"][var] = {"n": len(v), "bias": round(bias, 2), "mae": round(mae, 2), "rmse": round(rmse, 2),
                                       "suggested_adjustment": round(-bias, 2),
                                       "note": "bias = forecast - observed; add suggested_adjustment to de-bias"}
+
+    # cove verification: the SAME live wind/temp forecasts scored at the cove (WU) --
+    # compare bias/rmse here against the Grapeview-verified numbers in variables{} above.
+    cove = {}
+    for var in ("wind_kt", "temp_f"):
+        v = [e for e in done if e["var"] == var and e.get("src") == "cove"]
+        if not v:
+            continue
+        errs = [e["fcst"] - e["obs"] for e in v]
+        cove[var] = {"n": len(v), "bias": round(sum(errs) / len(errs), 2),
+                     "mae": round(sum(abs(x) for x in errs) / len(errs), 2),
+                     "rmse": round(math.sqrt(sum(x * x for x in errs) / len(errs)), 2)}
+    if cove:
+        card["cove_verification"] = {"_note": "same forecast verified at the cove (WU KWASHELT285/12, ~0.35 mi) "
+                                     "vs Grapeview (5 mi) in variables{}", **cove}
 
     # bake-off: forecast sources head-to-head (same var, same lead, same obs)
     bake = {}
@@ -299,7 +342,8 @@ def main():
         if vt > now - timedelta(minutes=RIPE_MIN) or vt < now - timedelta(days=PRUNE_DAYS):
             continue
         try:
-            o = OBS[e["var"]](vt)
+            fn = COVE_OBS.get(e["var"]) if e.get("src") == "cove" else OBS.get(e["var"])
+            o = fn(vt) if fn else None
         except Exception:  # noqa: BLE001
             o = None
         if o is not None:

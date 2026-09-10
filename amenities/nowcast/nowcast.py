@@ -133,6 +133,27 @@ def fetch_synoptic_rain(params, series=None):
     return wet
 
 
+def fetch_wu_rain(params):
+    """WU PWS at the cove (KWASHELT285/12, ~0.35 mi) -- the closest gauges of all.
+    Rain now if the station's current precip rate > 0. Wet entries like the others."""
+    try:
+        import wu
+    except Exception:  # noqa: BLE001
+        return []
+    cove = params["cove"]
+    out = []
+    for st in (params["stations"].get("wu_stations") or []):
+        c = wu.wu_current(st)
+        if not c or c.get("lat") is None:
+            continue
+        if (c.get("precip_rate_in") or 0) > 0:
+            out.append({"station": st, "wx": "rain (WU)", "precip_in": round(c["precip_rate_in"], 2),
+                        "dist_mi": round(_haversine_mi(cove["lat"], cove["lon"], c["lat"], c["lon"]), 1),
+                        "bearing_deg": round(_bearing_deg(cove["lat"], cove["lon"], c["lat"], c["lon"])),
+                        "age_min": 0, "source": "wu"})
+    return out
+
+
 NOW_MI = 8            # a wet station this close = rain AT the cove (vs upwind = inbound)
 
 
@@ -181,7 +202,7 @@ def observe_precip(params, regime=None, regional_kt=0, reports=None):
                     "dist_mi": round(_haversine_mi(cove["lat"], cove["lon"], m["lat"], m["lon"]), 1),
                     "bearing_deg": round(_bearing_deg(cove["lat"], cove["lon"], m["lat"], m["lon"])),
                     "age_min": age, "source": "metar"})
-    wet = fetch_synoptic_rain(params) + wet         # closest gauge (Grapeview) first
+    wet = fetch_wu_rain(params) + fetch_synoptic_rain(params) + wet   # WU cove gauges (closest) first
     wet.sort(key=lambda w: w["dist_mi"])
 
     # 'now' = wet at/near the cove; 'inbound' = wet UPWIND for this regime, advecting in
