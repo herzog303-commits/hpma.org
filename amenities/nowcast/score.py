@@ -15,7 +15,7 @@ Obs: NOAA Tacoma (keyless, surge); Synoptic G2160 (wind/temp/rain, needs
 SYNOPTIC_TOKEN); METAR (keyless rain fallback). Persisted in forecast_log.jsonl
 (committed); publishes scorecard.json.  python score.py
 """
-import json, os, urllib.request, urllib.parse
+import json, os, urllib.request, urllib.parse, urllib.error
 from datetime import datetime, timezone, timedelta
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -163,9 +163,18 @@ def obs_surge(vt):
 def _dt2(s):
     return datetime.strptime(s, "%Y-%m-%d %H:%M").replace(tzinfo=timezone.utc)
 
+# Circuit breaker. Verification calls Synoptic once PER PENDING ENTRY, and an entry
+# that fails to verify stays pending and is retried every cycle for PRUNE_DAYS. So a
+# credential/quota failure does not degrade gracefully -- it amplifies: ~1,300 failed
+# requests per cycle, ~128k/day, which burns the very quota that may have caused it.
+# On the first 401/403/429 we stop calling Synoptic for the rest of this run. The flag
+# is process-local, so the next cycle retries once and recovers on its own.
+_SYNOPTIC_DOWN = False
+
 def _synoptic(vt, extravars):
+    global _SYNOPTIC_DOWN
     tok = os.environ.get("SYNOPTIC_TOKEN")
-    if not tok:
+    if not tok or _SYNOPTIC_DOWN:
         return None
     q = urllib.parse.urlencode({"stid": "G2160", "vars": extravars, "units": "speed|kts,temp|F,precip|in",
                                 "start": (vt - timedelta(minutes=40)).strftime("%Y%m%d%H%M"),
@@ -174,6 +183,12 @@ def _synoptic(vt, extravars):
     try:
         with urllib.request.urlopen("https://api.synopticdata.com/v2/stations/timeseries?" + q, timeout=30) as r:
             return json.load(r)["STATION"][0]["OBSERVATIONS"]
+    except urllib.error.HTTPError as e:
+        if e.code in (401, 403, 429):
+            _SYNOPTIC_DOWN = True
+            print("score: synoptic HTTP %d -- account denied or throttled; "
+                  "skipping synoptic verification for the rest of this run" % e.code)
+        return None
     except Exception:  # noqa: BLE001
         return None
 
