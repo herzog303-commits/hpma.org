@@ -90,6 +90,25 @@ def wu_hourly_at(vt, station=DEFAULT_STATION, tol_min=45):
     best = min(obs, key=lambda o: abs((t(o) - vt).total_seconds()))
     return _norm(best) if abs((t(best) - vt).total_seconds()) <= tol_min * 60 else None
 
+def wu_rain_1h(station=DEFAULT_STATION):
+    """Accumulation over the last hour, in inches, or None.
+
+    WU reports precipTotal as a running total that resets at LOCAL midnight, so
+    differencing two hourly records can go negative across the reset. A negative
+    difference means the reset fell inside the window, in which case the newer
+    value is itself the post-reset accumulation.
+    """
+    d = _get("observations/hourly/7day", station)
+    obs = (d or {}).get("observations") or []
+    if len(obs) < 2:
+        return None
+    prev, cur = _norm(obs[-2]), _norm(obs[-1])
+    if prev["precip_total_in"] is None or cur["precip_total_in"] is None:
+        return None
+    diff = cur["precip_total_in"] - prev["precip_total_in"]
+    return round(cur["precip_total_in"] if diff < 0 else diff, 2)
+
+
 def wu_nearest_current(stations):
     """First station in the list that returns data (list is closest-first in config)."""
     for s in stations:

@@ -16,6 +16,14 @@ SYNOPTIC_TOKEN); METAR (keyless rain fallback). Persisted in forecast_log.jsonl
 (committed); publishes scorecard.json.  python score.py
 """
 import json, os, urllib.request, urllib.parse, urllib.error
+
+# GW2160 (Grapeview) read straight from CWOP -- the same station Synoptic
+# served, but keyless and public at source. Primary since the Synoptic
+# contract lapsed 2026-09-07; Synoptic stays wired as a fallback.
+try:
+    import cwop
+except Exception:  # noqa: BLE001
+    cwop = None
 from datetime import datetime, timezone, timedelta
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -203,20 +211,33 @@ def _nearest(ob, key, vt):
     return best[1] if best and best[0] <= 1800 else None
 
 def obs_wind(vt):
+    o = cwop.at(vt) if cwop else None
+    if o is not None:
+        return o["wind_kt"]
     ob = _synoptic(vt, "wind_speed")
     return round(_nearest(ob, "wind_speed_set_1", vt), 1) if ob and _nearest(ob, "wind_speed_set_1", vt) is not None else None
 
 def obs_gust(vt):
+    o = cwop.at(vt) if cwop else None
+    if o is not None:
+        return o["gust_kt"]
     ob = _synoptic(vt, "wind_gust")
     v = _nearest(ob, "wind_gust_set_1", vt) if ob else None
     return round(v, 1) if v is not None else None
 
 def obs_temp(vt):
+    o = cwop.at(vt) if cwop else None
+    if o is not None:
+        return o["temp_f"]
     ob = _synoptic(vt, "air_temp")
     return round(_nearest(ob, "air_temp_set_1", vt), 1) if ob and _nearest(ob, "air_temp_set_1", vt) is not None else None
 
 def obs_rain(vt):
     """Did measurable precip fall near the cove in [vt-60min, vt]?  1/0/None."""
+    if cwop:
+        r = cwop.rain_in_hour(vt)          # station's own 1h accumulator, no midnight-reset artifact
+        if r is not None:
+            return r
     ob = _synoptic(vt, "precip_accum_since_local_midnight")   # Grapeview accum delta over the hour
     if ob:
         vs = [(_dt(t), v) for t, v in zip(ob.get("date_time", []), ob.get("precip_accum_since_local_midnight_set_1", [])) if v is not None]
