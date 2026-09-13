@@ -49,8 +49,31 @@ _ROW = re.compile(
 _CACHE = {}                      # (call, hours) -> (fetched_monotonic, rows)
 
 
+# findu.com FORBIDS exactly this use. From their front page:
+#   "Dynamic findU HTML pages must not be used to extract data which goes into
+#    a database...in other words, no screen scrapers."
+#   "A single access generated from a user action ... is allowed, while any
+#    repetitive access by a program is NOT ALLOWED."
+# A 15-minute scheduled fetch writing into data_log.jsonl is squarely inside
+# that prohibition, so the backend is OFF. The data is public; this particular
+# SERVICE is a volunteer-run limited resource and its owner said no.
+#
+# findu and aprs.fi independently point at the same correct answer: take the
+# data from the APRS stream itself, or from NOAA.
+#   APRS-IS  raw stream, rotate.aprs.net:14580, filter by callsign
+#   MADIS    NOAA upstream (findu feeds it ~100k obs/day)
+#            madis.ncep.noaa.gov/data_application.shtml -- free, "Public" tier
+# Implement one of those in _fetch() and flip ENABLED back on.
+ENABLED = False
+
+
 def _fetch(call, hours):
-    """Raw observation rows from findu. The only findu-specific code here."""
+    """Raw observation rows. No backend is currently authorised -- see above."""
+    raise RuntimeError("no authorised CWOP backend configured (see cwop.py header)")
+
+
+def _fetch_findu_DISABLED(call, hours):
+    """Retained only to document the response shape for a future parser. DO NOT CALL."""
     url = "http://www.findu.com/cgi-bin/wx.cgi?call=%s&last=%d" % (call, hours)
     req = urllib.request.Request(url, headers=UA)
     with urllib.request.urlopen(req, timeout=30) as r:
@@ -84,6 +107,8 @@ def series(call=DEFAULT_CALL, hours=72):
     Returns [] on failure rather than raising -- callers treat a missing
     observation as 'could not verify', exactly as the Synoptic path did.
     """
+    if not ENABLED:
+        return []
     key = (call, hours)
     hit = _CACHE.get(key)
     if hit and (time.monotonic() - hit[0]) < CACHE_S:
