@@ -70,6 +70,15 @@ def _norm(o):
         "pressure_inhg": _pick(im, "pressure", "pressureMax"),
         "precip_rate_in": _pick(im, "precipRate"),
         "precip_total_in": _pick(im, "precipTotal"),
+        # Kept deliberately. RESEARCH_NOTES.md names shortwave radiation as a
+        # top-tier predictor AND as the driver of the citizen-station warm bias
+        # -- and Tomas's Ecowitt GW3000 MEASURES it 0.56 km from the gangway,
+        # while predictors.jsonl was feeding the corrector Open-Meteo's MODELLED
+        # value. A measured local value beats a modelled one from a 1-2 km grid.
+        "solar_w_m2": _pick(o, "solarRadiation", "solarRadiationHigh"),
+        "uv": _pick(o, "uv", "uvHigh"),
+        "qc_status": o.get("qcStatus"),        # WU's own QC verdict, 1 = passed
+        "elev_ft": _pick(im, "elev"),
     }
 
 DEFAULT_STATION = "KWASHELT285"

@@ -188,6 +188,27 @@ def log_predictors(now):
         "raining_nearby": obs.get("raining_nearby"),
     }
     row.update(_openmeteo_extra())
+
+    # MEASURED insolation beats modelled. Tomas's Ecowitt GW3000 reports
+    # solarRadiation and UV 0.56 km from the gangway; _openmeteo_extra above
+    # supplies a MODELLED shortwave value off a 1-2 km grid. Record both --
+    # RESEARCH_NOTES.md names shortwave as a top predictor AND as the driver of
+    # the citizen-station warm bias, so the measured/modelled gap is itself
+    # diagnostic. pws_temp_f is here so the forecast-minus-observation error can
+    # be computed from a single predictor row without a join.
+    try:
+        import wu as _wu
+        sts = (MC["stations"].get("wu_stations") or [])
+        c = _wu.wu_current(sts[0]) if sts else None
+        if c:
+            row["pws_station"] = sts[0]
+            row["pws_solar_w_m2"] = c.get("solar_w_m2")
+            row["pws_uv"] = c.get("uv")
+            row["pws_temp_f"] = c.get("temp_f")
+            row["pws_rh"] = c.get("humidity")
+            row["pws_qc"] = c.get("qc_status")
+    except Exception:  # noqa: BLE001
+        pass
     try:
         with open(PRED_LOG, "a") as f:
             f.write(json.dumps(row) + "\n")
