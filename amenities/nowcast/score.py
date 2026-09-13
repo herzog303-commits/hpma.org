@@ -28,7 +28,10 @@ from datetime import datetime, timezone, timedelta
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 MC = json.load(open(os.path.join(HERE, "microclimate.json")))
-LOG = os.path.join(HERE, "forecast_log.jsonl")
+# The forecast log holds raw observed values (the `obs` field) and therefore
+# lives in the PRIVATE study repo, not the public board repo. mini_cycle points
+# FORECAST_LOG there; the default keeps standalone runs self-contained.
+LOG = os.environ.get("FORECAST_LOG") or os.path.join(HERE, "forecast_log.jsonl")
 CARD = os.environ.get("SCORECARD_OUT") or os.path.join(HERE, "scorecard.json")
 NOWCAST = os.environ.get("NOWCAST_FILE") or os.path.join(HERE, "..", "nowcast.json")
 SURGE_FC = os.environ.get("SURGE_FORECAST_FILE") or os.path.join(HERE, "..", "surge_forecast.json")
