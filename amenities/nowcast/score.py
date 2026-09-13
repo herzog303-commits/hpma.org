@@ -32,6 +32,19 @@ MC = json.load(open(os.path.join(HERE, "microclimate.json")))
 # lives in the PRIVATE study repo, not the public board repo. mini_cycle points
 # FORECAST_LOG there; the default keeps standalone runs self-contained.
 LOG = os.environ.get("FORECAST_LOG") or os.path.join(HERE, "forecast_log.jsonl")
+
+# Predictors for a future statistical corrector, one row per CYCLE (not per
+# forecast row -- that would duplicate ~180 bytes across ~800 rows/day).
+# Join to forecast_log on issue time: issue = valid - lead_min.
+#
+# Rationale (RESEARCH_NOTES.md finding 3): the largest documented lever in
+# forecast post-processing is the PREDICTOR SET, not the algorithm -- feeding
+# non-target meteorological fields plus station bias, hour-of-day, day-of-year
+# and shortwave radiation gave significant gains at >97% of station/lead-time
+# combinations. We cannot fit anything on a two-week archive, but a corrector
+# fitted in 2027 can only use predictors recorded in 2026. The cost of not
+# logging these today is permanent.
+PRED_LOG = os.environ.get("PREDICTOR_LOG") or os.path.join(HERE, "predictors.jsonl")
 CARD = os.environ.get("SCORECARD_OUT") or os.path.join(HERE, "scorecard.json")
 NOWCAST = os.environ.get("NOWCAST_FILE") or os.path.join(HERE, "..", "nowcast.json")
 SURGE_FC = os.environ.get("SURGE_FORECAST_FILE") or os.path.join(HERE, "..", "surge_forecast.json")
@@ -113,6 +126,75 @@ def _openmeteo_series(model=None):
         if None not in (tp, ws):
             out[datetime.strptime(t, "%Y-%m-%dT%H:%M").replace(tzinfo=timezone.utc)] = (round(tp, 1), round(ws, 1))
     return out
+
+def _openmeteo_extra():
+    """Current-hour non-target fields from Open-Meteo, for the predictor log.
+
+    Shortwave radiation is called out explicitly in the post-processing
+    literature as a useful predictor (it proxies the daytime heating that
+    drives both the warm bias and citizen-station sun exposure). The rest are
+    the cheap "other meteorological fields" the same finding recommends.
+    Keyless and free, so one extra request per cycle is acceptable.
+    """
+    q = {"latitude": MC["cove"]["lat"], "longitude": MC["cove"]["lon"], "timezone": "GMT",
+         "hourly": ("shortwave_radiation,cloud_cover,relative_humidity_2m,"
+                    "surface_pressure,dew_point_2m,precipitation,wind_gusts_10m"),
+         "forecast_days": 1, "wind_speed_unit": "kn", "temperature_unit": "fahrenheit"}
+    try:
+        h = json.load(urllib.request.urlopen(
+            "https://api.open-meteo.com/v1/forecast?" + urllib.parse.urlencode(q), timeout=30))["hourly"]
+    except Exception:  # noqa: BLE001
+        return {}
+    now = datetime.now(timezone.utc).replace(minute=0, second=0, microsecond=0)
+    try:
+        i = h["time"].index(now.strftime("%Y-%m-%dT%H:%M"))
+    except (ValueError, KeyError):
+        return {}
+    out = {}
+    for k in ("shortwave_radiation", "cloud_cover", "relative_humidity_2m",
+              "surface_pressure", "dew_point_2m", "precipitation", "wind_gusts_10m"):
+        v = h.get(k)
+        if v and i < len(v):
+            out[k] = v[i]
+    return out
+
+
+def log_predictors(now):
+    """One row per cycle: the forecast-time state a corrector could condition on."""
+    nc = _load(NOWCAST) or {}
+    w = nc.get("wind") or {}
+    obs = nc.get("observed") or {}
+    # Solar-ish local hour from longitude, so the diurnal predictor does not
+    # depend on the DST rules of a timezone database.
+    solar_h = (now.hour + now.minute / 60.0 + MC["cove"]["lon"] / 15.0) % 24
+    row = {
+        "t": now.strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "hour_utc": now.hour,
+        "solar_hour": round(solar_h, 2),
+        "doy": int(now.strftime("%j")),
+        "regime": nc.get("regime"),
+        "confidence": nc.get("confidence"),
+        "baro_hpa_3h": nc.get("baro_hpa_3h"),
+        "precip_ratio": nc.get("precip_ratio"),
+        "temp_model_f": nc.get("temp_model_f"),
+        "temp_cove_f": nc.get("temp_cove_f"),
+        "temp_offset_f": nc.get("temp_offset_f"),
+        "regional_kt": w.get("regional_kt"),
+        "regional_gust_kt": w.get("regional_gust_kt"),
+        "regional_dir_deg": w.get("regional_dir_deg"),
+        "marina_kt": w.get("marina_kt"),
+        "shelter_factor": w.get("shelter_factor"),
+        "shelter_mode": w.get("mode"),
+        "raining_nearby": obs.get("raining_nearby"),
+    }
+    row.update(_openmeteo_extra())
+    try:
+        with open(PRED_LOG, "a") as f:
+            f.write(json.dumps(row) + "\n")
+    except OSError:  # noqa: BLE001
+        pass
+    return row
+
 
 def _nws_series():
     """{hour_utc: (temp_f, wind_kt)} from the NWS gridpoint hourly forecast (NBM)."""
@@ -371,6 +453,8 @@ def main():
     for r in record(now) + record_bakeoff(now):
         if key(r) not in seen:
             entries.append(r); seen.add(key(r)); added += 1
+
+    log_predictors(now)          # forecast-time state, for a future corrector
 
     # 2. verify ripe, unverified forecasts
     verified = 0
