@@ -34,9 +34,29 @@
     "upwind_note": "Per regime (wind_regimes[].upwind): stations UPWIND of the cove for that flow -- leading indicators for rain inbound. Bearings from cove: KSHN WSW, KOLM S, KTIW E, KTCM ESE, KPWT NNE. NW flow is data-sparse (Olympics/Hood Canal), so post-frontal-NW upwind is weak.",
     "wu_stations": [
       "KWASHELT285",
-      "KWASHELT12"
+      "KWASHELT12",
+      "IWASHING2",
+      "KWAALLYN13",
+      "KWAGRAPE27",
+      "KWAGRAPE6",
+      "KWASHELT67",
+      "KWAGRAPE21",
+      "KWALAKEB37",
+      "KWALAKEB35"
     ],
-    "wu_stations_note": "Weather Underground PWS in Harstine Pointe, closest-first: KWASHELT285 (0.35 mi, 12 ft, on Case Inlet -- essentially the marina) and KWASHELT12 (0.70 mi). Fetched via wu.py (needs WUNDERGROUND_KEY env / secrets.json wunderground_key). The hyper-local ground truth the study lacked: closest rain gauge + a COVE verification station for score.py + eventual shelter-model check. Citizen stations -- cross-check the two and score them before trusting as truth."
+    "wu_stations_note": "TEN Weather Underground PWS within 4.7 km, closest-first. Found 2026-09-13 via api.weather.com/v3/location/near?product=pws -- we had only ever registered the two Tomas named, and never looked. All ten were live with rain gauges and qcStatus=1 when surveyed; eight also report solarRadiation. KWASHELT285 (0.56 km, Ecowitt GW3000) is Tomas's and the primary; KWASHELT12 (1.13 km, meteohub) has hourly history back to at least 2018 and is the backfill truth source. Most of the other eight reach back to 2023-2024. This takes SUB-DAILY rain gauges from 3 to 10, which clears the >=5-neighbour threshold the PWS rainfall QC scheme needs (see RESEARCH_NOTES.md). wu.py caches on disk because mini_cycle runs nowcast/score/cove_obs as separate processes and ten stations uncached is ~3,900 calls/day against a free key.",
+    "wu_station_km": {
+      "KWASHELT285": 0.56,
+      "KWASHELT12": 1.13,
+      "IWASHING2": 2.0,
+      "KWAALLYN13": 2.54,
+      "KWAGRAPE27": 2.56,
+      "KWAGRAPE6": 2.84,
+      "KWASHELT67": 2.92,
+      "KWAGRAPE21": 3.07,
+      "KWALAKEB37": 3.78,
+      "KWALAKEB35": 4.61
+    }
   },
   "wind_regimes": [
     {

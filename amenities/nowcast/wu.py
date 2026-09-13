@@ -11,7 +11,7 @@ temp F, wind mph->kt, pressure inHg, precip inches.
   wu_current()      -> dict of the latest obs (or None)
   wu_hourly_at(vt)  -> the hourly obs nearest a past time vt (for verification), or None
 """
-import json, os, urllib.request, urllib.parse
+import json, os, time, urllib.request, urllib.parse
 from datetime import datetime, timezone
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -27,18 +27,69 @@ def _key():
     except Exception:  # noqa: BLE001
         return None
 
+# Disk cache, because mini_cycle runs nowcast / score / cove_obs as SEPARATE
+# PROCESSES and each of them wants the same station in the same cycle. With 10
+# registered stations the uncached load is ~41 calls/cycle (~3,900/day), which
+# is over what a free PWS key should be asked for. Caching on disk collapses
+# the duplicates across processes: ~10-12 calls/cycle (~1,150/day).
+#
+# TTLs are set below the update rate of the thing being cached -- PWS report
+# roughly every 5 min, and the hourly endpoint only changes once an hour.
+# Overridable, and it MUST be, because there are two copies of this file --
+# one in the study repo and one in the board repo -- and HERE resolves
+# differently in each. Left to default they keep SEPARATE caches and every
+# station gets fetched twice per cycle, which is worse than no cache at all.
+# mini_cycle sets WU_CACHE_DIR so both copies share one directory.
+CACHE_DIR = os.environ.get("WU_CACHE_DIR") or os.path.join(HERE, ".wu-cache")
+# The hourly endpoint only changes once an hour, so a 900 s TTL against a 900 s
+# cycle meant it expired exactly at every cycle boundary and refetched all ten
+# stations every time. 3000 s refetches roughly every third cycle instead, which
+# is still fresher than the data. Measured effect: ~20 -> ~13 calls/cycle,
+# ~1,900 -> ~1,250 per day.
+CACHE_TTL = {"observations/current": 240, "observations/hourly/7day": 3000}
+
+
+def _cache_file(path, station):
+    safe = path.replace("/", "_")
+    return os.path.join(CACHE_DIR, "%s__%s.json" % (safe, station))
+
+
 def _get(path, station, **params):
     key = _key()
     if not key:
         return None
+    cf = _cache_file(path, station)
+    ttl = CACHE_TTL.get(path, 240)
+    try:
+        age = time.time() - os.path.getmtime(cf)
+        if age < ttl:
+            with open(cf) as f:
+                return json.load(f)
+    except (OSError, ValueError):
+        pass
+
     params.update(stationId=station, format="json", units="e", apiKey=key)
     url = f"{BASE}/{path}?" + urllib.parse.urlencode(params)
     try:
         with urllib.request.urlopen(url, timeout=30) as r:
-            return json.load(r)
+            data = json.load(r)
     except Exception as exc:  # noqa: BLE001
         print(f"wu: {station} {path} failed ({exc})")
-        return None
+        # a stale cache entry beats nothing when the API is unreachable
+        try:
+            with open(cf) as f:
+                return json.load(f)
+        except (OSError, ValueError):
+            return None
+    try:
+        os.makedirs(CACHE_DIR, exist_ok=True)
+        tmp = cf + ".tmp"
+        with open(tmp, "w") as f:
+            json.dump(data, f)
+        os.replace(tmp, cf)          # atomic: concurrent readers never see half a file
+    except OSError:
+        pass
+    return data
 
 def _pick(d, *names):
     """First non-None of several field names -- the current and hourly/7day endpoints
