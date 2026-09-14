@@ -462,8 +462,13 @@ function nowcastLine(nc) {
   const temp = nc.temp_cove_f != null ? ` · ${nc.temp_cove_f.toFixed(0)}°` : "";
   const o = nc.observed || {};
   const rn = nc.rain_now || {};
-  const nhWord = (rn.total > 0 && rn.observed)
+  // Two wet gauges cannot both be a spider in the funnel; one can. Shout only
+  // when the gauges agree, and say plainly when they do not -- the count is
+  // shown either way so the reader can judge.
+  const nhWord = (rn.total > 0 && rn.confident)
       ? `<span style="color:var(--warn-fg)">RAINING NOW (${rn.wet}/${rn.total} gauges${rn.nearest_rate_in_hr ? ", " + rn.nearest_rate_in_hr + " in/hr" : ""})</span>`
+    : (rn.total > 0 && rn.observed)
+      ? `<span style="color:var(--warn-fg)">rain at 1 of ${rn.total} gauges${rn.nearest_rate_in_hr ? " (" + rn.nearest_rate_in_hr + " in/hr)" : ""}</span>`
     : o.now ? `<span style="color:var(--warn-fg)">rain nearby</span>`
     : o.inbound ? `<span style="color:var(--warn-fg)">rain inbound ~${o.inbound.lead_h}h ${o.inbound.from_dir}</span>`
     : ncWord(nextHr);
