@@ -235,7 +235,23 @@ def _nws_series():
 def record_bakeoff(now):
     """Log temp/wind at +1h and +3h from each shadow source, scored against the same
     Grapeview obs -- a head-to-head of forecast sources at the cove."""
-    srcs = {"openmeteo": lambda: _openmeteo_series(), "hrrr": lambda: _openmeteo_series("gfs_hrrr"), "nws": _nws_series}
+    # "openmeteo" (best_match) was REMOVED 2026-09-14: at this location
+    # Open-Meteo serves gfs_hrrr AS best_match, so the bake-off was scoring the
+    # same model twice and calling it a comparison. Verified two ways -- 279 of
+    # 279 live temp_f pairs identical, and 46,414 of 46,414 backfilled hours
+    # identical to 1e-9.
+    #
+    # Replaced with models that are genuinely different, and which the five-year
+    # backfill shows are BETTER here (matched sample n=20,444, MAE):
+    #     ecmwf_ifs025  1.71   <- 25 km, beats HRRR
+    #     icon_seamless 1.90
+    #     gfs_hrrr      2.07   <- 3 km, loses despite the resolution
+    # Historical rows tagged "openmeteo" stay in the log and remain honest; they
+    # are simply HRRR under an older label.
+    srcs = {"hrrr": lambda: _openmeteo_series("gfs_hrrr"),
+            "ecmwf": lambda: _openmeteo_series("ecmwf_ifs025"),
+            "icon": lambda: _openmeteo_series("icon_seamless"),
+            "nws": _nws_series}
     recs = []
     for src, fn in srcs.items():
         try:
@@ -443,7 +459,7 @@ def scorecard(entries):
     for var in ("temp_f", "wind_kt"):
         for lead in (60, 180):
             per = {}
-            for src in ("openmeteo", "hrrr", "nws"):
+            for src in ("hrrr", "ecmwf", "icon", "nws", "openmeteo"):
                 s = [e for e in done if e["var"] == var and e.get("src") == src and e.get("lead_min") == lead]
                 if not s:
                     continue
