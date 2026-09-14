@@ -418,11 +418,29 @@ function windPhrase(wx, nowMs) {
 }
 const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
 
-function wxLine(wx, nowMs) {
+function wxLine(wx, nowMs, nowcast) {
   const next2h = wx.minutely.filter(m => m.t > nowMs - 15 * 60000 && m.t <= nowMs + 2 * 3600000), wet = m => m.inch >= 0.005;
-  const rainingNow = wx.current.precip >= 0.005 || (next2h[0] && wet(next2h[0]));
+  // IS it raining, not MIGHT it rain. wx.current.precip is Open-Meteo's MODELLED
+  // precipitation for a 1-2 km grid cell; rn is eleven real gauges inside 4.7 km,
+  // the nearest 0.56 km from the gangway. A member standing on the dock in rain
+  // while the board says "dry" is the exact complaint this board exists to answer,
+  // so when the gauges have an opinion they win outright -- including saying DRY
+  // when the model thinks otherwise.
+  const rn = nowcast && nowcast.rain_now;
+  const gaugeSays = rn && rn.total > 0;
+  const rainingNow = gaugeSays ? rn.observed
+                               : (wx.current.precip >= 0.005 || (next2h[0] && wet(next2h[0])));
   let rain;
-  if (rainingNow) { const stop = next2h.find(m => m.t > nowMs && !wet(m)); rain = stop ? `Rain easing around ${hhmm(stop.t)}.` : "Rain for the next couple of hours."; }
+  if (rainingNow && gaugeSays) {
+    // one wet bucket could be a spider; two cannot. Say which we have.
+    const near = rn.wet_stations && rn.wet_stations[0];
+    rain = rn.confident
+      ? `Raining now \u2014 ${rn.wet} of ${rn.total} gauges.`
+      : `Rain ${near ? near.km + " km away" : "nearby"} \u2014 1 gauge only.`;
+    const stop = next2h.find(m => m.t > nowMs && !wet(m));
+    if (stop) rain += ` Easing around ${hhmm(stop.t)}.`;
+  }
+  else if (rainingNow) { const stop = next2h.find(m => m.t > nowMs && !wet(m)); rain = stop ? `Rain easing around ${hhmm(stop.t)}.` : "Rain for the next couple of hours."; }
   else { const first = next2h.find(m => m.t > nowMs && wet(m)); if (first) rain = `Rain starting about ${hhmm(first.t)}.`;
     else { const later = wx.hourly.find(h => h.t > nowMs + 2 * 3600000 && h.t < nowMs + 24 * 3600000 && h.inch >= 0.01); rain = later ? `Dry until about ${dayWord(later.t, nowMs)}${hhmm(later.t)}.` : "Dry through tomorrow."; } }
   return `${rain} ${windPhrase(wx, nowMs)}`.trim();
@@ -443,7 +461,10 @@ function nowcastLine(nc) {
     : "";
   const temp = nc.temp_cove_f != null ? ` · ${nc.temp_cove_f.toFixed(0)}°` : "";
   const o = nc.observed || {};
-  const nhWord = o.now ? `<span style="color:var(--warn-fg)">rain nearby</span>`
+  const rn = nc.rain_now || {};
+  const nhWord = (rn.total > 0 && rn.observed)
+      ? `<span style="color:var(--warn-fg)">RAINING NOW (${rn.wet}/${rn.total} gauges${rn.nearest_rate_in_hr ? ", " + rn.nearest_rate_in_hr + " in/hr" : ""})</span>`
+    : o.now ? `<span style="color:var(--warn-fg)">rain nearby</span>`
     : o.inbound ? `<span style="color:var(--warn-fg)">rain inbound ~${o.inbound.lead_h}h ${o.inbound.from_dir}</span>`
     : ncWord(nextHr);
   return `<b>Nowcast</b> ${spark}next hr <b>${nhWord}</b>, 1–4h <b>${ncWord(later)}</b> · ${nc.detail || ""} · ${nc.confidence || ""}${temp}`;
@@ -457,7 +478,7 @@ function renderWeatherSimple({ wx, met, alerts, nowMs, nowcast }) {
     <div class="next"><b>High ${today.hi.toFixed(0)}° · Low ${today.lo.toFixed(0)}°</b><span>${subline}</span></div>
     <div class="list">${wx.daily.slice(0, 3).map((d, i) => `<div><span><b>${i === 0 ? "Today" : fmt(d.t + 12 * 3600000, { weekday: "short" })}</b> ${d.hi.toFixed(0)}°/${d.lo.toFixed(0)}°</span><span class="t">${dayRight(d)}</span></div>`).join("")}</div>`);
   el("pills", alerts.length ? `<span class="pill warn">${alerts[0].event}</span>` : "");
-  el("line", nowcast ? nowcastLine(nowcast) : wxLine(wx, nowMs));
+  el("line", nowcast ? nowcastLine(nowcast) : wxLine(wx, nowMs, nowcast));
   renderWeatherChart(wx, nowMs);
   const w = nowcast && nowcast.wind;
   let windSpan = "";

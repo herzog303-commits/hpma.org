@@ -1,125 +1,99 @@
-"""CWOP observations for GW2160 (Grapeview / Fair Harbor Marina), keyless.
+"""CWOP observations for GW2160 (Grapeview / Fair Harbor Marina).
 
-GW2160 is the station the study used via Synoptic until the trial contract
-lapsed on 2026-09-07. It is an APRSWXNET/CWOP station: the observations are
-contributed by a volunteer into NOAA MADIS and are public at the source, so
-Synoptic was selling convenient access, not the data. This reads the same
-observations with no credential at all -- nothing to expire, nothing to
-rotate, no entitlement to lose mid-season.
+GW2160 is the station the study used via Synoptic until that trial contract
+lapsed on 2026-09-07. It is an APRSWXNET/CWOP site: the observations are
+contributed by a volunteer into NOAA MADIS and travel over APRS-IS, so
+Synoptic was selling convenient access, not the data.
 
-Carries every variable the scorecard verified against Synoptic, at ~5-minute
-cadence (finer than the hourly windows we were requesting):
+Backend history, because the first answer was wrong:
 
-    temp F | wind dir | wind mph | gust mph | rain 1h/24h in | RH % | mb
+  1. findu.com scraping -- REMOVED. Their front page forbids exactly this:
+     "no screen scrapers" and "any repetitive access by a program is NOT
+     ALLOWED". The data is public; that service is a volunteer's limited
+     resource and its owner said no.
+  2. aprs.fi API -- REJECTED. Forbids preloading, pre-caching and collecting
+     for archival purposes, and requires requests be driven by an end-user
+     action. Our cycle is scheduled and archives.
+  3. Our own APRS-IS archive -- CURRENT. Both of the above independently
+     point here: findu says "create your own database by parsing the APRS
+     data stream", aprs.fi says "collect your data directly from the
+     APRS-IS". aprsis.py holds a receive-only connection and appends to
+     cwop_obs.jsonl; this module just reads that file. No web service is
+     asked for anything, on any schedule.
 
-One fetch covers 72 hours, so a whole cycle's verifications -- including a
-large backlog -- are served from a single request. The Synoptic path made one
-request per pending entry per variable (~512/day healthy, ~128k/day when it
-started failing). This is 1 per cycle.
+Reading a local file means series() is cheap and has no failure mode worth
+retrying -- an empty archive simply reads as "could not verify", which
+score.py and cove_obs.py already handle.
 
-  series(call, hours)  -> list of obs dicts, newest first (process-cached)
+  series(call, hours)  -> list of obs dicts, newest first
   at(vt, call)         -> the observation nearest a past time vt, or None
-
-Source: findu.com, a long-running volunteer APRS service. For anything the
-board depends on long-term, prefer MADIS (the NOAA upstream; free but needs
-an account via madis.ncep.noaa.gov/data_application.shtml) or the aprs.fi
-JSON API (free key). _fetch() is the only function that knows about findu,
-so swapping the backend touches one place.
+  latest(call)         -> most recent observation if fresh, else None
+  rain_in_hour(vt)     -> 1/0/None for measurable precip in [vt-60m, vt]
 """
-import re
+import json
+import os
 import time
-import urllib.request
 from datetime import datetime, timezone
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+# Overridable for the same reason wu.py's cache is: this file exists in BOTH
+# repos, HERE resolves differently in each, and the archive itself is study
+# data that lives only in the private repo. Without this the board's copy reads
+# a path that does not exist and silently reports no CWOP gauge at all.
+ARCHIVE = os.environ.get("CWOP_ARCHIVE") or os.path.join(HERE, "cwop_obs.jsonl")
 
 DEFAULT_CALL = "GW2160"          # Grapeview / Fair Harbor Marina, 2.81 mi from the cove
 
-# Positions are fixed station metadata; findu carries them in the page header but
-# a constant avoids a second request just to learn a lat/lon that never moves.
+# Positions are fixed station metadata and never move; a constant avoids
+# needing a lookup service just to learn a lat/lon.
 SITES = {"GW2160": {"name": "Grapeview (GW2160) @ Fair Harbor Marina",
                     "lat": 47.33033, "lon": -122.82967}}
-MPH_KT = 0.868976
-UA = {"User-Agent": "indian-cove-microclimate/1.0 (Indian Cove marina microclimate study)"}
-CACHE_S = 600                    # a 15-min cycle refetches at most once
 
-# time, tempF, dir, speed, gust, rain1h, rain24h, rainMidnight, RH, mb
-_ROW = re.compile(
-    r"\b(20\d{12})\s+(-?\d+)\s+(\d+)\s+([\d.]+)\s+([\d.]+)\s+"
-    r"([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+(\d+)\s+([\d.]+)")
-
+CACHE_S = 60                     # the archive only grows every ~5 min
 _CACHE = {}                      # (call, hours) -> (fetched_monotonic, rows)
 
 
-# findu.com FORBIDS exactly this use. From their front page:
-#   "Dynamic findU HTML pages must not be used to extract data which goes into
-#    a database...in other words, no screen scrapers."
-#   "A single access generated from a user action ... is allowed, while any
-#    repetitive access by a program is NOT ALLOWED."
-# A 15-minute scheduled fetch writing into data_log.jsonl is squarely inside
-# that prohibition, so the backend is OFF. The data is public; this particular
-# SERVICE is a volunteer-run limited resource and its owner said no.
-#
-# findu and aprs.fi independently point at the same correct answer: take the
-# data from the APRS stream itself, or from NOAA.
-#   APRS-IS  raw stream, rotate.aprs.net:14580, filter by callsign
-#   MADIS    NOAA upstream (findu feeds it ~100k obs/day)
-#            madis.ncep.noaa.gov/data_application.shtml -- free, "Public" tier
-# Implement one of those in _fetch() and flip ENABLED back on.
-ENABLED = False
+def _dt(s):
+    return datetime.strptime(s, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
 
 
 def _fetch(call, hours):
-    """Raw observation rows. No backend is currently authorised -- see above."""
-    raise RuntimeError("no authorised CWOP backend configured (see cwop.py header)")
-
-
-def _fetch_findu_DISABLED(call, hours):
-    """Retained only to document the response shape for a future parser. DO NOT CALL."""
-    url = "http://www.findu.com/cgi-bin/wx.cgi?call=%s&last=%d" % (call, hours)
-    req = urllib.request.Request(url, headers=UA)
-    with urllib.request.urlopen(req, timeout=30) as r:
-        html = r.read().decode(errors="replace")
-    text = re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", html))
+    """Rows from our own APRS-IS archive, written by aprsis.py."""
+    if not os.path.exists(ARCHIVE):
+        return []
+    cutoff = time.time() - hours * 3600
     out = []
-    for m in _ROW.finditer(text):
-        g = m.groups()
-        try:
-            ts = datetime.strptime(g[0], "%Y%m%d%H%M%S").replace(tzinfo=timezone.utc)
-        except ValueError:
-            continue
-        out.append({
-            "ts": ts,
-            "temp_f": float(g[1]),
-            "wind_dir": int(g[2]),
-            "wind_kt": round(float(g[3]) * MPH_KT, 1),
-            "gust_kt": round(float(g[4]) * MPH_KT, 1),
-            "rain_1h_in": float(g[5]),
-            "rain_24h_in": float(g[6]),
-            "rh": int(g[8]),
-            "pressure_mb": float(g[9]),
-        })
+    with open(ARCHIVE) as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                o = json.loads(line)
+            except ValueError:
+                continue                      # a torn final line while appending
+            if o.get("call") != call:
+                continue
+            try:
+                ts = _dt(o["ts"])
+            except (KeyError, ValueError):
+                continue
+            if ts.timestamp() < cutoff:
+                continue
+            o["ts"] = ts
+            out.append(o)
     out.sort(key=lambda o: o["ts"], reverse=True)
     return out
 
 
 def series(call=DEFAULT_CALL, hours=72):
-    """Observations newest-first, cached for CACHE_S so one cycle fetches once.
-
-    Returns [] on failure rather than raising -- callers treat a missing
-    observation as 'could not verify', exactly as the Synoptic path did.
-    """
-    if not ENABLED:
-        return []
+    """Observations newest-first, briefly cached so one cycle reads once."""
     key = (call, hours)
     hit = _CACHE.get(key)
     if hit and (time.monotonic() - hit[0]) < CACHE_S:
         return hit[1]
-    try:
-        rows = _fetch(call, hours)
-    except Exception as exc:  # noqa: BLE001
-        print("cwop: %s fetch failed (%s)" % (call, exc))
-        return hit[1] if hit else []
-    if rows:
-        _CACHE[key] = (time.monotonic(), rows)
+    rows = _fetch(call, hours)
+    _CACHE[key] = (time.monotonic(), rows)
     return rows
 
 
@@ -144,11 +118,12 @@ def latest(call=DEFAULT_CALL, max_age_min=60):
 def rain_in_hour(vt, call=DEFAULT_CALL):
     """Did measurable precip fall in [vt-60min, vt]? 1/0/None.
 
-    Uses the station's own 1-hour accumulator rather than differencing a
-    running total, so a midnight reset cannot read as negative rainfall.
+    Uses the station's own 1-hour accumulator (APRS 'r' field) rather than
+    differencing a running total, so a midnight reset cannot read as negative.
     """
     rows = [o for o in series(call, 72)
-            if 0 <= (vt - o["ts"]).total_seconds() <= 3600]
+            if 0 <= (vt - o["ts"]).total_seconds() <= 3600
+            and o.get("rain_1h_in") is not None]
     if not rows:
         return None
     return 1 if max(o["rain_1h_in"] for o in rows) > 0.005 else 0
@@ -156,6 +131,7 @@ def rain_in_hour(vt, call=DEFAULT_CALL):
 
 if __name__ == "__main__":
     s = series()
-    print("%s: %d obs, newest %s" % (DEFAULT_CALL, len(s), s[0]["ts"] if s else "none"))
+    print("%s: %d obs in archive, newest %s"
+          % (DEFAULT_CALL, len(s), s[0]["ts"] if s else "none"))
     for o in s[:3]:
-        print("  ", o)
+        print("  ", {k: v for k, v in o.items() if k != "raw"})

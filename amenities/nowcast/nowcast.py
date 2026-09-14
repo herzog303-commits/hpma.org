@@ -154,6 +154,63 @@ def fetch_wu_rain(params):
     return out
 
 
+def rain_now(params):
+    """Is it raining AT the marina, right now, according to the gauges?
+
+    This is the question the board was answering with Open-Meteo's MODELLED
+    current precipitation -- which is exactly the failure Tomas reported ("it
+    is raining and the app says cloudy"). We now have eleven gauges inside
+    4.7 km, the nearest 0.56 km from the gangway, so the board can stop
+    guessing and read an instrument.
+
+    Returns the whole picture, not just a boolean, so the board can phrase it
+    honestly:
+      observed   >=1 gauge tipping -- could be one faulty bucket
+      confident  >=2 gauges tipping -- a spider in one funnel cannot do that
+    A single wet gauge is still worth showing at a site whose entire problem is
+    hyper-local rain; it is just labelled differently.
+    """
+    out = {"wet": 0, "total": 0, "observed": False, "confident": False,
+           "nearest_km": None, "nearest_station": None, "nearest_rate_in_hr": None,
+           "max_rate_in_hr": None, "today_in": None, "wet_stations": []}
+    cove = params["cove"]
+    gauges = []
+    try:
+        import wu
+        for st in (params["stations"].get("wu_stations") or []):
+            c = wu.wu_current(st)
+            if not c or c.get("lat") is None:
+                continue
+            gauges.append((_haversine_mi(cove["lat"], cove["lon"], c["lat"], c["lon"]) * 1.60934,
+                           st, c.get("precip_rate_in"), c.get("precip_total_in")))
+    except Exception:  # noqa: BLE001
+        pass
+    try:
+        import cwop
+        o = cwop.latest()
+        if o:
+            site = cwop.SITES.get(cwop.DEFAULT_CALL) or {}
+            gauges.append((_haversine_mi(cove["lat"], cove["lon"],
+                                         site.get("lat", cove["lat"]), site.get("lon", cove["lon"])) * 1.60934,
+                           cwop.DEFAULT_CALL, o.get("rain_1h_in"), o.get("rain_24h_in")))
+    except Exception:  # noqa: BLE001
+        pass
+    if not gauges:
+        return out
+    gauges.sort(key=lambda g: g[0])
+    rates = [(g[2] or 0.0) for g in gauges]
+    wet = [g for g in gauges if (g[2] or 0) > 0]
+    out.update({
+        "wet": len(wet), "total": len(gauges),
+        "observed": bool(wet), "confident": len(wet) >= 2,
+        "nearest_km": round(gauges[0][0], 2), "nearest_station": gauges[0][1],
+        "nearest_rate_in_hr": gauges[0][2], "max_rate_in_hr": round(max(rates), 3),
+        "today_in": gauges[0][3],
+        "wet_stations": [{"station": g[1], "km": round(g[0], 2), "rate_in_hr": g[2]} for g in wet[:4]],
+    })
+    return out
+
+
 NOW_MI = 8            # a wet station this close = rain AT the cove (vs upwind = inbound)
 
 
@@ -456,6 +513,9 @@ def main():
         "wind_kt": round(wkt, 1),
         "wind": wind,
         "observed": obs,
+        # Gauge truth, separate from the model and from the forecast, so the
+        # board can say IS raining rather than MIGHT rain.
+        "rain_now": rain_now(params),
         "radar_note": "radar excluded: overshoots the cove (see microclimate.json)",
         "precip_ratio": ratio,
         "temp_model_f": tnow,
