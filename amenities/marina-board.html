@@ -478,7 +478,12 @@ function renderWeatherSimple({ wx, met, alerts, nowMs, nowcast }) {
   const c = wx.current, today = wx.daily[0];
   const rainBit = d => d && d.pop != null && d.pop >= 20 ? `${d.pop.toFixed(0)}% rain` : "";
   const dayRight = d => [rainBit(d), windWord(d.gust)].filter(Boolean).join(" · ");
-  const subline = [rainBit(today), `${windWord(today.gust)} wind`].filter(Boolean).join(" · ");
+  // windWord() returns "gale-force"/"windy"/"breezy"/"calm" -- three of those
+  // four ARE the description, so appending " wind" produced "windy wind".
+  // It was also duplicating the Today row immediately below it. windPhrase()
+  // already gives part-of-day language ("Windy this afternoon, breezy this
+  // evening") and was only reachable from a fallback that almost never runs.
+  const subline = [rainBit(today), windPhrase(wx, nowMs)].filter(Boolean).join(" · ");
   el("hero", `<div class="big"><span class="n">${c.tempF.toFixed(0)}°</span><span class="dir">${WMO[c.code] || ""} · feels ${c.feelsF.toFixed(0)}°</span></div>
     <div class="next"><b>High ${today.hi.toFixed(0)}° · Low ${today.lo.toFixed(0)}°</b><span>${subline}</span></div>
     <div class="list">${wx.daily.slice(0, 3).map((d, i) => `<div><span><b>${i === 0 ? "Today" : fmt(d.t + 12 * 3600000, { weekday: "short" })}</b> ${d.hi.toFixed(0)}°/${d.lo.toFixed(0)}°</span><span class="t">${dayRight(d)}</span></div>`).join("")}</div>`);
