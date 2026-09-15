@@ -458,6 +458,35 @@ def main():
         SEASON[month], cal.get("temp_offset_f") or 0)
     tnow = cur.get("temperature_2m")
     temp_cove = round(tnow + toff, 1) if tnow is not None else None
+    temp_src = "model+seasonal_offset"
+
+    # Prefer the OBSERVED consensus. cove_obs.py already produces a QC'd median
+    # across ten sensors inside 4.7 km with outlier rejection -- an actual
+    # measurement, where temp_cove above is a 1-2 km grid value plus a seasonal
+    # constant. Measured over 1,243 cycles the modelled value ran +1.69 F warm
+    # against that consensus (MAE 1.97).
+    #
+    # This is the same mistake the rain line had: asking the model when there
+    # are instruments. It is NOT a bias correction -- correcting the model was
+    # the wrong idea, because the station-to-station spread at a single hour is
+    # a median of 2.0 F and p90 of 6.0 F, larger than the bias being corrected.
+    # A consensus of real sensors is the only defensible answer at that spread.
+    #
+    # mini_cycle runs the board steps before the research step, so cove_obs.json
+    # is from the previous cycle -- up to ~15 min old. Temperature moves slowly
+    # enough that this beats a grid model; anything older is refused.
+    try:
+        cop = os.environ.get("COVE_OBS_PATH") or os.path.join(HERE, "cove_obs.json")
+        with open(cop) as f:
+            co = json.load(f)
+        ct = co.get("cove_temp_f")
+        age = (datetime.now(timezone.utc)
+               - datetime.fromisoformat(co["generated_utc"])).total_seconds() / 60
+        if ct is not None and age <= 45 and (co.get("n_used") or 0) >= 3:
+            temp_cove = round(float(ct), 1)
+            temp_src = "observed_consensus_%d_sensors" % co["n_used"]
+    except Exception:  # noqa: BLE001
+        pass
 
     buckets = []
     for band in params["blend"]["crossfade"]:
@@ -521,6 +550,7 @@ def main():
         "temp_model_f": tnow,
         "temp_cove_f": temp_cove,
         "temp_offset_f": round(toff, 2),
+        "temp_source": temp_src,
         "timeline": buckets,
     }
     with open(OUT, "w") as f:
