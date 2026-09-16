@@ -120,6 +120,22 @@ def record(now):
     except Exception:  # noqa: BLE001
         pass
 
+    # Will the sky still be clear in 3 hours? Deterministic 0/1, so the Brier
+    # score reads as a miss rate. Only recorded when GOES actually produced an
+    # outlook -- no outlook, no claim, nothing to score.
+    try:
+        gp = os.environ.get("GOES_OUT") or os.path.join(HERE, "goes_cloud.json")
+        with open(gp) as f:
+            g = json.load(f)
+        o = g.get("outlook") or {}
+        scan = _dt(g["scan_utc"])
+        if o and (now - scan).total_seconds() <= 7200:
+            lead = o.get("lead_h")
+            clear3 = 1.0 if (o.get("clear_now") and (lead is None or lead > 3)) else 0.0
+            recs.append(("sky_clear_3h", now + timedelta(minutes=180), 180, clear3))
+    except Exception:  # noqa: BLE001
+        pass
+
     sf = _load(SURGE_FC)
     if sf:
         for lead in (6, 12, 24):
@@ -404,6 +420,36 @@ def obs_cloud(vt):
     return round(100 * (vals[n // 2] if n % 2 else (vals[n // 2 - 1] + vals[n // 2]) / 2), 1)
 
 
+def obs_sky_clear(vt):
+    """Was the sky over the cove actually clear at vt? 1/0/None.
+
+    Truth comes from the GOES history log -- the same instrument that made the
+    prediction, which is the point: goes_cloud.json is overwritten hourly, so
+    without a log "cloud in 3 hours" is unfalsifiable.
+    """
+    path = os.environ.get("GOES_LOG") or os.path.join(HERE, "goes_log.jsonl")
+    best = None
+    try:
+        with open(path) as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    r = json.loads(line)
+                    t = _dt(r["scan_utc"])
+                except Exception:  # noqa: BLE001
+                    continue
+                gap = abs((t - vt).total_seconds())
+                if gap <= 2700 and (best is None or gap < best[0]):   # within 45 min
+                    best = (gap, r)
+    except OSError:
+        return None
+    if not best or best[1].get("cloud_pct") is None:
+        return None
+    return 1 if best[1]["cloud_pct"] < 25 else 0
+
+
 def _nws_series():
     """{hour_utc: (temp_f, wind_kt)} from the NWS gridpoint hourly forecast (NBM)."""
     req = urllib.request.Request(NWS_HOURLY, headers={"User-Agent": "hpma-marina-board", "Accept": "application/geo+json"})
@@ -584,7 +630,8 @@ def obs_rain(vt):
 
 OBS = {"surge_ft": obs_surge, "wind_kt": obs_wind, "wind_gust_kt": obs_gust,
        "temp_f": obs_temp, "rain_next_hr": obs_rain, "solar_w_m2": obs_solar,
-       "cloud_pct": obs_cloud}
+       "cloud_pct": obs_cloud,
+       "sky_clear_3h": obs_sky_clear}
 
 # Cove verification: the SAME live forecasts, verified against the Weather Underground
 # station AT the cove (KWASHELT285, 0.35 mi) instead of Grapeview (5 mi) -- so we can
@@ -616,11 +663,12 @@ def scorecard(entries):
     import math
     done = [e for e in entries if e.get("obs") is not None]
     card = {"generated_utc": None, "n_verified": len(done), "n_pending": len(entries) - len(done), "variables": {}}
-    for var in ("surge_ft", "wind_kt", "temp_f", "rain_next_hr", "solar_w_m2", "cloud_pct"):
+    for var in ("surge_ft", "wind_kt", "temp_f", "rain_next_hr", "solar_w_m2", "cloud_pct",
+                "sky_clear_3h"):
         v = [e for e in done if e["var"] == var and e.get("src", "live") == "live"]   # production only
         if not v:
             continue
-        if var == "rain_next_hr":
+        if var in ("rain_next_hr", "sky_clear_3h"):
             p = [e["fcst"] for e in v]; o = [e["obs"] for e in v]
             brier = sum((pi - oi) ** 2 for pi, oi in zip(p, o)) / len(v)
             base = sum(o) / len(o)
@@ -725,7 +773,7 @@ def main():
             o = None
         if o is not None:
             e["obs"] = o
-            e["err"] = None if e["var"] == "rain_next_hr" else round(e["fcst"] - o, 2)
+            e["err"] = None if e["var"] in ("rain_next_hr", "sky_clear_3h") else round(e["fcst"] - o, 2)
             verified += 1
 
     # 3. prune + persist + scorecard
