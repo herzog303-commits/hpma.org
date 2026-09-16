@@ -472,7 +472,20 @@ function nowcastLine(nc) {
     : o.now ? `<span style="color:var(--warn-fg)">rain nearby</span>`
     : o.inbound ? `<span style="color:var(--warn-fg)">rain inbound ~${o.inbound.lead_h}h ${o.inbound.from_dir}</span>`
     : ncWord(nextHr);
-  return `<b>Nowcast</b> ${spark}next hr <b>${nhWord}</b>, 1–4h <b>${ncWord(later)}</b> · ${nc.detail || ""} · ${nc.confidence || ""}${temp}`;
+  // Satellite sky outlook. Answers the question a model cannot and the
+  // pyranometers cannot after dark: will it STAY clear tonight? GOES band 13 is
+  // thermal IR, so this works at 2am.
+  const sk = nc.sky;
+  let sky = "";
+  if (sk && sk.clear_now) {
+    sky = sk.lead_h == null
+      ? ` · <b>clear</b>, no cloud within 160 km upwind`
+      : sk.lead_h >= 6 ? ` · <b>clear</b>, next cloud ~${Math.round(sk.lead_h)}h out`
+      : ` · clear now, cloud ~${sk.lead_h.toFixed(1)}h out (${sk.next_cloud_km} km)`;
+  } else if (sk && sk.cloud_pct != null) {
+    sky = ` · sky <b>${Math.round(sk.cloud_pct)}%</b> cloud`;
+  }
+  return `<b>Nowcast</b> ${spark}next hr <b>${nhWord}</b>, 1–4h <b>${ncWord(later)}</b>${sky} · ${nc.detail || ""} · ${nc.confidence || ""}${temp}`;
 }
 function renderWeatherSimple({ wx, met, alerts, nowMs, nowcast }) {
   const c = wx.current, today = wx.daily[0];

@@ -154,6 +154,31 @@ def fetch_wu_rain(params):
     return out
 
 
+def _sky_outlook():
+    """GOES upwind cloud profile, if a recent sample exists."""
+    try:
+        gp = os.environ.get("GOES_OUT") or os.path.join(HERE, "goes_cloud.json")
+        with open(gp) as f:
+            g = json.load(f)
+        scan = datetime.strptime(g["scan_utc"], "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
+        age = (datetime.now(timezone.utc) - scan).total_seconds() / 60
+        if age > 150:
+            return None
+        o = g.get("outlook") or {}
+        return {
+            "cloud_pct": g.get("cloud_pct"),
+            "clear_now": o.get("clear_now"),
+            "next_cloud_km": o.get("cloud_km"),
+            "lead_h": o.get("lead_h"),
+            "wind_from_deg": o.get("wind_from_deg"),
+            "scan_age_min": round(age),
+            "source": "GOES-18",
+            "caveat": o.get("note"),
+        }
+    except Exception:  # noqa: BLE001
+        return None
+
+
 def rain_now(params):
     """Is it raining AT the marina, right now, according to the gauges?
 
@@ -545,6 +570,11 @@ def main():
         # Gauge truth, separate from the model and from the forecast, so the
         # board can say IS raining rather than MIGHT rain.
         "rain_now": rain_now(params),
+        # Satellite sky outlook: cloud overhead now, and how far upwind the next
+        # cloud is. Answers "will it stay clear tonight" -- which the model
+        # cannot, and which the pyranometers cannot after dark. Up to ~1 h stale
+        # because GOES samples hourly and the board steps run before it.
+        "sky": _sky_outlook(),
         "radar_note": "radar excluded: overshoots the cove (see microclimate.json)",
         "precip_ratio": ratio,
         "temp_model_f": tnow,
