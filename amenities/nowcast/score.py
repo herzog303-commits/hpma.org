@@ -222,6 +222,29 @@ def log_predictors(now):
                     "rain_max_rate_in_hr": rn.get("max_rate_in_hr")})
     row.update(_openmeteo_extra())
 
+    # GOES-18 cloud mask -- a LOCAL satellite cloud observation, recorded next to
+    # the regional METAR one so the two can be compared. Whether METAR's 23 km
+    # sky is good enough for this site is exactly the question that justifies
+    # carrying GOES at all, and it is only answerable if both are logged.
+    try:
+        gp = os.environ.get("GOES_OUT") or os.path.join(HERE, "goes_cloud.json")
+        with open(gp) as f:
+            g = json.load(f)
+        age = (datetime.now(timezone.utc)
+               - datetime.strptime(g["scan_utc"], "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
+               ).total_seconds() / 60
+        if age <= 120:
+            row["goes_cloud_pct"] = g.get("cloud_pct")
+            row["goes_centre_cloudy"] = g.get("centre_cloudy")
+            row["goes_scan_age_min"] = round(age, 1)
+    except Exception:  # noqa: BLE001
+        pass
+    try:
+        row["metar_cloud_pct"] = obs_cloud(datetime.now(timezone.utc).replace(
+            minute=0, second=0, microsecond=0))
+    except Exception:  # noqa: BLE001
+        pass
+
     # MEASURED insolation beats modelled. Tomas's Ecowitt GW3000 reports
     # solarRadiation and UV 0.56 km from the gangway; _openmeteo_extra above
     # supplies a MODELLED shortwave value off a 1-2 km grid. Record both --
