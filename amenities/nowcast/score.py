@@ -111,6 +111,15 @@ def record(now):
     except Exception:  # noqa: BLE001
         pass
 
+    try:
+        cld = _openmeteo_cloud()
+        for lead in (60, 180):
+            vt = (now + timedelta(minutes=lead)).replace(minute=0, second=0, microsecond=0)
+            if vt in cld:
+                recs.append(("cloud_pct", vt, lead, round(cld[vt], 1)))
+    except Exception:  # noqa: BLE001
+        pass
+
     sf = _load(SURGE_FC)
     if sf:
         for lead in (6, 12, 24):
@@ -292,6 +301,86 @@ def obs_solar(vt):
     return round(vals[n // 2] if n % 2 else (vals[n // 2 - 1] + vals[n // 2]) / 2, 1)
 
 
+# METAR sky cover -> fraction, using the mid-point of each okta range.
+# RADAR CANNOT DO THIS. Weather radar detects hydrometeors -- rain, snow, hail.
+# Cloud droplets are far too small to return usable S-band signal, so a solid
+# overcast produces zero echo. That is our most common sky here, and it is why
+# microclimate.json already excludes radar. METAR sky condition is an actual
+# human/ceilometer cloud observation and we were already fetching it for rain.
+_metar_cache = {}
+
+_SKY = {"SKC": 0.0, "CLR": 0.0, "NCD": 0.0, "NSC": 0.0,
+        "FEW": 1.5 / 8, "SCT": 3.5 / 8, "BKN": 6.0 / 8, "OVC": 1.0,
+        "OVX": 1.0, "VV": 1.0}
+
+
+def _openmeteo_cloud():
+    """{hour_utc: cloud %} forecast total cloud cover."""
+    q = {"latitude": MC["cove"]["lat"], "longitude": MC["cove"]["lon"], "timezone": "GMT",
+         "hourly": "cloud_cover", "forecast_days": 2}
+    try:
+        h = json.load(urllib.request.urlopen(
+            "https://api.open-meteo.com/v1/forecast?" + urllib.parse.urlencode(q), timeout=30))["hourly"]
+    except Exception:  # noqa: BLE001
+        return {}
+    return {datetime.strptime(t, "%Y-%m-%dT%H:%M").replace(tzinfo=timezone.utc): c
+            for t, c in zip(h["time"], h["cloud_cover"]) if c is not None}
+
+
+def obs_cloud(vt):
+    """Observed total cloud %, median across the nearby airfields' METARs.
+
+    METAR reports sky cover CUMULATIVELY from the lowest layer up, so the
+    greatest reported cover in a report IS the total sky covered. An empty
+    clouds array means CLR/SKC -- genuinely zero, not missing.
+
+    Airfields are 23 km and further, so this is REGIONAL cloud, not cove cloud.
+    That is a much weaker objection for cloud than it would be for rain: cloud
+    fields are synoptic-scale where our rain is manifestly not, which is the
+    whole reason the rain gauges had to be local.
+    """
+    # ONE fetch serves every pending verification in this run. Each METAR
+    # response already covers 4 hours, so calling per entry would re-request the
+    # same window repeatedly -- precisely the retry storm that turned the
+    # Synoptic outage into ~128k requests/day (see RESEARCH_NOTES / score.py's
+    # circuit breaker). Process-scoped: a fresh cycle fetches once.
+    rep = _metar_cache.get("rep")
+    if rep is None:
+        try:
+            ids = ",".join([MC["stations"]["primary_obs"], MC["stations"]["primary_taf"],
+                            "KTCM", "KPWT"])
+            u = "https://aviationweather.gov/api/data/metar?" + urllib.parse.urlencode(
+                {"ids": ids, "format": "json", "hours": 6})
+            rep = json.load(urllib.request.urlopen(
+                urllib.request.Request(u, headers={"User-Agent": "hpma-marina-board"}), timeout=30))
+        except Exception:  # noqa: BLE001
+            _metar_cache["rep"] = []      # do not retry all run
+            return None
+        _metar_cache["rep"] = rep
+    if not rep:
+        return None
+    best = {}
+    for m in rep:
+        try:
+            rt = _dt(m["reportTime"])
+        except Exception:  # noqa: BLE001
+            continue
+        if abs((rt - vt).total_seconds()) > 2400:      # within 40 min of the valid hour
+            continue
+        sid = m.get("icaoId")
+        gap = abs((rt - vt).total_seconds())
+        if sid in best and best[sid][0] <= gap:
+            continue
+        layers = m.get("clouds") or []
+        frac = max((_SKY.get((l.get("cover") or "").upper(), 0.0) for l in layers), default=0.0)
+        best[sid] = (gap, frac)
+    vals = sorted(v[1] for v in best.values())
+    if len(vals) < 2:
+        return None
+    n = len(vals)
+    return round(100 * (vals[n // 2] if n % 2 else (vals[n // 2 - 1] + vals[n // 2]) / 2), 1)
+
+
 def _nws_series():
     """{hour_utc: (temp_f, wind_kt)} from the NWS gridpoint hourly forecast (NBM)."""
     req = urllib.request.Request(NWS_HOURLY, headers={"User-Agent": "hpma-marina-board", "Accept": "application/geo+json"})
@@ -471,7 +560,8 @@ def obs_rain(vt):
     return 1 if hit else 0
 
 OBS = {"surge_ft": obs_surge, "wind_kt": obs_wind, "wind_gust_kt": obs_gust,
-       "temp_f": obs_temp, "rain_next_hr": obs_rain, "solar_w_m2": obs_solar}
+       "temp_f": obs_temp, "rain_next_hr": obs_rain, "solar_w_m2": obs_solar,
+       "cloud_pct": obs_cloud}
 
 # Cove verification: the SAME live forecasts, verified against the Weather Underground
 # station AT the cove (KWASHELT285, 0.35 mi) instead of Grapeview (5 mi) -- so we can
@@ -503,7 +593,7 @@ def scorecard(entries):
     import math
     done = [e for e in entries if e.get("obs") is not None]
     card = {"generated_utc": None, "n_verified": len(done), "n_pending": len(entries) - len(done), "variables": {}}
-    for var in ("surge_ft", "wind_kt", "temp_f", "rain_next_hr", "solar_w_m2"):
+    for var in ("surge_ft", "wind_kt", "temp_f", "rain_next_hr", "solar_w_m2", "cloud_pct"):
         v = [e for e in done if e["var"] == var and e.get("src", "live") == "live"]   # production only
         if not v:
             continue
@@ -536,6 +626,15 @@ def scorecard(entries):
         cove[var] = {"n": len(v), "bias": round(sum(errs) / len(errs), 2),
                      "mae": round(sum(abs(x) for x in errs) / len(errs), 2),
                      "rmse": round(math.sqrt(sum(x * x for x in errs) / len(errs)), 2)}
+    if card["variables"].get("cloud_pct"):
+        card["variables"]["cloud_pct"]["_note"] = (
+            "Cloud-cover skill. Forecast Open-Meteo cloud_cover vs the median METAR sky "
+            "condition at KSHN/KOLM/KTCM/KPWT, mapped from okta mid-points "
+            "(FEW 19%, SCT 44%, BKN 75%, OVC 100%). Airfields are 23 km+, so this is "
+            "REGIONAL cloud -- acceptable because cloud is synoptic-scale where our rain "
+            "is not. Radar cannot supply this: it detects hydrometeors, not cloud "
+            "droplets, so an overcast sky returns no echo.")
+
     if card["variables"].get("solar_w_m2"):
         card["variables"]["solar_w_m2"]["_note"] = (
             "Cloud/radiation skill. Forecast is Open-Meteo shortwave_radiation, an "
