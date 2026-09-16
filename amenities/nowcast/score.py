@@ -187,6 +187,17 @@ def log_predictors(now):
         "shelter_mode": w.get("mode"),
         "raining_nearby": obs.get("raining_nearby"),
     }
+    # The gauge consensus is the board's headline claim ("RAINING NOW, 4 of 11
+    # gauges") and it was being computed, displayed, and then thrown away. Log
+    # it so the claim can be verified later against what the gauges actually
+    # recorded -- otherwise the one number a member reads is the one number we
+    # have no history for.
+    rn = nc.get("rain_now") or {}
+    if rn:
+        row.update({"rain_gauges_wet": rn.get("wet"), "rain_gauges_total": rn.get("total"),
+                    "rain_observed": rn.get("observed"), "rain_confident": rn.get("confident"),
+                    "rain_nearest_rate_in_hr": rn.get("nearest_rate_in_hr"),
+                    "rain_max_rate_in_hr": rn.get("max_rate_in_hr")})
     row.update(_openmeteo_extra())
 
     # MEASURED insolation beats modelled. Tomas's Ecowitt GW3000 reports
@@ -248,10 +259,21 @@ def record_bakeoff(now):
     #     gfs_hrrr      2.07   <- 3 km, loses despite the resolution
     # Historical rows tagged "openmeteo" stay in the log and remain honest; they
     # are simply HRRR under an older label.
+    def _metno():
+        try:
+            import metno
+            return metno.series()
+        except Exception:  # noqa: BLE001
+            return {}
+
     srcs = {"hrrr": lambda: _openmeteo_series("gfs_hrrr"),
             "ecmwf": lambda: _openmeteo_series("ecmwf_ifs025"),
             "icon": lambda: _openmeteo_series("icon_seamless"),
-            "nws": _nws_series}
+            "nws": _nws_series,
+            # MET Norway -- ECMWF-derived with their own post-processing, so
+            # genuinely independent of the Open-Meteo family above. Keyless.
+            # Carries temp and wind but NOT gust at this location.
+            "metno": _metno}
     recs = []
     for src, fn in srcs.items():
         try:
@@ -459,7 +481,7 @@ def scorecard(entries):
     for var in ("temp_f", "wind_kt"):
         for lead in (60, 180):
             per = {}
-            for src in ("hrrr", "ecmwf", "icon", "nws", "openmeteo"):
+            for src in ("hrrr", "ecmwf", "icon", "nws", "metno", "openmeteo"):
                 s = [e for e in done if e["var"] == var and e.get("src") == src and e.get("lead_min") == lead]
                 if not s:
                     continue
