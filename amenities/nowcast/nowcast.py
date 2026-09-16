@@ -168,7 +168,7 @@ def _sky_outlook():
         return {
             "cloud_pct": g.get("cloud_pct"),
             "clear_now": o.get("clear_now"),
-            "next_cloud_km": o.get("cloud_km"),
+            "next_cloud_mi": round(o["cloud_km"] * 0.621371) if o.get("cloud_km") is not None else None,
             "lead_h": o.get("lead_h"),
             "wind_from_deg": o.get("wind_from_deg"),
             "scan_age_min": round(age),
@@ -195,8 +195,11 @@ def rain_now(params):
     A single wet gauge is still worth showing at a site whose entire problem is
     hyper-local rain; it is just labelled differently.
     """
+    # UNITS: anything the board displays is imperial, matching ft for tide and
+    # kt for wind, and matching observed.inbound.dist_mi which already reports
+    # statute miles. Internal computation and research arrays stay metric.
     out = {"wet": 0, "total": 0, "observed": False, "confident": False,
-           "nearest_km": None, "nearest_station": None, "nearest_rate_in_hr": None,
+           "nearest_mi": None, "nearest_station": None, "nearest_rate_in_hr": None,
            "max_rate_in_hr": None, "today_in": None, "wet_stations": []}
     cove = params["cove"]
     gauges = []
@@ -228,10 +231,11 @@ def rain_now(params):
     out.update({
         "wet": len(wet), "total": len(gauges),
         "observed": bool(wet), "confident": len(wet) >= 2,
-        "nearest_km": round(gauges[0][0], 2), "nearest_station": gauges[0][1],
+        "nearest_mi": round(gauges[0][0] * 0.621371, 2), "nearest_station": gauges[0][1],
         "nearest_rate_in_hr": gauges[0][2], "max_rate_in_hr": round(max(rates), 3),
         "today_in": gauges[0][3],
-        "wet_stations": [{"station": g[1], "km": round(g[0], 2), "rate_in_hr": g[2]} for g in wet[:4]],
+        "wet_stations": [{"station": g[1], "mi": round(g[0] * 0.621371, 2),
+                          "rate_in_hr": g[2]} for g in wet[:4]],
     })
     return out
 
