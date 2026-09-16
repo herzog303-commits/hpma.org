@@ -60,6 +60,7 @@
   .bottom .nav { display:inline-flex; align-self:center; padding:2px; gap:2px; background:var(--pill); border:1.5px solid var(--pill-b); border-radius:9px; }
   .bottom .nav a { color:var(--muted); text-decoration:none; font-size:13px; font-weight:700; padding:2px 12px; border-radius:6px; }
   .bottom .nav a.on { background:var(--accent); color:var(--paper); }
+  .bottom .nav a.glyph { padding:2px 8px; }   /* the emoji button needs less room than a word */
   
   .bottom .fresh { color:var(--muted); }
   .bottom .fresh.warn { color:var(--warn-fg); font-weight:700; }
@@ -67,6 +68,15 @@
   .stalebar.on { display:block; }
 
   .err { color:var(--warn-fg); font-weight:700; }
+
+  /* Fire view. The headline is the answer to the question, so it gets the
+     lineRow; the joy block is the reason to actually go outside. */
+  .joy { font-size:13px; line-height:1.45; margin-top:6px; }
+  .joy div { display:flex; gap:6px; }
+  .joy .g { flex:none; width:13px; text-align:center; color:var(--accent); }
+  body.color .joy { font-family:Georgia,"Times New Roman",serif; }
+  .fireHead { font-size:22px; font-weight:800; letter-spacing:-.01em; line-height:1.1; }
+  .fireHead.long { font-size:18px; }
 </style>
 </head>
 <body data-pagefind-ignore>
@@ -108,7 +118,10 @@ const CONFIG = {
      also gets a "†" footnote mark keyed to the static "NOAA + live surge" note. Below it, only that note. */
   SURGE_GAIN: 1.0, SURGE_LAG_MIN: 0, SURGE_MAJOR_FT: 1.5,
   SURGE_FORECAST_URL: "surge_forecast.json",   // surge_forecast.py: calibrated pressure/wind model, anchored to the live gauge
-  NOWCAST_URL: "nowcast.json",  // 1h + 1-4h rain projection from nowcast.py, served alongside the board
+  NOWCAST_URL: "nowcast.json",
+  FIRE_URL: "fire.json",       // fire.py: the 7pm-2am beach-fire outlook at the Point (easter egg view)
+  FIRE_LAT: 47.300420, FIRE_LON: -122.847355,  // the ring itself, 0.73 mi NE of the marina
+  // 1h + 1-4h rain projection from nowcast.py, served alongside the board
   PERSIST_H: 12, FADE_H: 36, // carry-forward window when no forecast feed
 
   /* Fixed chart axis = this year's predicted range at McMicken Island. Computed from NOAA on load;
@@ -321,7 +334,7 @@ function renderFreshness(generatedUtc, nowMs) {
   const t = generatedUtc ? Date.parse(generatedUtc) : NaN;
   if (!isFinite(t)) { tag.textContent = "update time unknown"; tag.classList.add("warn"); return; }
   const min = (nowMs - t) / 60000;
-  if (min < FRESH_WARN_MIN) { tag.textContent = `updated ${ageWords(min)} ago`; return; }
+  if (min < FRESH_WARN_MIN) { const a = ageWords(min); tag.textContent = a === "just now" ? "updated just now" : `updated ${a} ago`; return; }
   tag.textContent = `\u26a0 data ${ageWords(min)} old`;
   tag.classList.add("warn");
   if (min >= FRESH_STALE_MIN) {
@@ -349,7 +362,7 @@ function renderTidesSimple({ extremes, surge, live, met, cur, alerts, annual, no
   if (met.wind) bits.push(`Wind ${met.wind.dir} ${met.wind.kt.toFixed(0)}${met.wind.gust > met.wind.kt + 5 ? `–${met.wind.gust.toFixed(0)}` : ""} kt`);
   if (cur && cur.length) { const sl = cur.find(c => c.t > nowMs && c.type === "slack"); if (sl) bits.push(`Slack ${hhmm(sl.t)}`); }
   if (met.waterF != null) bits.push(`Water ${met.waterF.toFixed(0)}°`);
-  el("strip", bits.map(b => `<span>${b}</span>`).join("") + `<span class="dim">Height = NOAA + live surge</span>`);
+  el("strip", bits.map(b => `<span>${b}</span>`).join("") + `<span class="dim">NOAA + live surge</span>`);
 }
 
 function renderCurve(extremes, surge, annual, nowMs) {
@@ -397,7 +410,7 @@ function renderCurve(extremes, surge, annual, nowMs) {
 
 function renderSunSimple(nowMs) {
   const lp = localParts(nowMs), s = sunDay(lp.y, lp.m, lp.d, CONFIG.LAT, CONFIG.LON);
-  el("sun", `<span>Sunrise <b>${hhmm(s.sun.rise)}</b></span><span>Sunset <b>${hhmm(s.sun.set)}</b></span><span class="dim">Dark after <b>${hhmm(s.civil.set)}</b></span>`);
+  el("sun", `<span>Sun <b>${hhmm(s.sun.rise)}</b>\u2013<b>${hhmm(s.sun.set)}</b></span><span class="dim">Dark <b>${hhmm(s.civil.set)}</b></span>`);
 }
 
 /* ---- weather ----
@@ -585,11 +598,128 @@ function renderWeatherChart(wx, nowMs) {
     <circle cx="${nowX.toFixed(1)}" cy="${nowY.toFixed(1)}" r="5" fill="${accent}" stroke="${color ? "#fcfcfb" : "#fff"}" stroke-width="2"/></svg>`;
 }
 
+/* ===================== FIRE (easter egg view) =====================
+   "Do we have a fire on the beach tonight?" Everything here is measured over
+   the 7pm-2am window fire.py defines, because a daily average hands you the
+   sunny afternoon you were not outside for. The headline is the answer, so it
+   takes the top line; the joy block is the reason to actually go out. */
+const esc = t => String(t == null ? "" : t).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+const clock = ms => fmt(ms, { hour: "numeric", minute: "2-digit" }).replace(/\s/g, "").toLowerCase();
+// fire.py writes ASCII "--" because it is a Python source file; the board is
+// display, so promote it to a real em dash here rather than upstream.
+const fireText = t => esc(t).replace(/\s--\s/g, " \u2014 ");
+const hourLbl = ms => fmt(ms, { hour: "numeric" }).replace(/\s/g, "").toLowerCase().replace("m", "");
+// One glyph per insight, picked off the text rather than a parallel field, so
+// fire.py stays free to write whatever it likes without a schema handshake.
+function joyGlyph(t) {
+  if (/\bkp\b|aurora|geomagnetic/i.test(t)) return "⚡";
+  if (/moon/i.test(t)) return "☾";
+  if (/fog|dew point/i.test(t)) return "≈";
+  if (/overcast|cloud/i.test(t)) return "\u2592";
+  return "✦";
+}
+async function renderFire(nowMs) {
+  const fire = await fetch(CONFIG.FIRE_URL).then(r => r.json()).catch(() => null);
+  if (!fire || !fire.verdict) { el("line", '<span class="err">no fire outlook published</span>'); renderFreshness(null, nowMs); return; }
+  const v = fire.verdict, sum = fire.summary, hourly = fire.hourly || [];
+  const t0 = Date.parse(fire.window.start_utc), t1 = Date.parse(fire.window.end_utc);
+  // Tide bracketing the window, and enough of it to answer "next 12 hours".
+  const extremes = await fetchExtremes(CONFIG.DP_STATION, Math.min(nowMs, t0) - 8 * 3600000, 28).catch(() => []);
+
+  el("pills", `<span class="pill">\u{1F525} ${esc(fire.window.label || "tonight")}</span>`);
+  el("line", `<b class="fireHead${(v.headline || "").length > 26 ? " long" : ""}">${esc(v.headline)}</b>`);
+  el("line2", fireText(v.sub || ""));
+
+  const aq = fire.air_quality || {}, hs = fire.hours_since_rain;
+  const rows = [];
+  if (aq.us_aqi != null) rows.push(["Air", `AQI ${aq.us_aqi} · ${aq.us_aqi <= 50 ? "clean" : aq.us_aqi <= 100 ? "moderate" : "poor"}`]);
+  if (hs != null) rows.push(["Last rain", hs >= 168 ? "over a week" : hs >= 48 ? `${(hs / 24).toFixed(0)} days ago` : `${hs.toFixed(hs < 10 ? 1 : 0)} h ago`]);
+  for (const e of extremes.filter(e => e.t >= nowMs && e.t <= nowMs + 12 * 3600000).slice(0, 2))
+    rows.push([e.type === "H" ? "High tide" : "Low tide", `${e.h.toFixed(1)} ft ${clock(e.t)}`]);
+
+  const head = sum
+    ? `<div class="next"><b>Low ${sum.low_f.toFixed(0)}° at ${esc(sum.low_at)} · dew ${sum.low_dew.toFixed(0)}°</b>
+         <span>RH ${sum.low_rh}% · gusts to ${sum.max_gust.toFixed(0)} kt · ${sum.mean_cloud}% cloud</span></div>`
+    : "";
+  const joy = (v.insights || []).map(t => `<div><span class="g">${joyGlyph(t)}</span><span>${fireText(t)}</span></div>`).join("");
+  el("hero", `${head}<div class="list">${rows.map(([k, val]) =>
+      `<div><span><b>${esc(k)}</b></span><span class="t">${esc(val)}</span></div>`).join("")}</div>
+    <div class="joy">${joy}</div>`);
+
+  // The legal caveat is a standing condition, not news, so it lives along the
+  // bottom rather than stealing the headline. fire.py deliberately does not
+  // guess at burn-ban status -- see its module docstring.
+  el("strip", `<span>⚠ Burn ban: check DNR — nobody publishes it as data</span>`);
+  renderFireChart(hourly, extremes, t0, t1, nowMs);
+  renderFreshness(fire.generated_utc, nowMs);
+}
+// Three registers, no unit soup: cloud cover as a strip along the top, the
+// temperature/dew-point pair through the middle (their gap IS the fog-and-damp
+// story), and the tide along the base -- which for a fire ON A BEACH is not
+// decoration.
+function renderFireChart(hourly, extremes, t0, t1, nowMs) {
+  const color = isColor(), W = 520, H = 300, L = 14, R = 12, T = 8, B = 22, CS = 12, PB = 74;
+  const node = document.getElementById("chart");
+  if (!hourly.length) { node.innerHTML = ""; return; }
+  const x = t => L + (t - t0) / (t1 - t0) * (W - L - R);
+  const pts = hourly.map(h => ({ ...h, t: Date.parse(h.ts_utc) })).filter(h => isFinite(h.t));
+  const ink = color ? "#1a1a19" : "#000", accent = color ? "#D85A30" : "#000", muted = color ? "#9b9a93" : "#000";
+  const blue = color ? "#185FA5" : "#000", cloudc = color ? "#8d8b83" : "#000";
+  const dewc = color ? "#6f6d66" : "#000";
+
+  const temps = pts.map(p => p.temp_f).concat(pts.map(p => p.dew_f));
+  const lo = Math.min(...temps), hi = Math.max(...temps), pad = Math.max(3, (10 - (hi - lo)) / 2);
+  const yTop = T + CS + 6, yBot = H - B - PB, yT = f => yTop + (hi + pad - f) / ((hi + pad) - (lo - pad)) * (yBot - yTop);
+
+  // Cloud strip: one block per hour, opacity = cover. Reads as "clear until
+  // midnight, then it socks in" without needing an axis.
+  const strip = pts.map(p => {
+    const a = x(p.t), b = Math.min(x(p.t + 3600000), W - R);
+    return `<rect x="${a.toFixed(1)}" y="${T}" width="${Math.max(0, b - a).toFixed(1)}" height="${CS}" rx="2" fill="${cloudc}" opacity="${(0.06 + 0.72 * (p.cloud || 0) / 100).toFixed(2)}"/>`;
+  }).join("");
+  const meanCloud = pts.reduce((s, p) => s + (p.cloud || 0), 0) / pts.length;
+  const stripLbl = `<text x="${(W - R).toFixed(1)}" y="${(T + CS - 2.5).toFixed(1)}" font-size="9.5" text-anchor="end" fill="${meanCloud < 30 ? accent : "#fcfcfb"}">${meanCloud < 30 ? "clear" : "cloud"}</text>`;
+
+  const path = (key, f) => pts.map((p, i) => `${i ? "L" : "M"}${x(p.t).toFixed(1)},${yT(f(p)).toFixed(1)}`).join(" ");
+  const tempColor = f => `hsl(${(210 - (Math.max(30, Math.min(90, f)) - 30) / 60 * 200).toFixed(0)} 62% 46%)`;
+  const tempLine = color
+    ? pts.slice(1).map((p, i) => { const a = pts[i]; return `<path d="M${x(a.t).toFixed(1)},${yT(a.temp_f).toFixed(1)} L${x(p.t).toFixed(1)},${yT(p.temp_f).toFixed(1)}" fill="none" stroke="${tempColor((a.temp_f + p.temp_f) / 2)}" stroke-width="3.6" stroke-linecap="round"/>`; }).join("")
+    : `<path d="${path("temp_f", p => p.temp_f)}" fill="none" stroke="${ink}" stroke-width="3.2" stroke-linejoin="round"/>`;
+  const dewLine = `<path d="${path("dew_f", p => p.dew_f)}" fill="none" stroke="${dewc}" stroke-width="2" stroke-dasharray="5 4" opacity="0.9"/>`;
+  const last = pts[pts.length - 1];
+  const lbl = (p, f, txt, dy, fill, weight) => `<text x="${(x(p.t) - 4).toFixed(1)}" y="${(yT(f) + dy).toFixed(1)}" font-size="11.5" font-weight="${weight}" text-anchor="end" fill="${fill}">${txt}</text>`;
+  const ends = lbl(last, last.temp_f, `${last.temp_f.toFixed(0)}°`, -6, ink, 700)
+             + lbl(last, last.dew_f, `dew ${last.dew_f.toFixed(0)}°`, 13, dewc, 600);
+
+  // Tide along the base. Sampled rather than drawn from the extremes so the
+  // curve keeps its shape across a window that may hold only one turning point.
+  let tide = "", tideLbls = "";
+  if (extremes.length >= 2) {
+    const samples = []; for (let t = t0; t <= t1; t += 900000) samples.push([t, tideAt(extremes, t)]);
+    const hs = samples.map(s => s[1]), tl = Math.min(...hs), th = Math.max(...hs), sp = Math.max(1.5, th - tl);
+    const tTop = H - B - PB + 14, tBot = H - B - 2, yH = h => tBot - (h - tl) / sp * (tBot - tTop);
+    const d = samples.map(([t, h], i) => `${i ? "L" : "M"}${x(t).toFixed(1)},${yH(h).toFixed(1)}`).join(" ");
+    tide = `<path d="${d} L${x(t1).toFixed(1)},${tBot.toFixed(1)} L${x(t0).toFixed(1)},${tBot.toFixed(1)} Z" fill="${blue}" opacity="0.16"/><path d="${d}" fill="none" stroke="${blue}" stroke-width="2"/>`;
+    tideLbls = `<text x="${L}" y="${(tTop - 3).toFixed(1)}" font-size="9.5" fill="${blue}">tide</text>`;
+    for (const e of extremes.filter(e => e.t > t0 + 1800000 && e.t < t1 - 1800000)) {
+      tideLbls += `<circle cx="${x(e.t).toFixed(1)}" cy="${yH(e.h).toFixed(1)}" r="2.8" fill="${color ? "#fcfcfb" : "#fff"}" stroke="${blue}" stroke-width="1.8"/>
+        <text x="${x(e.t).toFixed(1)}" y="${(yH(e.h) - 7).toFixed(1)}" font-size="10.5" font-weight="600" text-anchor="middle" fill="${blue}">${e.h.toFixed(1)} ft</text>`;
+    }
+  }
+  let ticks = "";
+  for (let t = t0; t <= t1; t += 3600000 * 2)
+    ticks += `<text x="${x(t).toFixed(1)}" y="${H - 6}" font-size="11" text-anchor="middle" fill="${muted}">${hourLbl(t)}</text>`;
+  const nowMark = nowMs > t0 && nowMs < t1
+    ? `<line x1="${x(nowMs).toFixed(1)}" y1="${T}" x2="${x(nowMs).toFixed(1)}" y2="${(H - B).toFixed(1)}" stroke="${accent}" stroke-width="2"/>` : "";
+  node.innerHTML = `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">${strip}${stripLbl}${tide}${tideLbls}${dewLine}${tempLine}${ends}${ticks}${nowMark}</svg>`;
+}
+
 /* ============================== MAIN ============================== */
 async function main() {
   const url = new URL(location.href);
   document.body.classList.add("color");   // COLOR build: always renders in color, no ?theme needed
-  const view = url.searchParams.get("view") === "weather" ? "weather" : "tides";
+  const vq = url.searchParams.get("view");
+  const view = vq === "weather" ? "weather" : vq === "fire" ? "fire" : "tides";
   document.body.classList.add(view);
   const nowMs = url.searchParams.get("at") ? +new Date(url.searchParams.get("at")) : Date.now();
   el("date", fmt(nowMs, { weekday: "long", month: "short", day: "numeric" }));
@@ -597,13 +727,16 @@ async function main() {
   /* The view switcher carries the current query string back (?at, ?demo, ?surge),
      so its href is URL-derived -- build it with DOM APIs, never innerHTML. */
   const nav = document.getElementById("nav"); nav.textContent = "";
-  for (const [v, label] of [["tides", "Tides"], ["weather", "Weather"]]) {
+  for (const [v, label] of [["tides", "Tides"], ["weather", "Weather"], ["fire", "\u{1F525}"]]) {
     const u = new URL(location.href); u.searchParams.set("view", v);
     const a = document.createElement("a"); a.setAttribute("href", u.search); a.textContent = label;
-    if (v === view) a.className = "on";
+    a.className = [v === view ? "on" : "", v === "fire" ? "glyph" : ""].filter(Boolean).join(" ");
     nav.appendChild(a);
   }
   if (view === "tides") renderSunSimple(nowMs); else el("sun", "");   // sun times are tides-view only
+  /* The fire view shares none of the tides/weather feeds, so it returns before
+     the fan-out below rather than firing five NOAA/NWS requests it discards. */
+  if (view === "fire") { await renderFire(nowMs); return; }
   const manual = url.searchParams.has("surge") ? parseFloat(url.searchParams.get("surge")) : null, demo = url.searchParams.has("demo");
   try {
     let extremes, live = null, met = {}, alerts = [], forecast = null, cur = null, wx = null, annual = null;
