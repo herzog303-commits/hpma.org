@@ -34,6 +34,11 @@
   .list .flag { font-size:12px; font-weight:700; color:var(--accent); }
 
   .lineRow { display:block; font-size:17px; line-height:1.35; min-height:24px; }
+  /* Secondary context under the nowcast: driving regime and pressure tendency.
+     Deliberately quieter than the headline -- it explains WHY, it is not the call. */
+  .lineSub { display:block; font-size:14px; line-height:1.3; opacity:.62; min-height:0; }
+  .lineSub:empty { display:none; }
+  body.color .lineSub { font-family:Georgia,"Times New Roman",serif; }
   .lineRow #pills { margin-right:6px; }
   .lineRow .pill { display:inline-block; margin:0 4px 2px 0; vertical-align:2px; }
   body.color .lineRow { font-family:Georgia,"Times New Roman",serif; }
@@ -68,6 +73,7 @@
   <div class="top"><h1>Indian Cove Marina</h1><div class="when"><span id="date"></span><b id="time"></b></div></div>
   <div class="stalebar" id="stalebar"></div>
   <div class="lineRow"><span id="pills"></span><span id="line">Loading…</span></div>
+  <div class="lineSub" id="line2"></div>
   <div class="main"><div class="chart" id="chart"></div><div class="side" id="hero"></div></div>
   <div class="bottom"><div><span id="sun" class="tides-only"></span><span id="strip"></span><span id="fresh" class="fresh"></span></div><span class="nav" id="nav"></span></div>
 <script>
@@ -337,6 +343,7 @@ function renderTidesSimple({ extremes, surge, live, met, cur, alerts, annual, no
   if (alerts.length) pills.push(`<span class="pill warn">${alerts[0].event}</span>`);
   el("pills", pills.join(""));
   el("line", sentence(extremes, surge, annual, nowMs));
+  el("line2", "");
   renderCurve(extremes, surge, annual, nowMs);
   const bits = [];
   if (met.wind) bits.push(`Wind ${met.wind.dir} ${met.wind.kt.toFixed(0)}${met.wind.gust > met.wind.kt + 5 ? `–${met.wind.gust.toFixed(0)}` : ""} kt`);
@@ -436,7 +443,7 @@ function wxLine(wx, nowMs, nowcast) {
     const near = rn.wet_stations && rn.wet_stations[0];
     rain = rn.confident
       ? `Raining now \u2014 ${rn.wet} of ${rn.total} gauges.`
-      : `Rain ${near ? near.km + " km away" : "nearby"} \u2014 1 gauge only.`;
+      : `Rain ${near ? near.mi.toFixed(1) + " mi away" : "nearby"} \u2014 1 gauge only.`;
     const stop = next2h.find(m => m.t > nowMs && !wet(m));
     if (stop) rain += ` Easing around ${hhmm(stop.t)}.`;
   }
@@ -459,7 +466,6 @@ function nowcastLine(nc) {
     ? `<span style="letter-spacing:1px;${wet ? "color:var(--warn-fg)" : ""}">` +
       tl.map(b => NC_BLOCKS[Math.max(0, Math.min(7, Math.round((b.risk || 0) * 7)))]).join("") + "</span> "
     : "";
-  const temp = nc.temp_cove_f != null ? ` · ${nc.temp_cove_f.toFixed(0)}°` : "";
   const o = nc.observed || {};
   const rn = nc.rain_now || {};
   // Two wet gauges cannot both be a spider in the funnel; one can. Shout only
@@ -479,13 +485,22 @@ function nowcastLine(nc) {
   let sky = "";
   if (sk && sk.clear_now) {
     sky = sk.lead_h == null
-      ? ` · <b>clear</b>, no cloud within 160 km upwind`
+      ? ` · <b>clear</b>, no cloud within 100 mi upwind`
       : sk.lead_h >= 6 ? ` · <b>clear</b>, next cloud ~${Math.round(sk.lead_h)}h out`
-      : ` · clear now, cloud ~${sk.lead_h.toFixed(1)}h out (${sk.next_cloud_km} km)`;
+      : ` · clear now, cloud ~${sk.lead_h.toFixed(1)}h out (${sk.next_cloud_mi} mi)`;
   } else if (sk && sk.cloud_pct != null) {
     sky = ` · sky <b>${Math.round(sk.cloud_pct)}%</b> cloud`;
   }
-  return `<b>Nowcast</b> ${spark}next hr <b>${nhWord}</b>, 1–4h <b>${ncWord(later)}</b>${sky} · ${nc.detail || ""} · ${nc.confidence || ""}${temp}`;
+  return `<b>Nowcast</b> ${spark}next hr <b>${nhWord}</b>, 1–4h <b>${ncWord(later)}</b>${sky}`;
+}
+// The "why" behind the nowcast: driving regime and pressure tendency, plus how
+// much the model trusts itself. Temperature is deliberately NOT repeated here --
+// the hero shows it three times its size, six inches away.
+function nowcastDetail(nc) {
+  const bits = [];
+  if (nc.detail) bits.push(nc.detail);
+  if (nc.confidence) bits.push(`confidence ${nc.confidence}`);
+  return bits.join(" · ");
 }
 function renderWeatherSimple({ wx, met, alerts, nowMs, nowcast }) {
   const c = wx.current, today = wx.daily[0];
@@ -502,6 +517,7 @@ function renderWeatherSimple({ wx, met, alerts, nowMs, nowcast }) {
     <div class="list">${wx.daily.slice(0, 3).map((d, i) => `<div><span><b>${i === 0 ? "Today" : fmt(d.t + 12 * 3600000, { weekday: "short" })}</b> ${d.hi.toFixed(0)}°/${d.lo.toFixed(0)}°</span><span class="t">${dayRight(d)}</span></div>`).join("")}</div>`);
   el("pills", alerts.length ? `<span class="pill warn">${alerts[0].event}</span>` : "");
   el("line", nowcast ? nowcastLine(nowcast) : wxLine(wx, nowMs, nowcast));
+  el("line2", nowcast ? nowcastDetail(nowcast) : "");
   renderWeatherChart(wx, nowMs);
   const w = nowcast && nowcast.wind;
   let windSpan = "";
