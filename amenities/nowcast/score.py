@@ -98,6 +98,19 @@ def record(now):
             recs.append(("wind_gust_kt", now, 0, round(w["regional_gust_kt"], 1)))
         if nc.get("temp_cove_f") is not None:
             recs.append(("temp_f", now, 0, round(nc["temp_cove_f"], 1)))
+    # Cloud/radiation skill. Recorded only when the forecast expects meaningful
+    # daylight -- scoring hours where both sides are zero would manufacture
+    # skill out of darkness.
+    try:
+        solar = _openmeteo_solar()
+        for lead in (60, 180):
+            vt = (now + timedelta(minutes=lead)).replace(minute=0, second=0, microsecond=0)
+            v = solar.get(vt)
+            if v is not None and v > 20:
+                recs.append(("solar_w_m2", vt, lead, round(v, 1)))
+    except Exception:  # noqa: BLE001
+        pass
+
     sf = _load(SURGE_FC)
     if sf:
         for lead in (6, 12, 24):
@@ -226,6 +239,57 @@ def log_predictors(now):
     except OSError:  # noqa: BLE001
         pass
     return row
+
+
+def _openmeteo_solar():
+    """{hour_utc: W/m2} forecast shortwave radiation, for cloud-skill scoring."""
+    q = {"latitude": MC["cove"]["lat"], "longitude": MC["cove"]["lon"], "timezone": "GMT",
+         "hourly": "shortwave_radiation,cloud_cover", "forecast_days": 2}
+    try:
+        h = json.load(urllib.request.urlopen(
+            "https://api.open-meteo.com/v1/forecast?" + urllib.parse.urlencode(q), timeout=30))["hourly"]
+    except Exception:  # noqa: BLE001
+        return {}
+    out = {}
+    for t, sw in zip(h["time"], h["shortwave_radiation"]):
+        if sw is None:
+            continue
+        out[datetime.strptime(t, "%Y-%m-%dT%H:%M").replace(tzinfo=timezone.utc)] = sw
+    return out
+
+
+def obs_solar(vt):
+    """Measured shortwave, median across the stations that carry a solar sensor.
+
+    Nine of ten registered PWS report solarRadiation. A median across them is
+    far more robust than any single pyranometer, which can be shaded by a tree,
+    fouled, or tilted.
+
+    SEMANTICS, and this matters for reading the bias: the forecast side is
+    Open-Meteo's shortwave_radiation, an AVERAGE over the preceding hour, while
+    WU's hourly archive exposes solarRadiationHigh, the PEAK within the hour.
+    Peak exceeds mean whenever cloud is broken and equals it under clear sky,
+    so the scored bias carries a systematic negative component that is an
+    artefact of the units, NOT forecast error. Comparisons BETWEEN models remain
+    valid because every model is scored against the same truth.
+    """
+    try:
+        import wu
+    except Exception:  # noqa: BLE001
+        return None
+    vals = []
+    for st in (MC["stations"].get("wu_stations") or []):
+        try:
+            o = wu.wu_hourly_at(vt, station=st)
+        except Exception:  # noqa: BLE001
+            continue
+        if o and o.get("solar_w_m2") is not None:
+            vals.append(float(o["solar_w_m2"]))
+    if len(vals) < 3:
+        return None
+    vals.sort()
+    n = len(vals)
+    return round(vals[n // 2] if n % 2 else (vals[n // 2 - 1] + vals[n // 2]) / 2, 1)
 
 
 def _nws_series():
@@ -407,7 +471,7 @@ def obs_rain(vt):
     return 1 if hit else 0
 
 OBS = {"surge_ft": obs_surge, "wind_kt": obs_wind, "wind_gust_kt": obs_gust,
-       "temp_f": obs_temp, "rain_next_hr": obs_rain}
+       "temp_f": obs_temp, "rain_next_hr": obs_rain, "solar_w_m2": obs_solar}
 
 # Cove verification: the SAME live forecasts, verified against the Weather Underground
 # station AT the cove (KWASHELT285, 0.35 mi) instead of Grapeview (5 mi) -- so we can
@@ -439,7 +503,7 @@ def scorecard(entries):
     import math
     done = [e for e in entries if e.get("obs") is not None]
     card = {"generated_utc": None, "n_verified": len(done), "n_pending": len(entries) - len(done), "variables": {}}
-    for var in ("surge_ft", "wind_kt", "temp_f", "rain_next_hr"):
+    for var in ("surge_ft", "wind_kt", "temp_f", "rain_next_hr", "solar_w_m2"):
         v = [e for e in done if e["var"] == var and e.get("src", "live") == "live"]   # production only
         if not v:
             continue
@@ -472,6 +536,15 @@ def scorecard(entries):
         cove[var] = {"n": len(v), "bias": round(sum(errs) / len(errs), 2),
                      "mae": round(sum(abs(x) for x in errs) / len(errs), 2),
                      "rmse": round(math.sqrt(sum(x * x for x in errs) / len(errs)), 2)}
+    if card["variables"].get("solar_w_m2"):
+        card["variables"]["solar_w_m2"]["_note"] = (
+            "Cloud/radiation skill. Forecast is Open-Meteo shortwave_radiation, an "
+            "AVERAGE over the preceding hour; observation is the median "
+            "solarRadiationHigh across 9 PWS, a PEAK within the hour. Peak exceeds "
+            "mean under broken cloud, so the bias carries a negative artefact that is "
+            "NOT forecast error. Model-to-model comparison is unaffected. Daytime only "
+            "(forecast > 20 W/m2).")
+
     if cove:
         card["cove_verification"] = {"_note": "same forecast verified at the cove (WU KWASHELT285/12, ~0.35 mi) "
                                      "vs Grapeview (5 mi) in variables{}", **cove}
