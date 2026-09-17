@@ -628,10 +628,106 @@ def obs_rain(vt):
                 hit = True
     return 1 if hit else 0
 
+# ------------------------------------------------- fire-window verification
+# The fire page makes claims about a WINDOW (7pm-2am), not an instant: the
+# overnight low, the peak gust, whether it stayed dry, whether it stayed clear.
+# The existing verifier signature fn(valid_time) fits these exactly, because
+# the window is always the FIRE_WINDOW_H hours ENDING at the valid time.
+#
+# Truth comes from our own 15-minute cycle record (data_log.jsonl, ~12 rows an
+# hour) and, for cloud after dark, from the GOES-18 mask -- the pyranometers
+# are blind at night and METAR is 23 km away, so satellite is the only way to
+# score "clear skies till 2am" at all.
+FIRE_WINDOW_H = 7
+FIRE_CLEAR_PCT = 30      # window mean cloud below this counts as "a clear night"
+FIRE_MIN_HOURS = 5       # need this many distinct hours covered, or decline to score
+DATA_LOG = os.environ.get("DATA_LOG") or os.path.join(HERE, "data_log.jsonl")
+
+_datalog_cache = None
+
+
+def _datalog():
+    """data_log.jsonl parsed once per run."""
+    global _datalog_cache
+    if _datalog_cache is None:
+        rows = []
+        try:
+            with open(DATA_LOG) as f:
+                for ln in f:
+                    try:
+                        d = json.loads(ln)
+                        d["_t"] = _dt(d["t"].replace("+00:00", "Z"))
+                    except Exception:  # noqa: BLE001
+                        continue
+                    rows.append(d)
+        except OSError:
+            pass
+        _datalog_cache = rows
+    return _datalog_cache
+
+
+def _window(vt, rows, tkey="_t"):
+    t0 = vt - timedelta(hours=FIRE_WINDOW_H)
+    return [r for r in rows if t0 <= r[tkey] <= vt]
+
+
+def _covered(rows):
+    """Distinct hours present. A night the Mini slept through must not verify
+    as a calm clear one just because the few rows that exist happen to agree."""
+    return len({r["_t"].hour for r in rows})
+
+
+def _fire_vals(vt, pick):
+    rows = _window(vt, _datalog())
+    if _covered(rows) < FIRE_MIN_HOURS:
+        return None
+    vals = [v for v in (pick(r) for r in rows) if v is not None]
+    return vals or None
+
+
+def obs_fire_low(vt):
+    v = _fire_vals(vt, lambda r: (r.get("obs") or {}).get("cove_temp_f"))
+    return round(min(v), 1) if v else None
+
+
+def obs_fire_gust(vt):
+    v = _fire_vals(vt, lambda r: (r.get("wind") or {}).get("regional_gust_kt"))
+    return round(max(v), 1) if v else None
+
+
+def obs_fire_dry(vt):
+    """1.0 if no gauge measured rain anywhere in the window."""
+    v = _fire_vals(vt, lambda r: (r.get("obs") or {}).get("rain_in"))
+    return None if v is None else (1.0 if max(v) <= 0 else 0.0)
+
+
+def obs_fire_clear(vt):
+    """1.0 if the GOES cloud mask averaged under FIRE_CLEAR_PCT across the window."""
+    path = os.environ.get("GOES_LOG") or os.path.join(HERE, "goes_log.jsonl")
+    rows = []
+    try:
+        with open(path) as f:
+            for ln in f:
+                try:
+                    d = json.loads(ln)
+                    d["_t"] = _dt(d["scan_utc"])
+                except Exception:  # noqa: BLE001
+                    continue
+                rows.append(d)
+    except OSError:
+        return None
+    w = [r for r in _window(vt, rows) if r.get("cloud_pct") is not None]
+    if len(w) < 3:                      # too few scans to characterise a night
+        return None
+    return 1.0 if sum(r["cloud_pct"] for r in w) / len(w) < FIRE_CLEAR_PCT else 0.0
+
+
 OBS = {"surge_ft": obs_surge, "wind_kt": obs_wind, "wind_gust_kt": obs_gust,
        "temp_f": obs_temp, "rain_next_hr": obs_rain, "solar_w_m2": obs_solar,
        "cloud_pct": obs_cloud,
-       "sky_clear_3h": obs_sky_clear}
+       "sky_clear_3h": obs_sky_clear,
+       "fire_low_f": obs_fire_low, "fire_max_gust_kt": obs_fire_gust,
+       "fire_dry_night": obs_fire_dry, "fire_clear_night": obs_fire_clear}
 
 # Cove verification: the SAME live forecasts, verified against the Weather Underground
 # station AT the cove (KWASHELT285, 0.35 mi) instead of Grapeview (5 mi) -- so we can
@@ -659,16 +755,22 @@ def obs_cove_temp(vt):
 COVE_OBS = {"wind_kt": obs_cove_wind, "temp_f": obs_cove_temp}
 
 # ---------------------------------------------------------------- scorecard
+SCORED_VARS = ("surge_ft", "wind_kt", "temp_f", "rain_next_hr", "solar_w_m2",
+               "cloud_pct", "sky_clear_3h",
+               "fire_low_f", "fire_max_gust_kt", "fire_dry_night", "fire_clear_night")
+# Probabilities, scored with Brier rather than bias/MAE.
+PROB_VARS = {"rain_next_hr", "sky_clear_3h", "fire_dry_night", "fire_clear_night"}
+
+
 def scorecard(entries):
     import math
     done = [e for e in entries if e.get("obs") is not None]
     card = {"generated_utc": None, "n_verified": len(done), "n_pending": len(entries) - len(done), "variables": {}}
-    for var in ("surge_ft", "wind_kt", "temp_f", "rain_next_hr", "solar_w_m2", "cloud_pct",
-                "sky_clear_3h"):
+    for var in SCORED_VARS:
         v = [e for e in done if e["var"] == var and e.get("src", "live") == "live"]   # production only
         if not v:
             continue
-        if var in ("rain_next_hr", "sky_clear_3h"):
+        if var in PROB_VARS:
             p = [e["fcst"] for e in v]; o = [e["obs"] for e in v]
             brier = sum((pi - oi) ** 2 for pi, oi in zip(p, o)) / len(v)
             base = sum(o) / len(o)
@@ -773,7 +875,7 @@ def main():
             o = None
         if o is not None:
             e["obs"] = o
-            e["err"] = None if e["var"] in ("rain_next_hr", "sky_clear_3h") else round(e["fcst"] - o, 2)
+            e["err"] = None if e["var"] in PROB_VARS else round(e["fcst"] - o, 2)
             verified += 1
 
     # 3. prune + persist + scorecard
