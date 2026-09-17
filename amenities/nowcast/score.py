@@ -270,7 +270,7 @@ def log_predictors(now):
     # be computed from a single predictor row without a join.
     try:
         import wu as _wu
-        sts = (MC["stations"].get("wu_stations") or [])
+        sts = _wu.independent_stations(MC)
         c = _wu.wu_current(sts[0]) if sts else None
         if c:
             row["pws_station"] = sts[0]
@@ -334,7 +334,7 @@ def obs_solar(vt):
     except Exception:  # noqa: BLE001
         return None
     vals = []
-    for st in (MC["stations"].get("wu_stations") or []):
+    for st in wu.independent_stations(MC):
         try:
             o = wu.wu_hourly_at(vt, station=st)
         except Exception:  # noqa: BLE001
@@ -748,7 +748,7 @@ except Exception:  # noqa: BLE001
 def _cove_hourly(vt):
     if wu is None:
         return None
-    for st in (MC["stations"].get("wu_stations") or []):
+    for st in wu.independent_stations(MC):
         o = wu.wu_hourly_at(vt, station=st)
         if o and (o.get("temp_f") is not None or o.get("wind_kt") is not None):
             return o

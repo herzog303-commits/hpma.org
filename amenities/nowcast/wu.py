@@ -134,6 +134,29 @@ def _norm(o):
 
 DEFAULT_STATION = "KWASHELT285"
 
+def independent_stations(mc):
+    """The station list with non-independent duplicates removed.
+
+    Two registrations can share one outdoor sensor array -- an Ambient console
+    will happily receive a neighbour's 915 MHz transmitter -- and when that
+    happens the pair reports byte-identical temperature, humidity, wind and
+    solar while remaining two entries in the roster. Counting both gives one
+    sensor two votes in every median and silently overstates how many
+    independent observations the network has.
+
+    Pressure is NOT identical in such a pair, because each console derives it
+    from its own configured elevation. That makes pressure exactly the wrong
+    field to check for this, and it is the field that let KWAGRAPE6 pass an
+    earlier check. See stations.wu_duplicates in microclimate.json.
+
+    HARVEST DELIBERATELY IGNORES THIS: history from before the duplication
+    began is real, independent data and is worth collecting.
+    """
+    st = mc.get("stations") or {}
+    dupes = set((st.get("wu_duplicates") or {}).keys())
+    return [s for s in (st.get("wu_stations") or []) if s not in dupes]
+
+
 def wu_current(station=DEFAULT_STATION):
     d = _get("observations/current", station)
     obs = (d or {}).get("observations") or []

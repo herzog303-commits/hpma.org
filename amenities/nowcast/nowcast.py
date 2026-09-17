@@ -142,7 +142,7 @@ def fetch_wu_rain(params):
         return []
     cove = params["cove"]
     out = []
-    for st in (params["stations"].get("wu_stations") or []):
+    for st in wu.independent_stations({"stations": params["stations"]}):
         c = wu.wu_current(st)
         if not c or c.get("lat") is None:
             continue
@@ -205,7 +205,7 @@ def rain_now(params):
     gauges = []
     try:
         import wu
-        for st in (params["stations"].get("wu_stations") or []):
+        for st in wu.independent_stations({"stations": params["stations"]}):
             c = wu.wu_current(st)
             if not c or c.get("lat") is None:
                 continue

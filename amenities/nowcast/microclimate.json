@@ -62,7 +62,18 @@
       "KWASHELT12": "No solar sensor (meteohub). Deepest history of the set -- hourly back to at least 2018 -- and therefore the backfill truth source FOR TEMPERATURE ONLY. Its WIND is not trustworthy: over 168 matched hours it read exactly zero gust 37% of the time while KWASHELT285 never did, and its maximum gust in FIVE YEARS is 25.2 kt at a site that gets Small Craft Advisories. Sheltered, or the anemometer stalls below its starting threshold. Do not use it to evaluate wind forecasts or the board's wind wording.",
       "KWASHELT285": "Tomas's, Ecowitt GW3000, mounted ~20 ft up on the roof fascia in clean air -- the best-exposed PWS we have. Closest at 0.56 km, measures solar + UV. Over 168 matched hours it read 1.33x the gusts of KWASHELT12 and never once reported zero, which is what a properly exposed anemometer looks like. PRIMARY for wind. Brand new: NO history, accumulates forward only, so it cannot support any retrospective wind study yet.",
       "KWALAKEB37": "History only from 2026-07; shallowest of the set."
-    }
+    },
+    "wu_duplicates": {
+      "KWAGRAPE6": {
+        "duplicate_of": "KWAALLYN13",
+        "since": "2026-05",
+        "evidence": "Identical temp/dewpt/RH/wind/solar from 2026-05 onward (100%, 98-100%, 94-100%, 93-100%, 88-100% of shared hours) against a 2024-2026-04 baseline of 29-71%, 2-56%, 0-90%, 16-69%, 20-71%. Confirmed against the WU API directly, not an ingest artefact.",
+        "why_it_hid": "PRESSURE is 0% identical in every month, because each Ambient console derives sea-level pressure from its own configured elevation (82 ft vs 68 ft). It is the one field that stays independent when a sensor array is shared, and it is the field an earlier check used to clear the pair.",
+        "cause": "Two separate registrations 350 m apart with different consoles and firmware (AMBWeatherV4.1.7 vs AMBWeatherV4.3.6), but one 915 MHz outdoor sensor array reaching both.",
+        "action": "EXCLUDED from live medians and station counts. Still HARVESTED: its pre-2026-05 history is genuinely independent and worth keeping."
+      }
+    },
+    "wu_duplicates_note": "Stations excluded from live medians because they are not independent observations. wu.independent_stations() applies this; harvest.py deliberately ignores it."
   },
   "wind_regimes": [
     {
