@@ -320,6 +320,14 @@ def obs_solar(vt):
     so the scored bias carries a systematic negative component that is an
     artefact of the units, NOT forecast error. Comparisons BETWEEN models remain
     valid because every model is scored against the same truth.
+
+    THAT CAVEAT DOES NOT EXPLAIN THE BIAS WE ACTUALLY SEE, and reading it as
+    though it did was a mistake. The artefact above pushes the bias NEGATIVE.
+    Measured, it is +114 W/m2, concentrated in the morning -- so the true error
+    is LARGER than scored, not smaller. The cause is a morning marine layer
+    that the models forecast through: see marine.py, which measures clear-sky
+    index at every pyranometer and routinely finds Kt near 0.1 on mornings when
+    both Open-Meteo and the GOES cloud mask call the sky clear.
     """
     try:
         import wu
