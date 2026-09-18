@@ -119,6 +119,7 @@ const CONFIG = {
   SURGE_GAIN: 1.0, SURGE_LAG_MIN: 0, SURGE_MAJOR_FT: 1.5,
   SURGE_FORECAST_URL: "surge_forecast.json",   // surge_forecast.py: calibrated pressure/wind model, anchored to the live gauge
   NOWCAST_URL: "nowcast.json",
+  SCORECARD_URL: "scorecard.json",   // carries bias_by_hour_local, used to de-bias the displayed forecast
   FIRE_URL: "fire.json",       // fire.py: the 7pm-2am beach-fire outlook at the Point (easter egg view)
   FIRE_LAT: 47.300420, FIRE_LON: -122.847355,  // the ring itself, 0.73 mi NE of the marina
   // 1h + 1-4h rain projection from nowcast.py, served alongside the board
@@ -237,6 +238,75 @@ async function fetchAlerts(zone) {
 const WMO = { 0: "clear", 1: "mostly clear", 2: "partly cloudy", 3: "overcast", 45: "fog", 48: "fog", 51: "drizzle", 53: "drizzle", 55: "drizzle", 56: "fz drizzle", 57: "fz drizzle", 61: "light rain", 63: "rain", 65: "heavy rain", 66: "fz rain", 67: "fz rain", 71: "light snow", 73: "snow", 75: "heavy snow", 77: "snow grains", 80: "showers", 81: "showers", 82: "heavy showers", 85: "snow showers", 86: "snow showers", 95: "thunderstorm", 96: "thunderstorm", 99: "thunderstorm" };
 const COMPASS = ["N","NNE","NE","ENE","E","ESE","SE","SSE","S","SSW","SW","WSW","W","WNW","NW","NNW"];
 const compass = deg => COMPASS[Math.round(((deg % 360) + 360) % 360 / 22.5) % 16];
+
+/* ---- site bias correction -------------------------------------------------
+   Open-Meteo is a 1-2 km grid value; the cove is a sheltered pocket on a
+   1 km-wide passage. Verified against KWASHELT285 (0.56 km) over 696 pairs the
+   model runs +1.70 F warm and +3.15 kt fast ON AVERAGE -- but the average is
+   the wrong instrument, because the error is strongly DIURNAL:
+
+       temperature   +0.15 F at 02:00   ->  +4.82 F at 16:00   (range 4.67)
+       wind          +0.88 kt at 12:00  ->  +4.93 kt at 22:00  (range 4.05)
+
+   The wind swing exceeds the mean bias itself, so a flat correction would
+   over-correct afternoons and under-correct nights. This applies the
+   hour-of-day table instead.
+
+   Verified as structure rather than sampling noise: median standard error per
+   hour 0.28, diurnal ranges 10-13x that, and 4,000 permutation shuffles never
+   reproduced the observed range.
+
+   Guarded: if the scorecard is missing, thin, or does not cover the day, the
+   raw model values are shown unchanged and the board says so. */
+const BIAS_MIN_HOURS = 20, BIAS_MIN_N = 15;
+async function fetchBias() {
+  try {
+    const c = await fetch(CONFIG.SCORECARD_URL).then(r => r.json());
+    const cv = c && c.cove_verification;
+    if (!cv) return null;
+    const out = {};
+    for (const [k, v] of Object.entries({ tempF: cv.temp_f, gust: cv.wind_kt })) {
+      const t = v && v.bias_by_hour_local;
+      if (t && Object.keys(t).length >= BIAS_MIN_HOURS && (v.min_n_per_hour || 0) >= BIAS_MIN_N) out[k] = t;
+    }
+    return Object.keys(out).length ? out : null;
+  } catch (e) { return null; }
+}
+// Local hour of a timestamp, in the board's timezone -- the table is keyed on
+// LOCAL hour because the diurnal cycle is a local-solar phenomenon.
+const localHour = ms => +fmt(ms, { hour: "numeric", hourCycle: "h23" });
+function applyBias(wx, bias) {
+  if (!bias) return { wx, corrected: false };
+  const fix = (v, table, ms) => {
+    if (v == null || !table) return v;
+    const b = table[String(localHour(ms))];
+    return b == null ? v : v - b;
+  };
+  // The hero temperature reads from wx.current -- also a model value, and it
+  // sits beside a corrected chart, so leaving it raw would put two different
+  // numbers for the same air on the same screen.
+  if (wx.current) {
+    wx.current.tempF = fix(wx.current.tempF, bias.tempF, wx.current.t);
+    wx.current.feelsF = fix(wx.current.feelsF, bias.tempF, wx.current.t);
+    wx.current.gust = fix(wx.current.gust, bias.gust, wx.current.t);
+    wx.current.kt = fix(wx.current.kt, bias.gust, wx.current.t);
+  }
+  for (const h of wx.hourly) {
+    h.tempF = fix(h.tempF, bias.tempF, h.t);
+    h.gust = fix(h.gust, bias.gust, h.t);
+    h.kt = fix(h.kt, bias.gust, h.t);
+  }
+  // Daily high and low are deliberately LEFT RAW. Open-Meteo's daily array is
+  // keyed to UTC days, which do not line up with local days here, and a first
+  // attempt at recomputing them from the corrected hourly series shifted every
+  // row by a day. Correcting the hourly series and the current conditions is
+  // unambiguous; realigning UTC day boundaries to local ones is a separate
+  // problem and not one to solve casually on a members' board.
+  //
+  // So the chart and the hero are site-corrected while High/Low are model
+  // values. That inconsistency is real and is flagged rather than hidden.
+  return { wx, corrected: true };
+}
 
 async function fetchOpenMeteo(lat, lon) {
   const q = new URLSearchParams({ latitude: lat, longitude: lon, timeformat: "unixtime", timezone: "UTC", past_hours: 6, forecast_days: 3,
@@ -515,7 +585,7 @@ function nowcastDetail(nc) {
   if (nc.confidence) bits.push(`confidence ${nc.confidence}`);
   return bits.join(" · ");
 }
-function renderWeatherSimple({ wx, met, alerts, nowMs, nowcast }) {
+function renderWeatherSimple({ wx, met, alerts, nowMs, nowcast, wxCorrected }) {
   const c = wx.current, today = wx.daily[0];
   const rainBit = d => d && d.pop != null && d.pop >= 20 ? `${d.pop.toFixed(0)}% rain` : "";
   const dayRight = d => [rainBit(d), windWord(d.gust)].filter(Boolean).join(" · ");
@@ -545,7 +615,9 @@ function renderWeatherSimple({ wx, met, alerts, nowMs, nowcast }) {
     }
   }
   const waterSpan = met.waterF != null ? `<span>Water ${met.waterF.toFixed(0)}°</span>` : "";
-  el("strip", [windSpan, waterSpan].filter(Boolean).join(""));
+  // Say when the forecast has been de-biased, and equally when it has not.
+  const calSpan = `<span class="dim">${wxCorrected ? "site-corrected (hi/lo raw)" : "raw model"}</span>`;
+  el("strip", [windSpan, waterSpan, calSpan].filter(Boolean).join(""));
 }
 // Temperature curve up top, rain-chance (%) as a quiet band along the base. Night blocks separate the days.
 function renderWeatherChart(wx, nowMs) {
@@ -764,12 +836,13 @@ async function main() {
   if (view === "fire") { await renderFire(nowMs); return; }
   const manual = url.searchParams.has("surge") ? parseFloat(url.searchParams.get("surge")) : null, demo = url.searchParams.has("demo");
   try {
-    let extremes, live = null, met = {}, alerts = [], forecast = null, cur = null, wx = null, annual = null;
+    let extremes, live = null, met = {}, alerts = [], forecast = null, cur = null, wx = null, annual = null, wxCorrected = false;
     if (demo) ({ extremes, live, met, alerts, cur, wx, annual } = demoData(nowMs));
     else {
       const jobs = [fetchExtremes(CONFIG.DP_STATION, nowMs - 24 * 3600000, 96), fetchMet(CONFIG.MET_STATION, nowMs), fetchAlerts(CONFIG.NWS_ZONE), fetchLiveAnomaly(CONFIG.REF_STATIONS, nowMs), fetchAnnual(CONFIG.DP_STATION, nowMs)];
       jobs.push(view === "tides" ? fetchCurrents(CONFIG.CURRENT_STATION, nowMs) : fetchOpenMeteo(CONFIG.LAT, CONFIG.LON));
       const r = await Promise.all(jobs); extremes = r[0]; met = r[1]; alerts = r[2]; live = r[3]; annual = r[4]; if (view === "tides") cur = r[5]; else wx = r[5];
+      if (view === "weather" && wx) ({ wx, corrected: wxCorrected } = applyBias(wx, await fetchBias()));
       if (CONFIG.SURGE_FORECAST_URL) forecast = await fetch(CONFIG.SURGE_FORECAST_URL).then(x => x.json()).catch(() => null);
     }
     let nowcast = null;   // weather view renders it; tides view uses only generated_utc
@@ -777,7 +850,7 @@ async function main() {
       nowcast = await fetch(CONFIG.NOWCAST_URL).then(x => x.json()).catch(() => null);
     const surge = makeSurgeFn({ manual, forecast, live, cfg: CONFIG });
     if (view === "tides") renderTidesSimple({ extremes, surge, live, met, cur, alerts, annual, nowMs });
-    else renderWeatherSimple({ wx, met, extremes, alerts, nowMs, nowcast });
+    else renderWeatherSimple({ wx, met, extremes, alerts, nowMs, nowcast, wxCorrected });
     if (!demo) renderFreshness(nowcast && nowcast.generated_utc, nowMs);
   } catch (e) { el("line", `<span class="err">${e.message}</span>`); console.error(e); }
 }
