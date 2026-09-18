@@ -768,6 +768,26 @@ SCORED_VARS = ("surge_ft", "wind_kt", "temp_f", "rain_next_hr", "solar_w_m2",
                "fire_low_f", "fire_max_gust_kt", "fire_dry_night", "fire_clear_night")
 # Probabilities, scored with Brier rather than bias/MAE.
 MIN_HOUR_N = 8          # hours with fewer verified pairs are not reported
+
+# Local hour, properly. This was written as `- timedelta(hours=7)`, which is
+# PDT and only PDT: Pacific time is -8 from early November to mid March. The
+# board derives its local hour from a real timezone, so from the DST switch
+# onward the two would have disagreed by an hour -- score.py filing an
+# observation under 14:00 that the board would look up as 13:00. For a wind
+# correction whose value swings 4 kt across the day, a one-hour misalignment is
+# not cosmetic.
+try:
+    from zoneinfo import ZoneInfo
+    _TZ = ZoneInfo("America/Los_Angeles")
+except Exception:  # noqa: BLE001
+    _TZ = None
+
+
+def local_hour(dt):
+    """Hour of day at the cove, DST included."""
+    if _TZ is not None:
+        return dt.astimezone(_TZ).hour
+    return (dt - timedelta(hours=7)).hour          # last resort, PDT only
 PROB_VARS = {"rain_next_hr", "sky_clear_3h", "fire_dry_night", "fire_clear_night"}
 
 
@@ -808,7 +828,7 @@ def scorecard(entries):
             # model keeps forecasting regional flow.
             byh = {}
             for e in v:
-                h = (_dt(e["valid"]) - timedelta(hours=7)).hour
+                h = local_hour(_dt(e["valid"]))
                 byh.setdefault(h, []).append(e["fcst"] - e["obs"])
             hourly = {str(h): round(sum(x) / len(x), 2)
                       for h, x in sorted(byh.items()) if len(x) >= MIN_HOUR_N}
@@ -842,7 +862,7 @@ def scorecard(entries):
         # 4,000 shuffles never once reproduced the observed range (p < 0.00025).
         byh = {}
         for e in v:
-            h = (_dt(e["valid"]) - timedelta(hours=7)).hour
+            h = local_hour(_dt(e["valid"]))
             byh.setdefault(h, []).append(e["fcst"] - e["obs"])
         hourly = {str(h): round(sum(x) / len(x), 2)
                   for h, x in sorted(byh.items()) if len(x) >= MIN_HOUR_N}

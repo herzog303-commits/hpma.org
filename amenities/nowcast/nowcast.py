@@ -220,6 +220,17 @@ def rain_now(params):
             site = cwop.SITES.get(cwop.DEFAULT_CALL) or {}
             gauges.append((_haversine_mi(cove["lat"], cove["lon"],
                                          site.get("lat", cove["lat"]), site.get("lon", cove["lon"])) * 1.60934,
+                           # SLOT 3 IS NOT THE SAME QUANTITY as for the WU
+                           # gauges above, which put precipTotal there -- an
+                           # accumulation since LOCAL MIDNIGHT. This is a
+                           # rolling 24-hour total. It is consumed below as
+                           # "today_in" from gauges[0], and gauges are sorted
+                           # by distance with a WU station at 0.56 km against
+                           # this one at 4.51 km, so in practice the WU value
+                           # always wins and the label is right. Recorded
+                           # because that is luck of ordering, not design: if
+                           # the near station drops out, "today_in" silently
+                           # becomes a 24-hour figure.
                            cwop.DEFAULT_CALL, o.get("rain_1h_in"), o.get("rain_24h_in")))
     except Exception:  # noqa: BLE001
         pass
