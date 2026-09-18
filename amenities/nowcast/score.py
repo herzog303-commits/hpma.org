@@ -767,6 +767,7 @@ SCORED_VARS = ("surge_ft", "wind_kt", "temp_f", "rain_next_hr", "solar_w_m2",
                "cloud_pct", "sky_clear_3h",
                "fire_low_f", "fire_max_gust_kt", "fire_dry_night", "fire_clear_night")
 # Probabilities, scored with Brier rather than bias/MAE.
+MIN_HOUR_N = 8          # hours with fewer verified pairs are not reported
 PROB_VARS = {"rain_next_hr", "sky_clear_3h", "fire_dry_night", "fire_clear_night"}
 
 
@@ -792,9 +793,34 @@ def scorecard(entries):
             bias = sum(errs) / len(errs)
             mae = sum(abs(x) for x in errs) / len(errs)
             rmse = math.sqrt(sum(x * x for x in errs) / len(errs))
+            # A SINGLE bias number is misleading here, and measurably so. Both
+            # wind and temperature biases carry strong diurnal structure --
+            # wind swings 3.65 kt between its best hour (+1.25 at 15:00) and
+            # its worst (+4.90 at 22:00), which is LARGER than the overall
+            # +3.26 bias; temperature swings 2.87 F the other way, nearly
+            # right at dawn and 3 F too warm mid-afternoon. Applying the flat
+            # suggested_adjustment would over-correct afternoons and
+            # under-correct nights.
+            #
+            # Mass's chapter on sea breezes, land breezes and slope winds is
+            # the explanation: these are diurnal circulations, land cools far
+            # faster than water, and the cove decouples at night while the
+            # model keeps forecasting regional flow.
+            byh = {}
+            for e in v:
+                h = (_dt(e["valid"]) - timedelta(hours=7)).hour
+                byh.setdefault(h, []).append(e["fcst"] - e["obs"])
+            hourly = {str(h): round(sum(x) / len(x), 2)
+                      for h, x in sorted(byh.items()) if len(x) >= MIN_HOUR_N}
             card["variables"][var] = {"n": len(v), "bias": round(bias, 2), "mae": round(mae, 2), "rmse": round(rmse, 2),
                                       "suggested_adjustment": round(-bias, 2),
-                                      "note": "bias = forecast - observed; add suggested_adjustment to de-bias"}
+                                      "bias_by_hour_local": hourly,
+                                      "diurnal_range": round(max(hourly.values()) - min(hourly.values()), 2) if hourly else None,
+                                      "note": "bias = forecast - observed; add suggested_adjustment to de-bias",
+                                      "_diurnal": ("bias_by_hour_local is the SAME bias split by local hour. Where "
+                                                   "diurnal_range approaches or exceeds the overall bias, a flat "
+                                                   "correction is the wrong instrument and an hour-of-day correction "
+                                                   "is warranted.")}
 
     # cove verification: the SAME live wind/temp forecasts scored at the cove (WU) --
     # compare bias/rmse here against the Grapeview-verified numbers in variables{} above.
