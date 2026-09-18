@@ -277,6 +277,11 @@ async function fetchBias() {
 const localHour = ms => +fmt(ms, { hour: "numeric", hourCycle: "h23" });
 function applyBias(wx, bias) {
   if (!bias) return { wx, corrected: false };
+  const fixAtHour = (v, table, hour) => {
+    if (v == null || !table) return v;
+    const b = table[String(hour)];
+    return b == null ? v : v - b;
+  };
   const fix = (v, table, ms) => {
     if (v == null || !table) return v;
     const b = table[String(localHour(ms))];
@@ -296,20 +301,42 @@ function applyBias(wx, bias) {
     h.gust = fix(h.gust, bias.gust, h.t);
     h.kt = fix(h.kt, bias.gust, h.t);
   }
-  // Daily high and low are deliberately LEFT RAW. Open-Meteo's daily array is
-  // keyed to UTC days, which do not line up with local days here, and a first
-  // attempt at recomputing them from the corrected hourly series shifted every
-  // row by a day. Correcting the hourly series and the current conditions is
-  // unambiguous; realigning UTC day boundaries to local ones is a separate
-  // problem and not one to solve casually on a members' board.
+  // Daily extremes are corrected by the bias AT THE HOUR THE EXTREME OCCURS,
+  // not by recomputing them from the hourly series. Recomputing fails for the
+  // current day, where the hourly window holds only the hours still ahead --
+  // if the afternoon peak has already passed, the "high" would come out as
+  // whatever the evening is doing. Asking when the extreme happens and
+  // applying that hour's bias works for partial days too.
   //
-  // So the chart and the hero are site-corrected while High/Low are model
-  // values. That inconsistency is real and is flagged rather than hidden.
+  // Where the hourly series does cover the day we take the hour of its own
+  // max/min; otherwise we fall back to the climatological hours, which are
+  // also where this site's bias table has its extremes (about +4.8 F at 16:00
+  // against +0.2 F at 02:00).
+  const hourOf = (day, pick) => {
+    const key = fmt(day.t + 12 * 3600000, { day: "numeric", month: "numeric" });
+    const hrs = wx.hourly.filter(h => fmt(h.t, { day: "numeric", month: "numeric" }) === key
+                                      && h.tempF != null);
+    if (hrs.length < 4) return null;
+    return localHour(hrs.reduce((a, b) => (pick === "hi" ? b.tempF > a.tempF : b.tempF < a.tempF) ? b : a).t);
+  };
+  for (const d of wx.daily) {
+    const hh = hourOf(d, "hi"), lh = hourOf(d, "lo");
+    d.hi = fixAtHour(d.hi, bias.tempF, hh == null ? 16 : hh);
+    d.lo = fixAtHour(d.lo, bias.tempF, lh == null ? 6 : lh);
+    d.gust = fixAtHour(d.gust, bias.gust, hh == null ? 16 : hh);
+  }
   return { wx, corrected: true };
 }
 
 async function fetchOpenMeteo(lat, lon) {
-  const q = new URLSearchParams({ latitude: lat, longitude: lon, timeformat: "unixtime", timezone: "UTC", past_hours: 6, forecast_days: 3,
+  /* timezone: the DAILY array is bucketed by whatever timezone is requested, and
+     with "UTC" those buckets are not local days here -- a UTC day begins at 5pm
+     the previous local afternoon. The board labels daily[0] "Today", so with UTC
+     buckets it was showing TOMORROW's high and low: on 2026-09-17 it read
+     79/55 when the actual local Thursday was 80/49, and the weekday list skipped
+     Friday entirely (Today/Sat/Sun). Requesting the local zone buckets them on
+     local days. Hourly and current are unaffected -- an epoch is an epoch. */
+  const q = new URLSearchParams({ latitude: lat, longitude: lon, timeformat: "unixtime", timezone: CONFIG.TZ, past_hours: 6, forecast_days: 3,
     wind_speed_unit: "kn", temperature_unit: "fahrenheit", precipitation_unit: "inch",
     current: "temperature_2m,apparent_temperature,precipitation,wind_speed_10m,wind_gusts_10m,wind_direction_10m,pressure_msl,weather_code",
     minutely_15: "precipitation",
@@ -616,7 +643,7 @@ function renderWeatherSimple({ wx, met, alerts, nowMs, nowcast, wxCorrected }) {
   }
   const waterSpan = met.waterF != null ? `<span>Water ${met.waterF.toFixed(0)}°</span>` : "";
   // Say when the forecast has been de-biased, and equally when it has not.
-  const calSpan = `<span class="dim">${wxCorrected ? "site-corrected (hi/lo raw)" : "raw model"}</span>`;
+  const calSpan = `<span class="dim">${wxCorrected ? "site-corrected" : "raw model"}</span>`;
   el("strip", [windSpan, waterSpan, calSpan].filter(Boolean).join(""));
 }
 // Temperature curve up top, rain-chance (%) as a quiet band along the base. Night blocks separate the days.
