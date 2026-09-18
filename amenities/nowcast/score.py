@@ -636,6 +636,43 @@ def obs_rain(vt):
                 hit = True
     return 1 if hit else 0
 
+def _kt_day(vt):
+    """Median clear-sky index by local hour for the day ending at vt."""
+    import marine, solar_qc, collections, statistics, json as _j, datetime as _dt2
+    day = (vt - timedelta(hours=7)).date()
+    hrs = collections.defaultdict(list)
+    try:
+        with open(os.path.join(HERE, "marine_log.jsonl")) as f:
+            for ln in f:
+                try:
+                    d = _j.loads(ln)
+                    t = _dt(d["t"]) - timedelta(hours=7)
+                except Exception:  # noqa: BLE001
+                    continue
+                if t.date() == day and d.get("kt_median") is not None:
+                    hrs[t.hour].append(d["kt_median"])
+    except OSError:
+        return {}
+    return {h: statistics.median(v) for h, v in hrs.items()}
+
+
+def obs_burnoff_clears(vt):
+    """1.0 if the deck reached Kt 0.65 by the deadline hour."""
+    med = _kt_day(vt)
+    if len(med) < 4:
+        return None
+    return 1.0 if any(k >= 0.65 for h, k in med.items() if 9 <= h <= 15) else 0.0
+
+
+def obs_burnoff_hour(vt):
+    """The hour it actually broke, or None if it never did."""
+    med = _kt_day(vt)
+    if len(med) < 4:
+        return None
+    hit = [h for h in sorted(med) if 9 <= h <= 15 and med[h] >= 0.65]
+    return float(hit[0]) if hit else None
+
+
 # ------------------------------------------------- fire-window verification
 # The fire page makes claims about a WINDOW (7pm-2am), not an instant: the
 # overnight low, the peak gust, whether it stayed dry, whether it stayed clear.
@@ -734,6 +771,7 @@ OBS = {"surge_ft": obs_surge, "wind_kt": obs_wind, "wind_gust_kt": obs_gust,
        "temp_f": obs_temp, "rain_next_hr": obs_rain, "solar_w_m2": obs_solar,
        "cloud_pct": obs_cloud,
        "sky_clear_3h": obs_sky_clear,
+       "burnoff_clears": obs_burnoff_clears, "burnoff_hour": obs_burnoff_hour,
        "fire_low_f": obs_fire_low, "fire_max_gust_kt": obs_fire_gust,
        "fire_dry_night": obs_fire_dry, "fire_clear_night": obs_fire_clear}
 
@@ -765,7 +803,8 @@ COVE_OBS = {"wind_kt": obs_cove_wind, "temp_f": obs_cove_temp}
 # ---------------------------------------------------------------- scorecard
 SCORED_VARS = ("surge_ft", "wind_kt", "temp_f", "rain_next_hr", "solar_w_m2",
                "cloud_pct", "sky_clear_3h",
-               "fire_low_f", "fire_max_gust_kt", "fire_dry_night", "fire_clear_night")
+               "fire_low_f", "fire_max_gust_kt", "fire_dry_night", "fire_clear_night",
+               "burnoff_clears", "burnoff_hour")
 # Probabilities, scored with Brier rather than bias/MAE.
 MIN_HOUR_N = 8          # hours with fewer verified pairs are not reported
 
@@ -788,7 +827,8 @@ def local_hour(dt):
     if _TZ is not None:
         return dt.astimezone(_TZ).hour
     return (dt - timedelta(hours=7)).hour          # last resort, PDT only
-PROB_VARS = {"rain_next_hr", "sky_clear_3h", "fire_dry_night", "fire_clear_night"}
+PROB_VARS = {"rain_next_hr", "sky_clear_3h", "fire_dry_night", "fire_clear_night",
+             "burnoff_clears"}
 
 
 def scorecard(entries):
