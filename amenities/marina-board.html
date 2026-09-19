@@ -120,7 +120,9 @@ const CONFIG = {
   SURGE_FORECAST_URL: "surge_forecast.json",   // surge_forecast.py: calibrated pressure/wind model, anchored to the live gauge
   NOWCAST_URL: "nowcast.json",
   SCORECARD_URL: "scorecard.json",   // carries bias_by_hour_local, used to de-bias the displayed forecast
-  FIRE_URL: "fire.json",       // fire.py: the 7pm-2am beach-fire outlook at the Point (easter egg view)
+  FIRE_URL: "fire.json",
+  BURNOFF_URL: "burnoff.json",     // burnoff.py: when this morning's deck should break
+       // fire.py: the 7pm-2am beach-fire outlook at the Point (easter egg view)
   FIRE_LAT: 47.300420, FIRE_LON: -122.847355,  // the ring itself, 0.73 mi NE of the marina
   // 1h + 1-4h rain projection from nowcast.py, served alongside the board
   PERSIST_H: 12, FADE_H: 36, // carry-forward window when no forecast feed
@@ -629,6 +631,22 @@ function renderWeatherSimple({ wx, met, alerts, nowMs, nowcast, wxCorrected }) {
   el("line", nowcast ? nowcastLine(nowcast) : wxLine(wx, nowMs, nowcast));
   el("line2", nowcast ? nowcastDetail(nowcast) : "");
   renderWeatherChart(wx, nowMs);
+  // Morning cloud-deck call. Shown only while it is actually useful -- a deck
+  // exists and the morning is not over -- because a burn-off forecast at 4pm
+  // is just noise on a small screen.
+  (async () => {
+    try {
+      const b = await fetch(CONFIG.BURNOFF_URL).then(r => r.json());
+      const age = (nowMs - Date.parse(b.generated_utc)) / 3600000;
+      const h = +fmt(nowMs, { hour: "numeric", hourCycle: "h23" });
+      if (age > 3 || h < 7 || h > 13) return;
+      // NOTE: this takes over the sub-line, replacing the nowcast's
+      // "regime, confidence" text for those hours. On a morning with a deck
+      // overhead, when it breaks is the more useful of the two.
+      const pc = Math.round(100 * b.p_clear_by_15);
+      el("line2", `${b.deck} cloud deck · should break about ${esc(b.clears_by)}, ${pc}% it clears by 3pm`);
+    } catch (e) { /* no call today */ }
+  })();
   const w = nowcast && nowcast.wind;
   let windSpan = "";
   if (w && w.marina_kt != null) {

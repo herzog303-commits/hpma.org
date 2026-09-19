@@ -636,6 +636,57 @@ def obs_rain(vt):
                 hit = True
     return 1 if hit else 0
 
+def _night_depression(vt):
+    """Network dewpoint depression by hour across the fire window ending at vt.
+
+    Truth for the fog-formation call. Read from data_log.jsonl, which carries
+    the QC'd cove consensus every cycle.
+    """
+    import collections, json as _j, math as _m, statistics
+    end = vt
+    start = end - timedelta(hours=7)
+    hrs = collections.defaultdict(list)
+    path = os.environ.get("DATA_LOG") or os.path.join(HERE, "data_log.jsonl")
+    try:
+        with open(path) as f:
+            for ln in f:
+                try:
+                    d = _j.loads(ln)
+                    o = d.get("obs") or {}
+                    if o.get("cove_temp_f") is None or o.get("cove_rh") is None:
+                        continue
+                    t = _dt(d["t"].replace("+00:00", "Z"))
+                except Exception:  # noqa: BLE001
+                    continue
+                if not (start <= t <= end):
+                    continue
+                tf, rh = o["cove_temp_f"], o["cove_rh"]
+                tc = (tf - 32) / 1.8
+                a, b = 17.625, 243.04
+                g = _m.log(max(rh, 1) / 100.0) + a * tc / (b + tc)
+                hrs[local_hour(t)].append(tf - ((b * g / (a - g)) * 1.8 + 32))
+    except OSError:
+        return {}
+    return {h: statistics.median(v) for h, v in hrs.items()}
+
+
+def obs_fog_forms(vt):
+    """1.0 if the surface saturated at any point in the window."""
+    d = _night_depression(vt)
+    if len(d) < 4:
+        return None
+    return 1.0 if any(v <= 1.0 for v in d.values()) else 0.0
+
+
+def obs_fog_onset(vt):
+    """The hour it actually fogged in, 24+ for after midnight, else None."""
+    d = _night_depression(vt)
+    if len(d) < 4:
+        return None
+    hit = [h if h >= 19 else h + 24 for h, v in d.items() if v <= 1.0]
+    return float(min(hit)) if hit else None
+
+
 def _kt_day(vt):
     """Median clear-sky index by local hour for the day ending at vt."""
     import marine, solar_qc, collections, statistics, json as _j, datetime as _dt2
@@ -772,6 +823,7 @@ OBS = {"surge_ft": obs_surge, "wind_kt": obs_wind, "wind_gust_kt": obs_gust,
        "cloud_pct": obs_cloud,
        "sky_clear_3h": obs_sky_clear,
        "burnoff_clears": obs_burnoff_clears, "burnoff_hour": obs_burnoff_hour,
+       "fog_forms": obs_fog_forms, "fog_onset_hour": obs_fog_onset,
        "fire_low_f": obs_fire_low, "fire_max_gust_kt": obs_fire_gust,
        "fire_dry_night": obs_fire_dry, "fire_clear_night": obs_fire_clear}
 
@@ -804,7 +856,7 @@ COVE_OBS = {"wind_kt": obs_cove_wind, "temp_f": obs_cove_temp}
 SCORED_VARS = ("surge_ft", "wind_kt", "temp_f", "rain_next_hr", "solar_w_m2",
                "cloud_pct", "sky_clear_3h",
                "fire_low_f", "fire_max_gust_kt", "fire_dry_night", "fire_clear_night",
-               "burnoff_clears", "burnoff_hour")
+               "burnoff_clears", "burnoff_hour", "fog_forms", "fog_onset_hour")
 # Probabilities, scored with Brier rather than bias/MAE.
 MIN_HOUR_N = 8          # hours with fewer verified pairs are not reported
 
@@ -828,7 +880,7 @@ def local_hour(dt):
         return dt.astimezone(_TZ).hour
     return (dt - timedelta(hours=7)).hour          # last resort, PDT only
 PROB_VARS = {"rain_next_hr", "sky_clear_3h", "fire_dry_night", "fire_clear_night",
-             "burnoff_clears"}
+             "burnoff_clears", "fog_forms"}
 
 
 def scorecard(entries):
