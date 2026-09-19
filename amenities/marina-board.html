@@ -754,14 +754,23 @@ async function renderFire(nowMs) {
   // The legal caveat is a standing condition, not news, so it lives along the
   // bottom rather than stealing the headline. fire.py deliberately does not
   // guess at burn-ban status -- see its module docstring.
-  const who = (bb.authorities || []).map(a => a.who.replace(/\s*\(.*\)/, "")).join(" & ") || "DNR & ORCAA";
+  // Name the authority that ACTUALLY decided it, not a list of everyone asked.
+  // For a recreational fire on private land here that is the county, and
+  // saying "per DNR & ORCAA" was both wrong and, on 2026-09-18, wrong in the
+  // restrictive direction.
+  const decided = bb.wood === "allowed" && (bb.mason || {}).recreational === "allowed"
+    ? "Mason County" : ((bb.authorities || []).map(a => a.who.replace(/\s*\(.*\)/, "")).join(" & ") || "DNR & ORCAA");
   let banTxt;
   if (bb.wood === "prohibited")
-    banTxt = `⚠ Wood fires prohibited${bb.propane === "allowed" ? " · propane OK" : ""} — per ${esc(who)}`;
+    banTxt = `⚠ Wood fires prohibited${bb.propane === "allowed" ? " · propane OK" : ""} — per ${esc(decided)}`;
   else if (bb.wood === "allowed")
-    banTxt = `No burn ban — per ${esc(who)}`;
+    banTxt = `Wood fires OK — ${esc(decided)} lifted restrictions`;
   else
-    banTxt = `⚠ Burn ban status unclear — check ${esc(who)} before you light`;
+    banTxt = `⚠ Burn ban status unclear — check before you light`;
+  // A source that disagrees is shown, not buried. It is how somebody notices
+  // if we have called the stale one wrong.
+  if (bb.orcaa_possibly_stale && bb.dissent)
+    banTxt += ` · ORCAA still lists a ban (${bb.orcaa_stale_days}d older)`;
   if (bb.stale_h != null) banTxt += ` (${bb.stale_h}h old)`;
   el("strip", `<span>${banTxt}</span>`);
   renderFireChart(hourly, extremes, t0, t1, nowMs);
