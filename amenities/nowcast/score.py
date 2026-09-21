@@ -1004,6 +1004,43 @@ def scorecard(entries):
                 bake[f"{var}_+{lead // 60}h"] = per
     if bake:
         card["bakeoff"] = {"_note": "same variable, lead, and obs across sources; lowest rmse wins", **bake}
+
+    # Model head-to-head: when a forecast module is replaced, the retired model
+    # keeps forecasting under its own src so the replacement has to win on the
+    # board's own record, not only in cross-validation. Both see the SAME
+    # inputs at the same instant, which is the whole point of logging the
+    # shadow rather than recomputing it from an archive later.
+    duel = {}
+    for var, srcs in (("burnoff_clears", ("live", "v1-climatology")),
+                      ("burnoff_hour", ("live", "v1-climatology"))):
+        # PAIRED: only mornings where both models have a verified forecast, so
+        # neither is credited for a day the other never called. Rows from
+        # before the replacement carry src "live-v1-climatology" and are
+        # excluded by construction -- the new model never forecast those days.
+        got = {src: {e["valid"]: e for e in done
+                     if e["var"] == var and e.get("src") == src} for src in srcs}
+        both = set.intersection(*(set(g) for g in got.values())) if got else set()
+        per = {}
+        for src in srcs:
+            s = [got[src][v] for v in sorted(both)]
+            if not s:
+                continue
+            if var in PROB_VARS:
+                per[src] = {"n": len(s),
+                            "brier": round(sum((e["fcst"] - e["obs"]) ** 2 for e in s) / len(s), 4)}
+            else:
+                per[src] = {"n": len(s),
+                            "mae": round(sum(abs(e["fcst"] - e["obs"]) for e in s) / len(s), 2)}
+        if len(per) >= 2:
+            k = "brier" if var in PROB_VARS else "mae"
+            per["_best"] = min((x for x in per if not x.startswith("_")), key=lambda x: per[x][k])
+            duel[var] = per
+    if duel:
+        card["model_duel"] = {
+            "_note": "current model (live) vs the retired one it replaced (v1-climatology), "
+                     "same inputs, same observation. The archive says stull-6.12 should win "
+                     "burnoff_clears by about 0.064 Brier; ~50 clouded mornings settles it.",
+            **duel}
     return card
 
 def main():
