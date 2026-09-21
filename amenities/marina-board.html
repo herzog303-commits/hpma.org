@@ -299,6 +299,27 @@ function applyBias(wx, bias) {
     const b = table[String(localHour(ms))];
     return b == null ? v : v - b;
   };
+  // Regime adjustment. Clear, near-calm nights let the cove decouple and pool
+  // cold air, which a 1-2 km grid cannot resolve -- measured over 5.7 years,
+  // drainage nights run +1.55 F warmer in error than mechanical ones BEYOND
+  // the hour-of-day bias, same sign in all 15 night hours. The table is
+  // CENTERED, so it splits the two regimes without moving the hourly mean.
+  //
+  // DECLARED BEFORE FIRST USE, and that is load-bearing. This was a `const`
+  // below the wx.current block that calls it, which is a temporal dead zone:
+  // "Cannot access 'regimeFix' before initialization", thrown before the board
+  // rendered anything. It stayed hidden because applyBias returns early unless
+  // fetchBias produces a table, and fetchBias requires >=20 hours with >=15
+  // samples each -- thresholds the cove table only crossed on 2026-09-21, when
+  // the reference station moved and 2,330 rows verified at once. A latent
+  // crash waiting on a sample-size guard.
+  const regimeFix = (v, ms) => {
+    if (v == null || !bias.drainage) return v;
+    const r = bias.drainage[String(localHour(ms))];
+    if (!r) return v;
+    const adj = bias.mode === "drainage" ? r.drainage : r.mechanical;
+    return adj == null ? v : v - adj;
+  };
   // The hero temperature reads from wx.current -- also a model value, and it
   // sits beside a corrected chart, so leaving it raw would put two different
   // numbers for the same air on the same screen.
@@ -308,19 +329,6 @@ function applyBias(wx, bias) {
     wx.current.gust = fix(wx.current.gust, bias.gust, wx.current.t);
     wx.current.kt = fix(wx.current.kt, bias.gust, wx.current.t);
   }
-  // Regime adjustment. Clear, near-calm nights let the cove decouple and pool
-  // cold air, which a 1-2 km grid cannot resolve -- measured over 5.7 years,
-  // drainage nights run +1.55 F warmer in error than mechanical ones BEYOND
-  // the hour-of-day bias, same sign in all 15 night hours. The table is
-  // CENTERED, so it splits the two regimes without moving the hourly mean.
-  const regime = bias.drainage && bias.mode ? bias.drainage[bias.mode] : null;
-  const regimeFix = (v, ms) => {
-    if (v == null || !bias.drainage) return v;
-    const r = bias.drainage[String(localHour(ms))];
-    if (!r) return v;
-    const adj = bias.mode === "drainage" ? r.drainage : r.mechanical;
-    return adj == null ? v : v - adj;
-  };
   for (const h of wx.hourly) {
     h.tempF = regimeFix(fix(h.tempF, bias.tempF, h.t), h.t);
     h.gust = fix(h.gust, bias.gust, h.t);
