@@ -667,7 +667,12 @@ function renderWeatherSimple({ wx, met, alerts, nowMs, nowcast, wxCorrected }) {
       // "regime, confidence" text for those hours. On a morning with a deck
       // overhead, when it breaks is the more useful of the two.
       const pc = Math.round(100 * b.p_clear_by_15);
-      el("line2", `${b.deck} cloud deck · should break about ${esc(b.clears_by)}, ${pc}% it clears by 3pm`);
+      // clears_by is null when the day's transmitted energy never reaches the
+      // seasonal threshold -- the model's way of saying the deck likely sits
+      // there all day. Say that, rather than rendering a missing time.
+      el("line2", b.clears_by
+        ? `${b.deck} cloud deck · should break about ${esc(b.clears_by)}, ${pc}% it clears by 3pm`
+        : `${b.deck} cloud deck · likely in all day, only ${pc}% it clears by 3pm`);
     } catch (e) { /* no call today */ }
   })();
   const w = nowcast && nowcast.wind;
