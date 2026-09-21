@@ -271,6 +271,16 @@ async function fetchBias() {
       const t = v && v.bias_by_hour_local;
       if (t && Object.keys(t).length >= BIAS_MIN_HOURS && (v.min_n_per_hour || 0) >= BIAS_MIN_N) out[k] = t;
     }
+    // The regime table ships in microclimate.json via nowcast.json, and the
+    // live regime comes from the nowcast itself.
+    try {
+      const nc = await fetch(CONFIG.NOWCAST_URL).then(r => r.json());
+      const tab = c.drainage_temp_adjust_f || (c.model_calibration || {}).drainage_temp_adjust_f;
+      if (tab && tab.by_hour_local && nc && nc.wind && nc.wind.mode) {
+        out.drainage = tab.by_hour_local;
+        out.mode = nc.wind.mode;
+      }
+    } catch (e) { /* regime split is optional */ }
     return Object.keys(out).length ? out : null;
   } catch (e) { return null; }
 }
@@ -293,13 +303,26 @@ function applyBias(wx, bias) {
   // sits beside a corrected chart, so leaving it raw would put two different
   // numbers for the same air on the same screen.
   if (wx.current) {
-    wx.current.tempF = fix(wx.current.tempF, bias.tempF, wx.current.t);
+    wx.current.tempF = regimeFix(fix(wx.current.tempF, bias.tempF, wx.current.t), wx.current.t);
     wx.current.feelsF = fix(wx.current.feelsF, bias.tempF, wx.current.t);
     wx.current.gust = fix(wx.current.gust, bias.gust, wx.current.t);
     wx.current.kt = fix(wx.current.kt, bias.gust, wx.current.t);
   }
+  // Regime adjustment. Clear, near-calm nights let the cove decouple and pool
+  // cold air, which a 1-2 km grid cannot resolve -- measured over 5.7 years,
+  // drainage nights run +1.55 F warmer in error than mechanical ones BEYOND
+  // the hour-of-day bias, same sign in all 15 night hours. The table is
+  // CENTERED, so it splits the two regimes without moving the hourly mean.
+  const regime = bias.drainage && bias.mode ? bias.drainage[bias.mode] : null;
+  const regimeFix = (v, ms) => {
+    if (v == null || !bias.drainage) return v;
+    const r = bias.drainage[String(localHour(ms))];
+    if (!r) return v;
+    const adj = bias.mode === "drainage" ? r.drainage : r.mechanical;
+    return adj == null ? v : v - adj;
+  };
   for (const h of wx.hourly) {
-    h.tempF = fix(h.tempF, bias.tempF, h.t);
+    h.tempF = regimeFix(fix(h.tempF, bias.tempF, h.t), h.t);
     h.gust = fix(h.gust, bias.gust, h.t);
     h.kt = fix(h.kt, bias.gust, h.t);
   }

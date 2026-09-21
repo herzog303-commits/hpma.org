@@ -1050,6 +1050,12 @@ def main():
         for e in entries:
             f.write(json.dumps(e) + "\n")
     card = scorecard(entries)
+    # Regime table travels with the scorecard: the board already fetches this
+    # file for bias_by_hour_local and should not need a second calibration feed.
+    try:
+        card["drainage_temp_adjust_f"] = (MC.get("model_calibration") or {}).get("drainage_temp_adjust_f")
+    except Exception:  # noqa: BLE001
+        pass
     card["generated_utc"] = now.strftime("%Y-%m-%dT%H:%M:%SZ")
     json.dump(card, open(CARD, "w"), indent=2)
     print(f"score: +{added} logged, {verified} verified, {card['n_verified']} total verified / {card['n_pending']} pending")

@@ -339,7 +339,133 @@
     "precip_ratio": 1.05,
     "source": "G2160 4-yr archive vs Open-Meteo ERA5",
     "note": "add temp_offset_f to model temp; multiply model precip by precip_ratio (rain shadow)",
-    "precip_ratio_source": "Jarrell Cove CoCoRaHS (US1WAMS0032) vs Open-Meteo, 862 days -- accurate hand-gauge, supersedes G2160"
+    "precip_ratio_source": "Jarrell Cove CoCoRaHS (US1WAMS0032) vs Open-Meteo, 862 days -- accurate hand-gauge, supersedes G2160",
+    "drainage_temp_adjust_f": {
+      "_note": "Additional temperature correction by wind regime, CENTERED so it leaves the hour-of-day mean unchanged. Derived from 5.7 years of archived Open-Meteo forecasts against the network median: drainage nights run +1.55 F warmer in error than mechanical ones BEYOND the hour-of-day bias, same sign in 15 of 15 night hours, n=56-759 per cell. Apply the 'drainage' value when nowcast reports wind.mode == drainage, the 'mechanical' value otherwise.",
+      "_derived": "2026-09-21 from backfill/fcst_hourly.jsonl x obs_hourly_extra.jsonl",
+      "by_hour_local": {
+        "1": {
+          "drainage": 1.19,
+          "mechanical": -0.74,
+          "n_drainage": 759,
+          "n_other": 1218,
+          "extra_f": 1.93,
+          "p_drainage": 0.38
+        },
+        "2": {
+          "drainage": 1.15,
+          "mechanical": -0.7,
+          "n_drainage": 749,
+          "n_other": 1227,
+          "extra_f": 1.86,
+          "p_drainage": 0.38
+        },
+        "3": {
+          "drainage": 0.83,
+          "mechanical": -0.5,
+          "n_drainage": 752,
+          "n_other": 1242,
+          "extra_f": 1.33,
+          "p_drainage": 0.38
+        },
+        "4": {
+          "drainage": 1.07,
+          "mechanical": -0.5,
+          "n_drainage": 635,
+          "n_other": 1361,
+          "extra_f": 1.57,
+          "p_drainage": 0.32
+        },
+        "5": {
+          "drainage": 1.01,
+          "mechanical": -0.44,
+          "n_drainage": 605,
+          "n_other": 1388,
+          "extra_f": 1.45,
+          "p_drainage": 0.3
+        },
+        "6": {
+          "drainage": 0.83,
+          "mechanical": -0.25,
+          "n_drainage": 337,
+          "n_other": 1111,
+          "extra_f": 1.08,
+          "p_drainage": 0.23
+        },
+        "7": {
+          "drainage": 0.56,
+          "mechanical": -0.1,
+          "n_drainage": 155,
+          "n_other": 839,
+          "extra_f": 0.66,
+          "p_drainage": 0.16
+        },
+        "8": {
+          "drainage": 0.27,
+          "mechanical": -0.03,
+          "n_drainage": 56,
+          "n_other": 552,
+          "extra_f": 0.29,
+          "p_drainage": 0.09
+        },
+        "19": {
+          "drainage": 1.42,
+          "mechanical": -0.44,
+          "n_drainage": 196,
+          "n_other": 638,
+          "extra_f": 1.86,
+          "p_drainage": 0.24
+        },
+        "20": {
+          "drainage": 1.35,
+          "mechanical": -0.51,
+          "n_drainage": 343,
+          "n_other": 908,
+          "extra_f": 1.87,
+          "p_drainage": 0.27
+        },
+        "21": {
+          "drainage": 1.45,
+          "mechanical": -0.68,
+          "n_drainage": 574,
+          "n_other": 1222,
+          "extra_f": 2.13,
+          "p_drainage": 0.32
+        },
+        "22": {
+          "drainage": 1.4,
+          "mechanical": -0.68,
+          "n_drainage": 653,
+          "n_other": 1339,
+          "extra_f": 2.08,
+          "p_drainage": 0.33
+        },
+        "23": {
+          "drainage": 1.34,
+          "mechanical": -0.67,
+          "n_drainage": 665,
+          "n_other": 1321,
+          "extra_f": 2.01,
+          "p_drainage": 0.33
+        },
+        "0": {
+          "drainage": 1.16,
+          "mechanical": -0.68,
+          "n_drainage": 730,
+          "n_other": 1249,
+          "extra_f": 1.83,
+          "p_drainage": 0.37
+        },
+        "18": {
+          "drainage": 1.04,
+          "mechanical": -0.22,
+          "n_drainage": 79,
+          "n_other": 380,
+          "extra_f": 1.25,
+          "p_drainage": 0.17
+        }
+      }
+    }
   },
   "surge_model": {
     "a_press_ft_per_hpa": 0.0338,

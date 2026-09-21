@@ -1,16 +1,16 @@
 {
-  "generated_utc": "2026-09-21T08:02:11Z",
-  "n_verified": 12586,
-  "n_pending": 3146,
+  "generated_utc": "2026-09-21T08:15:56Z",
+  "n_verified": 12590,
+  "n_pending": 3150,
   "variables": {
     "surge_ft": {
-      "n": 2740,
+      "n": 2741,
       "bias": -0.11,
       "mae": 0.19,
       "rmse": 0.25,
       "suggested_adjustment": 0.11,
       "bias_by_hour_local": {
-        "0": -0.05,
+        "0": -0.04,
         "1": -0.03,
         "2": -0.03,
         "3": -0.06,
@@ -143,10 +143,10 @@
       "_note": "Cloud-cover skill. Forecast Open-Meteo cloud_cover vs the median METAR sky condition at KSHN/KOLM/KTCM/KPWT, mapped from okta mid-points (FEW 19%, SCT 44%, BKN 75%, OVC 100%). Airfields are 23 km+, so this is REGIONAL cloud -- acceptable because cloud is synoptic-scale where our rain is not. Radar cannot supply this: it detects hydrometeors, not cloud droplets, so an overcast sky returns no echo."
     },
     "sky_clear_3h": {
-      "n": 460,
+      "n": 461,
       "brier": 0.2,
       "base_rate": 0.835,
-      "brier_skill_vs_climo": -0.45,
+      "brier_skill_vs_climo": -0.449,
       "note": "lower Brier better; skill>0 beats always-forecasting-climatology"
     },
     "fire_low_f": {
@@ -207,12 +207,12 @@
   "cove_verification": {
     "_note": "same forecast verified at the cove (WU KWASHELT285/12, ~0.35 mi) vs Grapeview (5 mi) in variables{}",
     "wind_kt": {
-      "n": 989,
+      "n": 990,
       "bias": 2.79,
       "mae": 3.17,
-      "rmse": 3.79,
+      "rmse": 3.78,
       "bias_by_hour_local": {
-        "0": 3.88,
+        "0": 3.82,
         "1": 3.83,
         "2": 4.16,
         "3": 4.15,
@@ -242,7 +242,7 @@
       "diurnal_range": 4.05
     },
     "temp_f": {
-      "n": 989,
+      "n": 990,
       "bias": 1.44,
       "mae": 2.13,
       "rmse": 2.79,
@@ -410,6 +410,132 @@
         "rmse": 4.51
       },
       "_best_rmse": "icon"
+    }
+  },
+  "drainage_temp_adjust_f": {
+    "_note": "Additional temperature correction by wind regime, CENTERED so it leaves the hour-of-day mean unchanged. Derived from 5.7 years of archived Open-Meteo forecasts against the network median: drainage nights run +1.55 F warmer in error than mechanical ones BEYOND the hour-of-day bias, same sign in 15 of 15 night hours, n=56-759 per cell. Apply the 'drainage' value when nowcast reports wind.mode == drainage, the 'mechanical' value otherwise.",
+    "_derived": "2026-09-21 from backfill/fcst_hourly.jsonl x obs_hourly_extra.jsonl",
+    "by_hour_local": {
+      "1": {
+        "drainage": 1.19,
+        "mechanical": -0.74,
+        "n_drainage": 759,
+        "n_other": 1218,
+        "extra_f": 1.93,
+        "p_drainage": 0.38
+      },
+      "2": {
+        "drainage": 1.15,
+        "mechanical": -0.7,
+        "n_drainage": 749,
+        "n_other": 1227,
+        "extra_f": 1.86,
+        "p_drainage": 0.38
+      },
+      "3": {
+        "drainage": 0.83,
+        "mechanical": -0.5,
+        "n_drainage": 752,
+        "n_other": 1242,
+        "extra_f": 1.33,
+        "p_drainage": 0.38
+      },
+      "4": {
+        "drainage": 1.07,
+        "mechanical": -0.5,
+        "n_drainage": 635,
+        "n_other": 1361,
+        "extra_f": 1.57,
+        "p_drainage": 0.32
+      },
+      "5": {
+        "drainage": 1.01,
+        "mechanical": -0.44,
+        "n_drainage": 605,
+        "n_other": 1388,
+        "extra_f": 1.45,
+        "p_drainage": 0.3
+      },
+      "6": {
+        "drainage": 0.83,
+        "mechanical": -0.25,
+        "n_drainage": 337,
+        "n_other": 1111,
+        "extra_f": 1.08,
+        "p_drainage": 0.23
+      },
+      "7": {
+        "drainage": 0.56,
+        "mechanical": -0.1,
+        "n_drainage": 155,
+        "n_other": 839,
+        "extra_f": 0.66,
+        "p_drainage": 0.16
+      },
+      "8": {
+        "drainage": 0.27,
+        "mechanical": -0.03,
+        "n_drainage": 56,
+        "n_other": 552,
+        "extra_f": 0.29,
+        "p_drainage": 0.09
+      },
+      "19": {
+        "drainage": 1.42,
+        "mechanical": -0.44,
+        "n_drainage": 196,
+        "n_other": 638,
+        "extra_f": 1.86,
+        "p_drainage": 0.24
+      },
+      "20": {
+        "drainage": 1.35,
+        "mechanical": -0.51,
+        "n_drainage": 343,
+        "n_other": 908,
+        "extra_f": 1.87,
+        "p_drainage": 0.27
+      },
+      "21": {
+        "drainage": 1.45,
+        "mechanical": -0.68,
+        "n_drainage": 574,
+        "n_other": 1222,
+        "extra_f": 2.13,
+        "p_drainage": 0.32
+      },
+      "22": {
+        "drainage": 1.4,
+        "mechanical": -0.68,
+        "n_drainage": 653,
+        "n_other": 1339,
+        "extra_f": 2.08,
+        "p_drainage": 0.33
+      },
+      "23": {
+        "drainage": 1.34,
+        "mechanical": -0.67,
+        "n_drainage": 665,
+        "n_other": 1321,
+        "extra_f": 2.01,
+        "p_drainage": 0.33
+      },
+      "0": {
+        "drainage": 1.16,
+        "mechanical": -0.68,
+        "n_drainage": 730,
+        "n_other": 1249,
+        "extra_f": 1.83,
+        "p_drainage": 0.37
+      },
+      "18": {
+        "drainage": 1.04,
+        "mechanical": -0.22,
+        "n_drainage": 79,
+        "n_other": 380,
+        "extra_f": 1.25,
+        "p_drainage": 0.17
+      }
     }
   }
 }
