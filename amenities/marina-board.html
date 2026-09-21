@@ -932,9 +932,15 @@ async function main() {
       const jobs = [fetchExtremes(CONFIG.DP_STATION, nowMs - 24 * 3600000, 96), fetchMet(CONFIG.MET_STATION, nowMs), fetchAlerts(CONFIG.NWS_ZONE), fetchLiveAnomaly(CONFIG.REF_STATIONS, nowMs), fetchAnnual(CONFIG.DP_STATION, nowMs)];
       jobs.push(view === "tides" ? fetchCurrents(CONFIG.CURRENT_STATION, nowMs) : fetchOpenMeteo(CONFIG.LAT, CONFIG.LON));
       const r = await Promise.all(jobs); extremes = r[0]; met = r[1]; alerts = r[2]; live = r[3]; annual = r[4]; if (view === "tides") cur = r[5]; else wx = r[5];
-      if (view === "weather" && wx) ({ wx, corrected: wxCorrected } = applyBias(wx, await fetchBias()));
       if (CONFIG.SURGE_FORECAST_URL) forecast = await fetch(CONFIG.SURGE_FORECAST_URL).then(x => x.json()).catch(() => null);
     }
+    // OUTSIDE the demo/live branch on purpose. This call used to live in the
+    // live branch only, so ?demo rendered the weather WITHOUT the bias and
+    // regime correction -- a different code path from the one members see, and
+    // the one that crashed on 2026-09-21 was invisible to any demo-mode check.
+    // Demo data has the same shape, so running it through here makes ?demo a
+    // real rehearsal and makes smoke_board.py able to fail.
+    if (view === "weather" && wx) ({ wx, corrected: wxCorrected } = applyBias(wx, await fetchBias()));
     let nowcast = null;   // weather view renders it; tides view uses only generated_utc
     if (!demo && CONFIG.NOWCAST_URL)
       nowcast = await fetch(CONFIG.NOWCAST_URL).then(x => x.json()).catch(() => null);
