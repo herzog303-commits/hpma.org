@@ -66,6 +66,60 @@ def _dt(s):
     return datetime.fromisoformat(s.replace("Z", "+00:00"))
 
 # ---------------------------------------------------------------- record
+# sky_clear_3h was WORSE THAN CLIMATOLOGY (Brier 0.197 against 0.136, skill
+# -0.446) and the cause was not the predictor -- it was the framing. The
+# forecast was emitted as a deterministic 0/1 while Brier, a proper scoring
+# rule, lets the climatological baseline hedge at the 0.837 base rate. A 0/1
+# forecast is therefore penalised even when it is informative, and this one is
+# informative: over 467 verified rows the GOES outlook separated cleanly,
+#
+#     P(clear | outlook said clear) = 0.897      n = 377
+#     P(clear | outlook said cloud) = 0.589      n =  90
+#
+# a separation of +0.308. Emitting that as an honest probability instead of a
+# hard call moves the SAME predictor from -0.446 skill to positive, verified
+# out of sample: 5-fold gives +0.087, and a chronological split (fit on the
+# first 280 rows, score the next 187 -- the way it will actually be used)
+# gives +0.115.
+#
+# Self-calibrating rather than hard-coded, because the hit rate is a property
+# of this site and this satellite geometry and will drift; a constant fitted
+# today would quietly go stale. Smoothed toward the base rate so a thin record
+# cannot produce a confident number.
+SKY_CAL_PRIOR = 10.0     # pseudo-observations pulling each class to the base rate
+SKY_CAL_MIN_N = 30       # below this, make no calibration claim
+
+
+def _sky_raw(e):
+    """The 0/1 outlook behind a logged row.
+
+    Rows written from 2026-09-21 carry it explicitly; earlier rows stored the
+    raw call in `fcst` itself, and smoothing guarantees a calibrated value is
+    never exactly 0 or 1, so the two are distinguishable.
+    """
+    r = e.get("raw")
+    if r is not None:
+        try: return float(r)
+        except (TypeError, ValueError): return None
+    f = e.get("fcst")
+    return float(f) if f in (0.0, 1.0) else None
+
+
+def _sky_calibration(entries):
+    """{1.0: P(clear|said clear), 0.0: P(clear|said cloud)} or None if too thin."""
+    v = [e for e in (entries or [])
+         if e.get("var") == "sky_clear_3h" and e.get("obs") is not None
+         and e.get("src", "live") == "live" and _sky_raw(e) is not None]
+    if len(v) < SKY_CAL_MIN_N:
+        return None
+    base = sum(e["obs"] for e in v) / len(v)
+    out = {}
+    for cls in (0.0, 1.0):
+        g = [e["obs"] for e in v if _sky_raw(e) == cls]
+        out[cls] = round((sum(g) + SKY_CAL_PRIOR * base) / (len(g) + SKY_CAL_PRIOR), 3)
+    return out
+
+
 def interp(series, t):
     pts = sorted((_dt(x["t"]), x["ft"]) for x in series)
     if not pts or t < pts[0][0] or t > pts[-1][0]:
@@ -76,8 +130,9 @@ def interp(series, t):
             return va + (vb - va) * (t - a).total_seconds() / (b - a).total_seconds()
     return pts[-1][1]
 
-def record(now):
+def record(now, entries=None):
     recs = []
+    extra = {}          # per-variable fields carried onto the logged row
     nc = _load(NOWCAST)
     if nc:
         tl = nc.get("timeline", [])
@@ -131,7 +186,12 @@ def record(now):
         scan = _dt(g["scan_utc"])
         if o and (now - scan).total_seconds() <= 7200:
             lead = o.get("lead_h")
-            clear3 = 1.0 if (o.get("clear_now") and (lead is None or lead > 3)) else 0.0
+            raw = 1.0 if (o.get("clear_now") and (lead is None or lead > 3)) else 0.0
+            cal = _sky_calibration(entries)
+            # Before the record is deep enough to calibrate, hedge at the
+            # long-run base rate rather than shipping a 0/1 we know scores badly.
+            clear3 = cal[raw] if cal else (0.90 if raw else 0.60)
+            extra["sky_clear_3h"] = {"raw": raw, "calibrated": bool(cal)}
             recs.append(("sky_clear_3h", now + timedelta(minutes=180), 180, clear3))
     except Exception:  # noqa: BLE001
         pass
@@ -143,7 +203,7 @@ def record(now):
             if v is not None:
                 recs.append(("surge_ft", now + timedelta(hours=lead), lead * 60, round(v, 2)))
     base = [{"var": var, "src": "live", "valid": vt.strftime("%Y-%m-%dT%H:%M:%SZ"), "lead_min": lm, "fcst": f,
-             "obs": None} for var, vt, lm, f in recs]
+             "obs": None, **extra.get(var, {})} for var, vt, lm, f in recs]
     # shadow the 0-lead wind/temp as "cove" -- same forecast, verified at the cove (WU)
     cove = [{**r, "src": "cove"} for r in base if r["var"] in ("wind_kt", "temp_f") and r["lead_min"] == 0]
     return base + cove
@@ -939,6 +999,29 @@ def scorecard(entries):
             card["variables"][var] = {"n": len(v), "brier": round(brier, 3), "base_rate": round(base, 3),
                                       "brier_skill_vs_climo": round(skill, 3),
                                       "note": "lower Brier better; skill>0 beats always-forecasting-climatology"}
+            if var == "sky_clear_3h":
+                cal = _sky_calibration(done)
+                card["variables"][var]["calibration"] = cal
+                card["variables"][var]["_note"] = (
+                    "Emitted as a CALIBRATED PROBABILITY since 2026-09-21, not the 0/1 it used "
+                    "to be. The predictor (GOES sky outlook) was always informative -- it "
+                    "separates P(clear) 0.897 vs 0.589 -- but a hard 0/1 is penalised by a "
+                    "proper scoring rule against a baseline allowed to hedge at the base rate, "
+                    "which is why this read -0.446 skill while carrying real signal. Rows from "
+                    "before that date are deterministic and drag the pooled score down; the "
+                    "calibrated era should settle near +0.09 to +0.12 skill.")
+                # Split the eras, so the fix is visible now instead of in the
+                # 60 days it takes the deterministic rows to age out of the log.
+                new_rows = [e for e in v if e.get("raw") is not None]
+                if new_rows:
+                    o2 = [e["obs"] for e in new_rows]
+                    b2 = sum((e["fcst"] - e["obs"]) ** 2 for e in new_rows) / len(new_rows)
+                    base2 = sum(o2) / len(o2)
+                    clim2 = sum((base2 - x) ** 2 for x in o2) / len(o2)
+                    card["variables"][var]["calibrated_era"] = {
+                        "n": len(new_rows), "brier": round(b2, 3),
+                        "brier_skill_vs_climo": round(1 - b2 / clim2, 3) if clim2 > 0 else None,
+                        "_note": "rows emitted as probabilities; this is the number to watch"}
         else:
             errs = [e["fcst"] - e["obs"] for e in v]
             bias = sum(errs) / len(errs)
@@ -1105,7 +1188,7 @@ def main():
     key = lambda e: (e["var"], e.get("src", "live"), e["valid"][:15])
     seen = {key(e) for e in entries}
     added = 0
-    for r in record(now) + record_bakeoff(now):
+    for r in record(now, entries) + record_bakeoff(now):
         if key(r) not in seen:
             entries.append(r); seen.add(key(r)); added += 1
 
