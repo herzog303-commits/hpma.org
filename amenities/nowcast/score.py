@@ -191,7 +191,14 @@ def record(now, entries=None):
             # Before the record is deep enough to calibrate, hedge at the
             # long-run base rate rather than shipping a 0/1 we know scores badly.
             clear3 = cal[raw] if cal else (0.90 if raw else 0.60)
-            extra["sky_clear_3h"] = {"raw": raw, "calibrated": bool(cal)}
+            # Log the CONTINUOUS state behind the binary too. `lead > 3` throws
+            # away the difference between cloud arriving in 3.5 h and in 11.5 h,
+            # which is most of the information the outlook actually has. These
+            # cost nothing now and make a better predictor fittable in a month;
+            # nothing reads them yet, deliberately.
+            extra["sky_clear_3h"] = {"raw": raw, "calibrated": bool(cal),
+                                     "lead_h": lead, "cloud_km": o.get("cloud_km"),
+                                     "cloud_pct_now": g.get("cloud_pct")}
             recs.append(("sky_clear_3h", now + timedelta(minutes=180), 180, clear3))
     except Exception:  # noqa: BLE001
         pass
