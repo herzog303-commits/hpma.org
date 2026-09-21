@@ -584,24 +584,63 @@ def _nearest(ob, key, vt):
             best = (dt, v)
     return best[1] if best and best[0] <= 1800 else None
 
+# REFERENCE STATION SWITCHED 2026-09-21. wind_kt, temp_f and wind_gust_kt --
+# and with them the entire six-way model bake-off -- were verified against
+# Grapeview GW2160 over CWOP. That gauge went off the air on 2026-09-16 and
+# took five days to notice (see aprsis.py), during which nothing verified at
+# all. The Synoptic fallback had already expired on 2026-09-07, so there was no
+# second source: one station's failure silently froze the scorecard.
+#
+# The reference is now KWASHELT285 -- 0.56 km, Ecowitt GW3000 on roof fascia
+# ~20 ft up in clean air, the best-exposed PWS in the network and already the
+# primary for wind. It is a fair substitute rather than a convenient one: over
+# the historical record the +3 kt wind bias measured +3.64 here against +3.27
+# at Grapeview, which is why the README calls that bias confirmed at two sites
+# rather than a siting artifact.
+#
+# GW2160 is kept as a FALLBACK, not restored as primary, deliberately: a
+# reference that flaps between two stations mixes two different sitings inside
+# one bias number, and WU gives us ten stations where CWOP gave us one.
+#
+# THE DISCONTINUITY IS REAL AND MUST NOT BE READ THROUGH. Rows verified before
+# this date used Grapeview; rows after use the cove. Absolute bias and rmse in
+# variables{} therefore step on this date. The BAKE-OFF ranking is unaffected,
+# because every model at a given timestamp is scored against the same
+# observation whichever station supplied it -- only the absolute numbers move.
+REFERENCE_SWITCHED_UTC = "2026-09-21T10:00:00Z"
+REFERENCE_STATION = "KWASHELT285"
+
+
+def _primary(vt):
+    """The live reference observation for wind/temp/gust at `vt`.
+
+    Cove WU first, Grapeview CWOP only if WU has nothing for that hour.
+    """
+    o = _cove_hourly(vt)
+    if o:
+        return o, "wu"
+    c = cwop.at(vt) if cwop else None
+    return (c, "cwop") if c is not None else (None, None)
+
+
 def obs_wind(vt):
-    o = cwop.at(vt) if cwop else None
-    if o is not None:
+    o, src = _primary(vt)
+    if o is not None and o.get("wind_kt") is not None:
         return o["wind_kt"]
     ob = _synoptic(vt, "wind_speed")
     return round(_nearest(ob, "wind_speed_set_1", vt), 1) if ob and _nearest(ob, "wind_speed_set_1", vt) is not None else None
 
 def obs_gust(vt):
-    o = cwop.at(vt) if cwop else None
-    if o is not None:
+    o, src = _primary(vt)
+    if o is not None and o.get("gust_kt") is not None:
         return o["gust_kt"]
     ob = _synoptic(vt, "wind_gust")
     v = _nearest(ob, "wind_gust_set_1", vt) if ob else None
     return round(v, 1) if v is not None else None
 
 def obs_temp(vt):
-    o = cwop.at(vt) if cwop else None
-    if o is not None:
+    o, src = _primary(vt)
+    if o is not None and o.get("temp_f") is not None:
         return o["temp_f"]
     ob = _synoptic(vt, "air_temp")
     return round(_nearest(ob, "air_temp_set_1", vt), 1) if ob and _nearest(ob, "air_temp_set_1", vt) is not None else None
@@ -984,8 +1023,17 @@ def scorecard(entries):
             "(forecast > 20 W/m2).")
 
     if cove:
-        card["cove_verification"] = {"_note": "same forecast verified at the cove (WU KWASHELT285/12, ~0.35 mi) "
-                                     "vs Grapeview (5 mi) in variables{}", **cove}
+        card["cove_verification"] = {"_note": "same forecast verified at the cove (WU KWASHELT285/12, ~0.35 mi). "
+                                     "This USED to be the contrast against Grapeview in variables{}, but GW2160 "
+                                     "went off the air on 2026-09-16 and the live reference moved to the same cove "
+                                     "station on 2026-09-21, so the two now share a SOURCE -- though not a SAMPLE, "
+                                     "since cove rows shadow only the 0-lead forecasts, which is why the two "
+                                     "still differ (1.42 vs 1.77 F when switched). "
+                                     "The board corrects its displayed forecast from THIS table, so it is kept "
+                                     "as the stable, board-facing contract. Restoring a genuine second site means "
+                                     "adding a Grapeview WU station (KWAGRAPE21); it is not free, because the "
+                                     "two-site agreement is what makes the +3 kt wind bias a finding rather than "
+                                     "a siting artifact.", **cove}
 
     # bake-off: forecast sources head-to-head (same var, same lead, same obs)
     bake = {}
@@ -1093,6 +1141,15 @@ def main():
         card["drainage_temp_adjust_f"] = (MC.get("model_calibration") or {}).get("drainage_temp_adjust_f")
     except Exception:  # noqa: BLE001
         pass
+    card["reference_station"] = {
+        "station": REFERENCE_STATION,
+        "switched_utc": REFERENCE_SWITCHED_UTC,
+        "previous": "GW2160 (Grapeview, CWOP) -- off the air since 2026-09-16T21:00Z",
+        "_note": "wind_kt, temp_f, wind_gust_kt and the bake-off are verified against this "
+                 "station. Rows verified BEFORE switched_utc used Grapeview, so absolute bias "
+                 "and rmse in variables{} step on that date and must not be read as a trend. "
+                 "Bake-off RANKING is unaffected: at any timestamp every model is scored "
+                 "against the same observation, whichever station supplied it."}
     card["generated_utc"] = now.strftime("%Y-%m-%dT%H:%M:%SZ")
     json.dump(card, open(CARD, "w"), indent=2)
     print(f"score: +{added} logged, {verified} verified, {card['n_verified']} total verified / {card['n_pending']} pending")
