@@ -692,9 +692,23 @@ function renderWeatherSimple({ wx, met, alerts, nowMs, nowcast, wxCorrected }) {
       // clears_by is null when the day's transmitted energy never reaches the
       // seasonal threshold -- the model's way of saying the deck sits there.
       const when = b.clears_by ? esc(b.clears_by) : null;
+      // THE TIME IS CONDITIONAL AND MUST SAY SO. "50% chance it clears by 3pm,
+      // likely around 1pm" is not merely confusing, it is false as written: a
+      // member pointed out that P(clear by 1pm) cannot exceed P(clear by 3pm),
+      // so "likely around 1pm" contradicts "50% by 3pm". The two numbers are
+      // different quantities -- an unconditional probability and a typical time
+      // GIVEN that it clears -- and the sentence set them side by side with
+      // nothing marking the conditioning. "if so" marks it.
+      //
+      // Naming the cloud type matters too. A pyranometer cannot tell a low
+      // marine deck from high cirrus, and only the low one burns off; the
+      // satellite can, so when it confirms a low top we say "low cloud" rather
+      // than the ambiguous "cloud deck". burnoff.py declines to forecast at all
+      // when the top is high, so this line never appears for the wrong sky.
+      const kind = b.cloud_top === "low" ? "low cloud" : "cloud deck";
       let call;
-      if (pc >= 65) call = `${pc}% chance it clears by 3pm` + (when ? `, breaking about ${when}` : "");
-      else if (pc >= 35) call = `${pc}% chance it clears by 3pm` + (when ? `, likely around ${when}` : "");
+      if (pc >= 65) call = `${pc}% chance it clears by 3pm` + (when ? ` — if so, usually around ${when}` : "");
+      else if (pc >= 35) call = `${pc}% chance it clears by 3pm` + (when ? ` — if so, usually around ${when}` : "");
       // NO TIME IN THE LOW BAND, deliberately. "likely in all day, 12:00pm if
       // it does" asked the reader to hold two opposite ideas at once, and a
       // member said so: the tail was the confusing part. When the call is that
@@ -703,7 +717,7 @@ function renderWeatherSimple({ wx, met, alerts, nowMs, nowcast, wxCorrected }) {
       // number besides (1.02 h MAE against 1.08 h for a constant). Say the one
       // thing we can actually forecast and stop talking.
       else call = `likely in all day — only a ${pc}% chance it clears by 3pm`;
-      el("line2", `${b.deck} cloud deck · ${call}`);
+      el("line2", `${b.deck} ${kind} · ${call}`);
     } catch (e) { /* no call today */ }
   })();
   const w = nowcast && nowcast.wind;
