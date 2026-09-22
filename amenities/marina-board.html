@@ -691,48 +691,44 @@ function renderWeatherSimple({ wx, met, alerts, nowMs, nowcast, wxCorrected }) {
       //
       // clears_by is null when the day's transmitted energy never reaches the
       // seasonal threshold -- the model's way of saying the deck sits there.
-      // NO CLEARING TIME AT ALL, and this is a deliberate retreat.
+      // WHAT THIS LINE SAYS, AND WHAT IT DELIBERATELY DOES NOT.
       //
-      // We published one, then made it conditional, then were asked the obvious
-      // question: why tell anyone the typical burn-off hour? Only today matters.
-      // The answer is worse than the question -- the hour IS today-specific
-      // arithmetic, but it scores 1.02 h MAE against 1.08 h for always saying
-      // 11:00. Three minutes of skill. Presenting it as a prediction overstates
-      // what we have; hedging it as "usually" admits it is climatology. Either
-      // way it is words spent on a number carrying no information.
+      // It reports one number: the probability the deck clears by 3pm. No
+      // clearing time. That is a retreat, arrived at over three revisions and
+      // two rounds of member feedback, and the reasoning is worth keeping.
       //
-      // WHETHER the deck clears is genuinely forecastable here (Brier skill
-      // 0.348 against climatology). WHEN it clears is not, yet. So the board
-      // says the part we can defend and stops.
+      // First it read "should break about 1:00pm, 27% it clears by 3pm" -- a
+      // specific time fronting a forecast that mostly said it would not happen.
+      // Then "likely in all day, 12:00pm if it does", which asked the reader to
+      // hold two opposite ideas at once. Then "50% chance it clears by 3pm,
+      // likely around 1pm", which is not merely confusing but FALSE as written:
+      // P(clear by 1pm) cannot exceed P(clear by 3pm). Those are two different
+      // quantities -- an unconditional probability and a typical time GIVEN
+      // clearing -- printed side by side with nothing marking the conditioning.
       //
+      // Marking the conditioning fixed the logic and invited the better
+      // question: why publish a typical burn-off hour at all, when only today
+      // matters? The honest answer is that the hour IS today's arithmetic, and
+      // it scores 1.02 h MAE against 1.08 h for always saying 11:00. Three
+      // minutes of skill. Calling it a prediction overstates it; calling it
+      // "usually" concedes it is climatology. It had no place here either way.
+      //
+      // WHETHER the deck clears is forecastable (Brier skill 0.348 against
+      // climatology, out of sample over six years). WHEN is not, yet.
       // burnoff.py still logs burnoff_hour and score.py still verifies it, so
-      // the day it earns its place we will know. There is already a candidate:
-      // re-deriving the threshold on REMAINING insolation rather than
-      // sunrise-to-15:00 cut MAE to 0.74 h at an 11:00 call in backtest.
-      // THE TIME IS CONDITIONAL AND MUST SAY SO. "50% chance it clears by 3pm,
-      // likely around 1pm" is not merely confusing, it is false as written: a
-      // member pointed out that P(clear by 1pm) cannot exceed P(clear by 3pm),
-      // so "likely around 1pm" contradicts "50% by 3pm". The two numbers are
-      // different quantities -- an unconditional probability and a typical time
-      // GIVEN that it clears -- and the sentence set them side by side with
-      // nothing marking the conditioning. "if so" marks it.
+      // the day it earns a place we will know -- there is already a candidate,
+      // a threshold re-derived on REMAINING insolation rather than
+      // sunrise-to-15:00, which cut MAE to 0.74 h at an 11:00 call in backtest.
       //
-      // Naming the cloud type matters too. A pyranometer cannot tell a low
-      // marine deck from high cirrus, and only the low one burns off; the
-      // satellite can, so when it confirms a low top we say "low cloud" rather
-      // than the ambiguous "cloud deck". burnoff.py declines to forecast at all
-      // when the top is high, so this line never appears for the wrong sky.
+      // The cloud TYPE is named because a pyranometer cannot tell a low marine
+      // deck from high cirrus and only the low one burns off. The satellite
+      // can, so a confirmed low top reads "low cloud" rather than the ambiguous
+      // "cloud deck", and burnoff.py declines to forecast at all when the top
+      // is high -- this line never appears for the wrong sky.
       const kind = b.cloud_top === "low" ? "low cloud" : "cloud deck";
-      let call;
-      if (pc >= 35) call = `${pc}% chance it clears by 3pm`;
-      // NO TIME IN THE LOW BAND, deliberately. "likely in all day, 12:00pm if
-      // it does" asked the reader to hold two opposite ideas at once, and a
-      // member said so: the tail was the confusing part. When the call is that
-      // it probably will NOT clear, an hour adds nothing -- it is conditional
-      // on an outcome we have just said is unlikely, and it is our weakest
-      // number besides (1.02 h MAE against 1.08 h for a constant). Say the one
-      // thing we can actually forecast and stop talking.
-      else call = `likely in all day — only a ${pc}% chance it clears by 3pm`;
+      const call = pc >= 35
+        ? `${pc}% chance it clears by 3pm`
+        : `likely in all day — only a ${pc}% chance it clears by 3pm`;
       el("line2", `${b.deck} ${kind} · ${call}`);
     } catch (e) { /* no call today */ }
   })();
