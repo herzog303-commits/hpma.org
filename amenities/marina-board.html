@@ -673,14 +673,30 @@ function renderWeatherSimple({ wx, met, alerts, nowMs, nowcast, wxCorrected }) {
       if (age > 3 || h < 7 || h > 13) return;
       // NOTE: this takes over the sub-line, replacing the nowcast's
       // "regime, confidence" text for those hours. On a morning with a deck
-      // overhead, when it breaks is the more useful of the two.
+      // overhead, this is the more useful of the two.
       const pc = Math.round(100 * b.p_clear_by_15);
+      // THE PROBABILITY LEADS, and the hour never opens the sentence.
+      //
+      // They come from different fits and can disagree in tone: the hour is an
+      // energy-threshold crossing, the probability a logistic on the same
+      // drive. On 2026-09-22 that produced "should break about 1:00pm, 27% it
+      // clears by 3pm" -- a specific time fronting a forecast that mostly says
+      // it will not happen. Read quickly, the 1:00pm is what stuck.
+      //
+      // The hour is also the weaker number and we measured it: 1.02 h MAE
+      // against 1.08 h for always saying 11:00. WHETHER the deck clears is
+      // forecastable here; WHEN it clears is barely. The wording should say
+      // that, so the hour is demoted to a conditional clause and dropped
+      // entirely when the model does not expect a break at all.
+      //
       // clears_by is null when the day's transmitted energy never reaches the
-      // seasonal threshold -- the model's way of saying the deck likely sits
-      // there all day. Say that, rather than rendering a missing time.
-      el("line2", b.clears_by
-        ? `${b.deck} cloud deck · should break about ${esc(b.clears_by)}, ${pc}% it clears by 3pm`
-        : `${b.deck} cloud deck · likely in all day, only ${pc}% it clears by 3pm`);
+      // seasonal threshold -- the model's way of saying the deck sits there.
+      const when = b.clears_by ? esc(b.clears_by) : null;
+      let call;
+      if (pc >= 65) call = `${pc}% it clears by 3pm` + (when ? `, breaking about ${when}` : "");
+      else if (pc >= 35) call = `${pc}% it clears by 3pm` + (when ? ` — about ${when} if it does` : "");
+      else call = `likely in all day — only ${pc}% clears by 3pm` + (when ? `, ${when} if it does` : "");
+      el("line2", `${b.deck} cloud deck · ${call}`);
     } catch (e) { /* no call today */ }
   })();
   const w = nowcast && nowcast.wind;
