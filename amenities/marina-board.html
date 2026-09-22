@@ -693,9 +693,16 @@ function renderWeatherSimple({ wx, met, alerts, nowMs, nowcast, wxCorrected }) {
       // seasonal threshold -- the model's way of saying the deck sits there.
       const when = b.clears_by ? esc(b.clears_by) : null;
       let call;
-      if (pc >= 65) call = `${pc}% it clears by 3pm` + (when ? `, breaking about ${when}` : "");
-      else if (pc >= 35) call = `${pc}% it clears by 3pm` + (when ? ` — about ${when} if it does` : "");
-      else call = `likely in all day — only ${pc}% clears by 3pm` + (when ? `, ${when} if it does` : "");
+      if (pc >= 65) call = `${pc}% chance it clears by 3pm` + (when ? `, breaking about ${when}` : "");
+      else if (pc >= 35) call = `${pc}% chance it clears by 3pm` + (when ? `, likely around ${when}` : "");
+      // NO TIME IN THE LOW BAND, deliberately. "likely in all day, 12:00pm if
+      // it does" asked the reader to hold two opposite ideas at once, and a
+      // member said so: the tail was the confusing part. When the call is that
+      // it probably will NOT clear, an hour adds nothing -- it is conditional
+      // on an outcome we have just said is unlikely, and it is our weakest
+      // number besides (1.02 h MAE against 1.08 h for a constant). Say the one
+      // thing we can actually forecast and stop talking.
+      else call = `likely in all day — only a ${pc}% chance it clears by 3pm`;
       el("line2", `${b.deck} cloud deck · ${call}`);
     } catch (e) { /* no call today */ }
   })();
