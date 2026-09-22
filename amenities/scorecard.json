@@ -1,10 +1,10 @@
 {
-  "generated_utc": "2026-09-22T08:19:47Z",
-  "n_verified": 15941,
-  "n_pending": 842,
+  "generated_utc": "2026-09-22T08:35:17Z",
+  "n_verified": 15960,
+  "n_pending": 831,
   "variables": {
     "surge_ft": {
-      "n": 2875,
+      "n": 2876,
       "bias": -0.11,
       "mae": 0.2,
       "rmse": 0.25,
@@ -40,7 +40,7 @@
       "_diurnal": "bias_by_hour_local is the SAME bias split by local hour. Where diurnal_range approaches or exceeds the overall bias, a flat correction is the wrong instrument and an hour-of-day correction is warranted."
     },
     "wind_kt": {
-      "n": 1720,
+      "n": 1721,
       "bias": 2.86,
       "mae": 3.24,
       "rmse": 3.88,
@@ -76,14 +76,14 @@
       "_diurnal": "bias_by_hour_local is the SAME bias split by local hour. Where diurnal_range approaches or exceeds the overall bias, a flat correction is the wrong instrument and an hour-of-day correction is warranted."
     },
     "temp_f": {
-      "n": 1720,
+      "n": 1721,
       "bias": 1.73,
       "mae": 2.22,
       "rmse": 2.88,
       "suggested_adjustment": -1.73,
       "bias_by_hour_local": {
         "0": 1.49,
-        "1": 1.3,
+        "1": 1.29,
         "2": 0.99,
         "3": 0.95,
         "4": 0.8,
@@ -112,7 +112,7 @@
       "_diurnal": "bias_by_hour_local is the SAME bias split by local hour. Where diurnal_range approaches or exceeds the overall bias, a flat correction is the wrong instrument and an hour-of-day correction is warranted."
     },
     "rain_next_hr": {
-      "n": 1855,
+      "n": 1856,
       "brier": 0.03,
       "base_rate": 0.06,
       "brier_skill_vs_climo": 0.468,
@@ -131,11 +131,11 @@
       "_note": "Cloud/radiation skill. Forecast is Open-Meteo shortwave_radiation, an AVERAGE over the preceding hour; observation is the median solarRadiationHigh across 9 PWS, a PEAK within the hour. Peak exceeds mean under broken cloud, so the bias carries a negative artefact that is NOT forecast error. Model-to-model comparison is unaffected. Daytime only (forecast > 20 W/m2)."
     },
     "cloud_pct": {
-      "n": 150,
-      "bias": 0.19,
-      "mae": 19.0,
-      "rmse": 37.32,
-      "suggested_adjustment": -0.19,
+      "n": 151,
+      "bias": 0.52,
+      "mae": 19.2,
+      "rmse": 37.42,
+      "suggested_adjustment": -0.52,
       "bias_by_hour_local": {},
       "diurnal_range": null,
       "note": "bias = forecast - observed; add suggested_adjustment to de-bias",
@@ -143,20 +143,20 @@
       "_note": "Cloud-cover skill. Forecast Open-Meteo cloud_cover vs the median METAR sky condition at KSHN/KOLM/KTCM/KPWT, mapped from okta mid-points (FEW 19%, SCT 44%, BKN 75%, OVC 100%). Airfields are 23 km+, so this is REGIONAL cloud -- acceptable because cloud is synoptic-scale where our rain is not. Radar cannot supply this: it detects hydrometeors, not cloud droplets, so an overcast sky returns no echo."
     },
     "sky_clear_3h": {
-      "n": 554,
+      "n": 555,
       "brier": 0.224,
-      "base_rate": 0.727,
-      "brier_skill_vs_climo": -0.132,
+      "base_rate": 0.726,
+      "brier_skill_vs_climo": -0.128,
       "note": "lower Brier better; skill>0 beats always-forecasting-climatology",
       "calibration": {
-        "0.0": 0.395,
+        "0.0": 0.393,
         "1.0": 0.856
       },
       "_note": "Emitted as a CALIBRATED PROBABILITY since 2026-09-21, not the 0/1 it used to be. The predictor (GOES sky outlook) was always informative -- it separates P(clear) 0.897 vs 0.589 -- but a hard 0/1 is penalised by a proper scoring rule against a baseline allowed to hedge at the base rate, which is why this read -0.446 skill while carrying real signal. Rows from before that date are deterministic and drag the pooled score down; the calibrated era should settle near +0.09 to +0.12 skill.",
       "calibrated_era": {
-        "n": 72,
-        "brier": 0.366,
-        "brier_skill_vs_climo": -8.166,
+        "n": 73,
+        "brier": 0.364,
+        "brier_skill_vs_climo": -8.226,
         "_note": "rows emitted as probabilities; this is the number to watch"
       }
     },
@@ -218,7 +218,7 @@
   "cove_verification": {
     "_note": "same forecast verified at the cove (WU KWASHELT285/12, ~0.35 mi). This USED to be the contrast against Grapeview in variables{}, but GW2160 went off the air on 2026-09-16 and the live reference moved to the same cove station on 2026-09-21, so the two now share a SOURCE -- though not a SAMPLE, since cove rows shadow only the 0-lead forecasts, which is why the two still differ (1.42 vs 1.77 F when switched). The board corrects its displayed forecast from THIS table, so it is kept as the stable, board-facing contract. Restoring a genuine second site means adding a Grapeview WU station (KWAGRAPE21); it is not free, because the two-site agreement is what makes the +3 kt wind bias a finding rather than a siting artifact.",
     "wind_kt": {
-      "n": 1083,
+      "n": 1084,
       "bias": 2.7,
       "mae": 3.09,
       "rmse": 3.7,
@@ -253,7 +253,7 @@
       "diurnal_range": 4.18
     },
     "temp_f": {
-      "n": 1083,
+      "n": 1084,
       "bias": 1.39,
       "mae": 2.06,
       "rmse": 2.72,
@@ -325,29 +325,29 @@
     },
     "temp_f_+3h": {
       "hrrr": {
-        "n": 390,
+        "n": 391,
         "bias": 2.44,
         "rmse": 3.49
       },
       "ecmwf": {
-        "n": 164,
-        "bias": 0.9,
-        "rmse": 3.47
+        "n": 165,
+        "bias": 0.87,
+        "rmse": 3.48
       },
       "icon": {
-        "n": 164,
-        "bias": 1.2,
-        "rmse": 3.7
+        "n": 165,
+        "bias": 1.18,
+        "rmse": 3.69
       },
       "nws": {
-        "n": 445,
-        "bias": 0.67,
+        "n": 446,
+        "bias": 0.66,
         "rmse": 3.04
       },
       "metno": {
-        "n": 149,
-        "bias": 0.69,
-        "rmse": 4.7
+        "n": 150,
+        "bias": 0.65,
+        "rmse": 4.71
       },
       "openmeteo": {
         "n": 227,
@@ -391,27 +391,27 @@
     },
     "wind_kt_+3h": {
       "hrrr": {
-        "n": 390,
+        "n": 391,
         "bias": 3.05,
         "rmse": 4.08
       },
       "ecmwf": {
-        "n": 164,
+        "n": 165,
         "bias": 2.12,
-        "rmse": 3.28
+        "rmse": 3.27
       },
       "icon": {
-        "n": 164,
-        "bias": 0.74,
+        "n": 165,
+        "bias": 0.75,
         "rmse": 1.72
       },
       "nws": {
-        "n": 445,
+        "n": 446,
         "bias": 2.68,
-        "rmse": 3.91
+        "rmse": 3.9
       },
       "metno": {
-        "n": 149,
+        "n": 150,
         "bias": 2.68,
         "rmse": 3.67
       },
