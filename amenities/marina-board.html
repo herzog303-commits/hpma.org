@@ -121,7 +121,7 @@ const CONFIG = {
   NOWCAST_URL: "nowcast.json",
   SCORECARD_URL: "scorecard.json",   // carries bias_by_hour_local, used to de-bias the displayed forecast
   FIRE_URL: "fire.json",
-  BURNOFF_URL: "burnoff.json",     // burnoff.py: when this morning's deck should break
+  BURNOFF_URL: "burnoff.json",     // burnoff.py: whether this morning's deck clears
        // fire.py: the 7pm-2am beach-fire outlook at the Point (easter egg view)
   FIRE_LAT: 47.300420, FIRE_LON: -122.847355,  // the ring itself, 0.73 mi NE of the marina
   // 1h + 1-4h rain projection from nowcast.py, served alongside the board
@@ -691,7 +691,24 @@ function renderWeatherSimple({ wx, met, alerts, nowMs, nowcast, wxCorrected }) {
       //
       // clears_by is null when the day's transmitted energy never reaches the
       // seasonal threshold -- the model's way of saying the deck sits there.
-      const when = b.clears_by ? esc(b.clears_by) : null;
+      // NO CLEARING TIME AT ALL, and this is a deliberate retreat.
+      //
+      // We published one, then made it conditional, then were asked the obvious
+      // question: why tell anyone the typical burn-off hour? Only today matters.
+      // The answer is worse than the question -- the hour IS today-specific
+      // arithmetic, but it scores 1.02 h MAE against 1.08 h for always saying
+      // 11:00. Three minutes of skill. Presenting it as a prediction overstates
+      // what we have; hedging it as "usually" admits it is climatology. Either
+      // way it is words spent on a number carrying no information.
+      //
+      // WHETHER the deck clears is genuinely forecastable here (Brier skill
+      // 0.348 against climatology). WHEN it clears is not, yet. So the board
+      // says the part we can defend and stops.
+      //
+      // burnoff.py still logs burnoff_hour and score.py still verifies it, so
+      // the day it earns its place we will know. There is already a candidate:
+      // re-deriving the threshold on REMAINING insolation rather than
+      // sunrise-to-15:00 cut MAE to 0.74 h at an 11:00 call in backtest.
       // THE TIME IS CONDITIONAL AND MUST SAY SO. "50% chance it clears by 3pm,
       // likely around 1pm" is not merely confusing, it is false as written: a
       // member pointed out that P(clear by 1pm) cannot exceed P(clear by 3pm),
@@ -707,8 +724,7 @@ function renderWeatherSimple({ wx, met, alerts, nowMs, nowcast, wxCorrected }) {
       // when the top is high, so this line never appears for the wrong sky.
       const kind = b.cloud_top === "low" ? "low cloud" : "cloud deck";
       let call;
-      if (pc >= 65) call = `${pc}% chance it clears by 3pm` + (when ? ` — if so, usually around ${when}` : "");
-      else if (pc >= 35) call = `${pc}% chance it clears by 3pm` + (when ? ` — if so, usually around ${when}` : "");
+      if (pc >= 35) call = `${pc}% chance it clears by 3pm`;
       // NO TIME IN THE LOW BAND, deliberately. "likely in all day, 12:00pm if
       // it does" asked the reader to hold two opposite ideas at once, and a
       // member said so: the tail was the confusing part. When the call is that
