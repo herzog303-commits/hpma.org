@@ -1,10 +1,10 @@
 {
-  "generated_utc": "2026-09-22T22:41:22Z",
-  "n_verified": 16552,
-  "n_pending": 834,
+  "generated_utc": "2026-09-22T22:56:57Z",
+  "n_verified": 16565,
+  "n_pending": 829,
   "variables": {
     "surge_ft": {
-      "n": 2937,
+      "n": 2938,
       "bias": -0.11,
       "mae": 0.19,
       "rmse": 0.25,
@@ -40,9 +40,9 @@
       "_diurnal": "bias_by_hour_local is the SAME bias split by local hour. Where diurnal_range approaches or exceeds the overall bias, a flat correction is the wrong instrument and an hour-of-day correction is warranted."
     },
     "wind_kt": {
-      "n": 1775,
+      "n": 1776,
       "bias": 2.81,
-      "mae": 3.2,
+      "mae": 3.19,
       "rmse": 3.84,
       "suggested_adjustment": -2.81,
       "bias_by_hour_local": {
@@ -61,7 +61,7 @@
         "12": 0.68,
         "13": 0.53,
         "14": 0.97,
-        "15": 0.94,
+        "15": 0.95,
         "16": 2.02,
         "17": 2.83,
         "18": 3.08,
@@ -76,7 +76,7 @@
       "_diurnal": "bias_by_hour_local is the SAME bias split by local hour. Where diurnal_range approaches or exceeds the overall bias, a flat correction is the wrong instrument and an hour-of-day correction is warranted."
     },
     "temp_f": {
-      "n": 1775,
+      "n": 1776,
       "bias": 1.71,
       "mae": 2.18,
       "rmse": 2.85,
@@ -97,7 +97,7 @@
         "12": 2.16,
         "13": 2.95,
         "14": 3.12,
-        "15": 3.7,
+        "15": 3.73,
         "16": 3.86,
         "17": 2.75,
         "18": 1.77,
@@ -112,7 +112,7 @@
       "_diurnal": "bias_by_hour_local is the SAME bias split by local hour. Where diurnal_range approaches or exceeds the overall bias, a flat correction is the wrong instrument and an hour-of-day correction is warranted."
     },
     "rain_next_hr": {
-      "n": 1910,
+      "n": 1911,
       "brier": 0.03,
       "base_rate": 0.059,
       "brier_skill_vs_climo": 0.465,
@@ -143,20 +143,20 @@
       "_note": "Cloud-cover skill. Forecast Open-Meteo cloud_cover vs the median METAR sky condition at KSHN/KOLM/KTCM/KPWT, mapped from okta mid-points (FEW 19%, SCT 44%, BKN 75%, OVC 100%). Airfields are 23 km+, so this is REGIONAL cloud -- acceptable because cloud is synoptic-scale where our rain is not. Radar cannot supply this: it detects hydrometeors, not cloud droplets, so an overcast sky returns no echo."
     },
     "sky_clear_3h": {
-      "n": 595,
-      "brier": 0.22,
-      "base_rate": 0.682,
-      "brier_skill_vs_climo": -0.016,
+      "n": 597,
+      "brier": 0.221,
+      "base_rate": 0.683,
+      "brier_skill_vs_climo": -0.022,
       "note": "lower Brier better; skill>0 beats always-forecasting-climatology",
       "calibration": {
-        "0.0": 0.327,
+        "0.0": 0.334,
         "1.0": 0.855
       },
       "_note": "Emitted as a CALIBRATED PROBABILITY since 2026-09-21, not the 0/1 it used to be. The predictor (GOES sky outlook) was always informative -- it separates P(clear) 0.897 vs 0.589 -- but a hard 0/1 is penalised by a proper scoring rule against a baseline allowed to hedge at the base rate, which is why this read -0.446 skill while carrying real signal. Rows from before that date are deterministic and drag the pooled score down; the calibrated era should settle near +0.09 to +0.12 skill.",
       "calibrated_era": {
-        "n": 113,
-        "brier": 0.293,
-        "brier_skill_vs_climo": -4.821,
+        "n": 115,
+        "brier": 0.295,
+        "brier_skill_vs_climo": -3.562,
         "_note": "rows emitted as probabilities; this is the number to watch"
       }
     },
@@ -196,6 +196,13 @@
       "brier_skill_vs_climo": 0.33,
       "note": "lower Brier better; skill>0 beats always-forecasting-climatology"
     },
+    "burnoff_clears": {
+      "n": 2,
+      "brier": 0.415,
+      "base_rate": 0.0,
+      "brier_skill_vs_climo": 0.0,
+      "note": "lower Brier better; skill>0 beats always-forecasting-climatology"
+    },
     "fog_forms": {
       "n": 3,
       "brier": 0.262,
@@ -218,7 +225,7 @@
   "cove_verification": {
     "_note": "same forecast verified at the cove (WU KWASHELT285/12, ~0.35 mi). This USED to be the contrast against Grapeview in variables{}, but GW2160 went off the air on 2026-09-16 and the live reference moved to the same cove station on 2026-09-21, so the two now share a SOURCE -- though not a SAMPLE, since cove rows shadow only the 0-lead forecasts, which is why the two still differ (1.42 vs 1.77 F when switched). The board corrects its displayed forecast from THIS table, so it is kept as the stable, board-facing contract. Restoring a genuine second site means adding a Grapeview WU station (KWAGRAPE21); it is not free, because the two-site agreement is what makes the +3 kt wind bias a finding rather than a siting artifact.",
     "wind_kt": {
-      "n": 1138,
+      "n": 1139,
       "bias": 2.64,
       "mae": 3.02,
       "rmse": 3.63,
@@ -238,7 +245,7 @@
         "12": 0.08,
         "13": 0.45,
         "14": 0.71,
-        "15": 0.86,
+        "15": 0.88,
         "16": 2.13,
         "17": 2.67,
         "18": 3.28,
@@ -253,9 +260,9 @@
       "diurnal_range": 4.21
     },
     "temp_f": {
-      "n": 1138,
-      "bias": 1.36,
-      "mae": 2.0,
+      "n": 1139,
+      "bias": 1.37,
+      "mae": 2.01,
       "rmse": 2.68,
       "bias_by_hour_local": {
         "0": 0.08,
@@ -273,7 +280,7 @@
         "12": 1.88,
         "13": 2.81,
         "14": 3.41,
-        "15": 4.57,
+        "15": 4.6,
         "16": 5.0,
         "17": 3.97,
         "18": 2.74,
@@ -421,6 +428,20 @@
         "rmse": 4.51
       },
       "_best_rmse": "icon"
+    }
+  },
+  "model_duel": {
+    "_note": "current model (live) vs the retired one it replaced (v1-climatology), same inputs, same observation. The archive says stull-6.12 should win burnoff_clears by about 0.064 Brier; ~50 clouded mornings settles it.",
+    "burnoff_clears": {
+      "live": {
+        "n": 2,
+        "brier": 0.4149
+      },
+      "v1-climatology": {
+        "n": 2,
+        "brier": 0.3748
+      },
+      "_best": "v1-climatology"
     }
   },
   "drainage_temp_adjust_f": {
