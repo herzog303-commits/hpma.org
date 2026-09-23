@@ -952,8 +952,17 @@ async function renderFire(nowMs) {
   // For a recreational fire on private land here that is the county, and
   // saying "per DNR & ORCAA" was both wrong and, on 2026-09-18, wrong in the
   // restrictive direction.
-  const decided = bb.wood === "allowed" && (bb.mason || {}).recreational === "allowed"
-    ? "Mason County" : ((bb.authorities || []).map(a => a.who.replace(/\s*\(.*\)/, "")).join(" & ") || "DNR & ORCAA");
+  // burnban.py now emits decided_by -- the authority whose verdict actually
+  // drove the result. Deriving it here was half right: the "allowed" branch
+  // named the county, while "prohibited" fell back to joining ALL the
+  // authorities, publishing "per Mason County & WA DNR & ORCAA" when only one
+  // of them had prohibited anything. Attribution belongs where the decision is
+  // made. The old derivation stays only as a fallback for a stale fire.json
+  // written before the field existed.
+  const decided = bb.decided_by
+    ? bb.decided_by.replace(/\s*\(.*\)/, "")
+    : (bb.wood === "allowed" && (bb.mason || {}).recreational === "allowed"
+       ? "Mason County" : ((bb.authorities || []).map(a => a.who.replace(/\s*\(.*\)/, "")).join(" & ") || "DNR & ORCAA"));
   let banTxt;
   if (bb.wood === "prohibited")
     banTxt = `⚠ Wood fires prohibited${bb.propane === "allowed" ? " · propane OK" : ""} — per ${esc(decided)}`;
