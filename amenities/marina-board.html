@@ -119,7 +119,8 @@ const CONFIG = {
   SURGE_GAIN: 1.0, SURGE_LAG_MIN: 0, SURGE_MAJOR_FT: 1.5,
   SURGE_FORECAST_URL: "surge_forecast.json",   // surge_forecast.py: calibrated pressure/wind model, anchored to the live gauge
   NOWCAST_URL: "nowcast.json",
-  SCORECARD_URL: "scorecard.json",   // carries bias_by_hour_local, used to de-bias the displayed forecast
+  SCORECARD_URL: "scorecard.json",   // carries bias_by_hour_local, the fallback temperature de-bias and the live wind one
+  TEMPFIX_URL: "tempfix.json",       // train_tempfix.py: the gradient-boosted temperature correction that supersedes the hour-of-day table
   FIRE_URL: "fire.json",
   BURNOFF_URL: "burnoff.json",     // burnoff.py: whether this morning's deck clears
        // fire.py: the 7pm-2am beach-fire outlook at the Point (easter egg view)
@@ -281,12 +282,72 @@ async function fetchBias() {
         out.mode = nc.wind.mode;
       }
     } catch (e) { /* regime split is optional */ }
+    // The model supersedes the temperature table. Loaded last and kept optional:
+    // if it is missing or malformed the tables below still apply, so a bad
+    // deploy degrades to the previous correction rather than to none.
+    try {
+      const m = await fetch(CONFIG.TEMPFIX_URL).then(r => r.json());
+      if (m && Array.isArray(m.features) && m.model && Array.isArray(m.model.trees)
+          && m.model.trees.length && typeof m.model.base === "number") out.model = m;
+    } catch (e) { /* fall back to bias_by_hour_local */ }
     return Object.keys(out).length ? out : null;
   } catch (e) { return null; }
 }
 // Local hour of a timestamp, in the board's timezone -- the table is keyed on
 // LOCAL hour because the diurnal cycle is a local-solar phenomenon.
 const localHour = ms => +fmt(ms, { hour: "numeric", hourCycle: "h23" });
+
+/* THE TEMPERATURE CORRECTION (tempfix.json, trained by train_tempfix.py).
+   Replaces the hour-of-day table plus drainage split for temperature only. On
+   48,960 paired hours, leave-one-YEAR-out, against the network median of >=3
+   stations: MAE 1.428 -> 1.086 and RMSE 1.877 -> 1.433, better in 100% of 2,000
+   day-blocked bootstrap resamples. It is also better calibrated in spread --
+   the table left 105.9% of the observed standard deviation, this leaves 99.5%.
+
+   WIND IS DELIBERATELY NOT DONE THIS WAY. The identical method halves wind MAE
+   while collapsing recall of hours at or above 10 kt from 0.651 to 0.017: it
+   wins the average by ceasing to forecast the event. Wind keeps its table.
+
+   SOLAR TIME, NOT CIVIL TIME. The clock features are built on a FIXED UTC-8,
+   matching the trainer. Using the DST-aware zone here would shift the model's
+   hour by one for half the year against what it was fitted on.
+
+   THE CLOCK FEATURES ARE INTEGERS on both sides on purpose. They were sin/cos
+   pairs, which scored a hair better, until a check found this evaluator and the
+   trainer disagreeing by up to 0.25 F on the same input: Math.sin and Python's
+   math.sin differ in the last bit, tree thresholds are literal data values, and
+   a row landing exactly on one took different branches. Integers cannot do that.
+
+   UNITS MUST MATCH THE TRAINING SET: temperature and dewpoint F, wind knots,
+   precipitation MILLIMETRES. The board requests inches for display, so precip
+   is converted back on the way in -- a silent 25x error otherwise. */
+const SOLAR_OFF = 8 * 3600000;
+function tempfixVec(model, h, tempF) {
+  if (!model || !h) return null;
+  const parts = { f_temp: tempF, f_swr: h.swr, f_cloud: h.cloud, f_rh: h.rh,
+                  f_dewp: h.dewp, f_wind: h.kt, f_gust: h.gust,
+                  f_precip: h.inch == null ? null : h.inch * 25.4 };
+  for (const k of ["f_temp", "f_swr", "f_cloud", "f_rh", "f_dewp", "f_wind", "f_gust", "f_precip"])
+    if (parts[k] == null || !isFinite(parts[k])) return null;
+  const d = new Date(h.t - SOLAR_OFF);
+  parts.hr = d.getUTCHours();
+  parts.doy = Math.floor((d - Date.UTC(d.getUTCFullYear(), 0, 0)) / 86400000);
+  parts.dpd = parts.f_temp - parts.f_dewp;
+  const v = model.features.map(k => parts[k]);
+  return v.some(x => x == null || !isFinite(x)) ? null : v;
+}
+// Walks the boosted trees. Interior nodes are [featureIndex, threshold, left,
+// right]; leaves are plain numbers, which is what the Array.isArray test keys on.
+function tempfixDelta(model, vec) {
+  if (!model || !vec) return null;
+  let out = model.model.base;
+  for (const t of model.model.trees) {
+    let nd = t;
+    while (Array.isArray(nd)) nd = vec[nd[0]] <= nd[1] ? nd[2] : nd[3];
+    out += model.model.lr * nd;
+  }
+  return isFinite(out) ? out : null;
+}
 function applyBias(wx, bias) {
   if (!bias) return { wx, corrected: false };
   const fixAtHour = (v, table, hour) => {
@@ -323,14 +384,33 @@ function applyBias(wx, bias) {
   // The hero temperature reads from wx.current -- also a model value, and it
   // sits beside a corrected chart, so leaving it raw would put two different
   // numbers for the same air on the same screen.
+  // The model needs a whole feature row, which only the hourly series carries.
+  // wx.current has no radiation or humidity of its own, so it borrows the hourly
+  // row it falls inside. Anything without a usable row -- a gap in the series, a
+  // field Open-Meteo dropped -- falls back to the hour-of-day table, so a
+  // failure lands on the board's previous behaviour rather than on nothing.
+  const hourlyAt = ms => {
+    let best = null, gap = 36e5;
+    for (const h of wx.hourly) { const d = Math.abs(h.t - ms); if (d <= gap) { gap = d; best = h; } }
+    return best;
+  };
+  const tempFix = (v, ms, row) => {
+    if (v == null) return v;
+    const d = tempfixDelta(bias.model, tempfixVec(bias.model, row === undefined ? hourlyAt(ms) : row, v));
+    return d == null ? regimeFix(fix(v, bias.tempF, ms), ms) : v - d;
+  };
   if (wx.current) {
-    wx.current.tempF = regimeFix(fix(wx.current.tempF, bias.tempF, wx.current.t), wx.current.t);
-    wx.current.feelsF = fix(wx.current.feelsF, bias.tempF, wx.current.t);
+    const row = hourlyAt(wx.current.t);
+    wx.current.tempF = tempFix(wx.current.tempF, wx.current.t, row);
+    // Apparent temperature is a different quantity and the model was not fitted
+    // on it -- but it is the same air, and the old code applied the temperature
+    // table to it for exactly that reason. Same delta, same argument.
+    wx.current.feelsF = tempFix(wx.current.feelsF, wx.current.t, row);
     wx.current.gust = fix(wx.current.gust, bias.gust, wx.current.t);
     wx.current.kt = fix(wx.current.kt, bias.gust, wx.current.t);
   }
   for (const h of wx.hourly) {
-    h.tempF = regimeFix(fix(h.tempF, bias.tempF, h.t), h.t);
+    h.tempF = tempFix(h.tempF, h.t, h);
     h.gust = fix(h.gust, bias.gust, h.t);
     h.kt = fix(h.kt, bias.gust, h.t);
   }
@@ -345,18 +425,23 @@ function applyBias(wx, bias) {
   // max/min; otherwise we fall back to the climatological hours, which are
   // also where this site's bias table has its extremes (about +4.8 F at 16:00
   // against +0.2 F at 02:00).
-  const hourOf = (day, pick) => {
+  // Returns the hourly ROW at which the extreme occurs, not just its hour --
+  // the model needs the whole row, and the hour falls out of it for the table
+  // fallback and for gust.
+  const extremeRow = (day, pick) => {
     const key = fmt(day.t + 12 * 3600000, { day: "numeric", month: "numeric" });
     const hrs = wx.hourly.filter(h => fmt(h.t, { day: "numeric", month: "numeric" }) === key
                                       && h.tempF != null);
     if (hrs.length < 4) return null;
-    return localHour(hrs.reduce((a, b) => (pick === "hi" ? b.tempF > a.tempF : b.tempF < a.tempF) ? b : a).t);
+    return hrs.reduce((a, b) => (pick === "hi" ? b.tempF > a.tempF : b.tempF < a.tempF) ? b : a);
   };
   for (const d of wx.daily) {
-    const hh = hourOf(d, "hi"), lh = hourOf(d, "lo");
-    d.hi = fixAtHour(d.hi, bias.tempF, hh == null ? 16 : hh);
-    d.lo = fixAtHour(d.lo, bias.tempF, lh == null ? 6 : lh);
-    d.gust = fixAtHour(d.gust, bias.gust, hh == null ? 16 : hh);
+    const hr = extremeRow(d, "hi"), lr = extremeRow(d, "lo");
+    // The extreme is corrected as if it were the temperature at its own hour:
+    // that hour's feature row, with the extreme substituted for the hourly value.
+    d.hi = hr ? tempFix(d.hi, hr.t, hr) : fixAtHour(d.hi, bias.tempF, 16);
+    d.lo = lr ? tempFix(d.lo, lr.t, lr) : fixAtHour(d.lo, bias.tempF, 6);
+    d.gust = fixAtHour(d.gust, bias.gust, hr == null ? 16 : localHour(hr.t));
   }
   return { wx, corrected: true };
 }
@@ -373,14 +458,14 @@ async function fetchOpenMeteo(lat, lon) {
     wind_speed_unit: "kn", temperature_unit: "fahrenheit", precipitation_unit: "inch",
     current: "temperature_2m,apparent_temperature,precipitation,wind_speed_10m,wind_gusts_10m,wind_direction_10m,pressure_msl,weather_code",
     minutely_15: "precipitation",
-    hourly: "temperature_2m,precipitation,precipitation_probability,pressure_msl,wind_speed_10m,wind_gusts_10m,wind_direction_10m,weather_code",
+    hourly: "temperature_2m,precipitation,precipitation_probability,pressure_msl,wind_speed_10m,wind_gusts_10m,wind_direction_10m,weather_code,shortwave_radiation,cloud_cover,relative_humidity_2m,dew_point_2m",
     daily: "temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,wind_gusts_10m_max,wind_direction_10m_dominant,weather_code" });
   const r = await fetch(`https://api.open-meteo.com/v1/forecast?${q}`); if (!r.ok) throw new Error(`Open-Meteo ${r.status}`);
   const j = await r.json(), H = j.hourly, M = j.minutely_15, D = j.daily, C = j.current;
   return {
     current: { t: C.time * 1000, tempF: C.temperature_2m, feelsF: C.apparent_temperature, kt: C.wind_speed_10m, gust: C.wind_gusts_10m, dir: C.wind_direction_10m, hPa: C.pressure_msl, code: C.weather_code, precip: C.precipitation },
     minutely: M.time.map((t, i) => ({ t: t * 1000, inch: M.precipitation[i] })),
-    hourly: H.time.map((t, i) => ({ t: t * 1000, tempF: H.temperature_2m[i], inch: H.precipitation[i], pop: H.precipitation_probability[i], hPa: H.pressure_msl[i], kt: H.wind_speed_10m[i], gust: H.wind_gusts_10m[i], dir: H.wind_direction_10m[i], code: H.weather_code[i] })),
+    hourly: H.time.map((t, i) => ({ t: t * 1000, tempF: H.temperature_2m[i], inch: H.precipitation[i], pop: H.precipitation_probability[i], hPa: H.pressure_msl[i], kt: H.wind_speed_10m[i], gust: H.wind_gusts_10m[i], dir: H.wind_direction_10m[i], code: H.weather_code[i], swr: H.shortwave_radiation[i], cloud: H.cloud_cover[i], rh: H.relative_humidity_2m[i], dewp: H.dew_point_2m[i] })),
     daily: D.time.map((t, i) => ({ t: t * 1000, hi: D.temperature_2m_max[i], lo: D.temperature_2m_min[i], inch: D.precipitation_sum[i], pop: D.precipitation_probability_max[i], gust: D.wind_gusts_10m_max[i], dir: D.wind_direction_10m_dominant[i], code: D.weather_code[i] }))
   };
 }
@@ -415,7 +500,13 @@ function demoWeather(nowMs) {
   const h0 = nowMs - (nowMs % 3600000) - 6 * 3600000, hourly = [];
   for (let i = 0; i < 78; i++) { const t = h0 + i * 3600000, a = (i - 6) / 78;
     const storm = Math.exp(-((i - 16) ** 2) / 40), kt = 8 + 18 * storm, hPa = 1004 - 12 * storm, rain = i >= 9 && i <= 22 ? 0.06 + 0.12 * storm : i >= 30 && i <= 34 ? 0.03 : 0;
-    hourly.push({ t, tempF: 46 + 4 * Math.sin((i - 8) / 24 * Math.PI * 2), inch: +rain.toFixed(2), pop: rain ? 80 : 15, hPa, kt, gust: kt * 1.45, dir: 190 + 30 * Math.sin(i / 9), code: rain > 0.1 ? 63 : rain ? 61 : 3 }); }
+    // swr/cloud/rh/dewp carry no display role -- they exist so ?demo exercises
+    // the tempfix model path. Without them tempfixVec returns null, the board
+    // silently falls back to the hour-of-day table, and smoke_board.py would
+    // pass while never once running the correction it is meant to guard.
+    const dayFrac = Math.max(0, Math.sin((i - 6) / 24 * Math.PI * 2));
+    hourly.push({ t, tempF: 46 + 4 * Math.sin((i - 8) / 24 * Math.PI * 2), inch: +rain.toFixed(2), pop: rain ? 80 : 15, hPa, kt, gust: kt * 1.45, dir: 190 + 30 * Math.sin(i / 9), code: rain > 0.1 ? 63 : rain ? 61 : 3,
+                  swr: +(700 * dayFrac).toFixed(1), cloud: rain ? 95 : 40, rh: rain ? 92 : 74, dewp: +(41 + 3 * Math.sin(i / 7)).toFixed(1) }); }
   const m0 = nowMs - (nowMs % (15 * 60000)), minutely = [];
   for (let i = 0; i < 12; i++) minutely.push({ t: m0 + i * 15 * 60000, inch: i < 3 ? 0 : +(0.02 + 0.01 * i).toFixed(2) });
   const d0 = localParts(nowMs).midnight;
