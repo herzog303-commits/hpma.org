@@ -817,9 +817,16 @@ function renderWeatherSimple({ wx, met, alerts, nowMs, nowcast, wxCorrected }) {
       // "cloud deck", and burnoff.py declines to forecast at all when the top
       // is high -- this line never appears for the wrong sky.
       const kind = b.cloud_top === "low" ? "low cloud" : "cloud deck";
+      // "BREAKS", NOT "CLEARS", and the distinction is not pedantry. The model
+      // predicts the LOW deck going away. It says nothing about cloud above it,
+      // and in this climate that gap is large: across 1,405 clouded mornings the
+      // low deck lifted 68.5% of the time, but on 18.6% of ALL of them it lifted
+      // into a sky that stayed dull -- 27.7% in winter, when half the mornings
+      // that lift never brighten at all. Saying "clears" promised a blue sky the
+      // forecast was never about, most often in the season it was least true.
       const call = pc >= 35
-        ? `${pc}% chance it clears by 3pm`
-        : `likely in all day — only a ${pc}% chance it clears by 3pm`;
+        ? `${pc}% chance the deck breaks by 3pm`
+        : `likely in all day — only a ${pc}% chance the deck breaks by 3pm`;
       el("line2", `${b.deck} ${kind} · ${call}`);
     } catch (e) { /* no call today */ }
   })();
