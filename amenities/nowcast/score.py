@@ -153,6 +153,22 @@ def record(now, entries=None):
             recs.append(("wind_gust_kt", now, 0, round(w["regional_gust_kt"], 1)))
         if nc.get("temp_cove_f") is not None:
             recs.append(("temp_f", now, 0, round(nc["temp_cove_f"], 1)))
+    # SCORE WHAT MEMBERS ACTUALLY SEE. The board has applied tempfix.json in the
+    # browser since 2026-09-23 while this logged only the raw forecast, so the
+    # scorecard measured a number nobody was shown. A wrong feature order, a
+    # stale model file or a unit slip would all have left these figures looking
+    # perfectly healthy. Logged as a separate src so the two sit side by side in
+    # the same scorecard, over the same hours, against the same observation.
+    tempfix_rows = []
+    try:
+        import tempfix_apply
+        raw_f, corr_f = tempfix_apply.corrected()
+        if corr_f is not None:
+            tempfix_rows.append({"var": "temp_f", "src": "live-tempfix",
+                                 "valid": now.strftime("%Y-%m-%dT%H:%M:%SZ"),
+                                 "lead_min": 0, "fcst": round(corr_f, 1), "obs": None})
+    except Exception:  # noqa: BLE001
+        pass          # the correction is an improvement, never a dependency
     # Cloud/radiation skill. Recorded only when the forecast expects meaningful
     # daylight -- scoring hours where both sides are zero would manufacture
     # skill out of darkness.
@@ -213,7 +229,7 @@ def record(now, entries=None):
              "obs": None, **extra.get(var, {})} for var, vt, lm, f in recs]
     # shadow the 0-lead wind/temp as "cove" -- same forecast, verified at the cove (WU)
     cove = [{**r, "src": "cove"} for r in base if r["var"] in ("wind_kt", "temp_f") and r["lead_min"] == 0]
-    return base + cove
+    return base + cove + tempfix_rows
 
 # ---------------------------------------------------------------- bake-off (shadow forecast sources)
 NWS_HOURLY = "https://api.weather.gov/gridpoints/SEW/105,57/forecast/hourly"   # cove gridpoint (api.weather.gov/points)
@@ -1213,6 +1229,35 @@ def scorecard(entries):
                                                    "correction is the wrong instrument and an hour-of-day correction "
                                                    "is warranted.")}
 
+    # DOES THE SHIPPED CORRECTION ACTUALLY HELP? The board applies tempfix.json
+    # in the browser; src="live-tempfix" is the same model evaluated here. Both
+    # are scored over the same hours against the same observation, so this is a
+    # paired comparison of what members see against what the model said before
+    # correction. Until this existed the project shipped a correction claiming
+    # MAE 1.09 and verified the raw forecast at MAE 2.08 -- a stale model file
+    # or a wrong feature order would not have moved a single published number.
+    tf = {}
+    _paired = {}
+    for src in ("live", "live-tempfix"):
+        for e in done:
+            if e["var"] == "temp_f" and e.get("src") == src and e.get("lead_min") == 0:
+                _paired.setdefault(e["valid"], {})[src] = e
+    both = [p for p in _paired.values() if len(p) == 2]
+    if len(both) >= 10:
+        def _stat(src):
+            errs = [p[src]["fcst"] - p[src]["obs"] for p in both]
+            n = len(errs)
+            return {"n": n, "bias": round(sum(errs) / n, 2),
+                    "mae": round(sum(abs(x) for x in errs) / n, 2),
+                    "rmse": round((sum(x * x for x in errs) / n) ** 0.5, 2)}
+        tf = {"raw": _stat("live"), "corrected": _stat("live-tempfix"),
+              "_note": ("paired on identical valid hours. 'corrected' is what the "
+                        "board displays; 'raw' is the model before tempfix.json. "
+                        "If corrected is not better here, the correction is not "
+                        "working in production whatever the backtest said.")}
+        tf["mae_change_pct"] = round(100 * (tf["corrected"]["mae"] - tf["raw"]["mae"])
+                                     / max(tf["raw"]["mae"], 1e-9), 1)
+
     # cove verification: the SAME live wind/temp forecasts scored at the cove (WU) --
     # compare bias/rmse here against the Grapeview-verified numbers in variables{} above.
     cove = {}
@@ -1261,6 +1306,9 @@ def scorecard(entries):
             "mean under broken cloud, so the bias carries a negative artefact that is "
             "NOT forecast error. Model-to-model comparison is unaffected. Daytime only "
             "(forecast > 20 W/m2).")
+
+    card["tempfix_verification"] = tf or {
+        "_note": "no paired hours yet; starts accumulating from 2026-09-24"}
 
     if cove:
         card["cove_verification"] = {"_note": "same forecast verified at the cove (WU KWASHELT285/12, ~0.35 mi). "
