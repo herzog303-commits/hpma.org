@@ -486,7 +486,11 @@ def obs_cloud(vt):
         if sid in best and best[sid][0] <= gap:
             continue
         layers = m.get("clouds") or []
-        frac = max((_SKY.get((l.get("cover") or "").upper(), 0.0) for l in layers), default=0.0)
+        # .strip() because an unrecognised code falls to 0.0 -- "clear" -- which
+        # is the wrong direction to fail in. The IEM archive writes vertical
+        # visibility as "VV " with a trailing space; this reads the live feed,
+        # which does not, but a silent default of 0.0 is not worth the bet.
+        frac = max((_SKY.get((l.get("cover") or "").strip().upper(), 0.0) for l in layers), default=0.0)
         best[sid] = (gap, frac)
     vals = sorted(v[1] for v in best.values())
     if len(vals) < 2:
@@ -793,9 +797,120 @@ def obs_fog_onset(vt):
     return float(min(hit)) if hit else None
 
 
+# WHICH Kt THE BURN-OFF VERIFIER USES, and why it changed on 2026-09-24.
+#
+# This read marine_log.jsonl, which records marine.survey() -> wu_current ->
+# "solarRadiation": an INSTANTANEOUS sample taken whenever the cycle happened to
+# run. burnoff.py was fitted on backfill/obs_hourly_extra.jsonl -> "solar_hi" ->
+# "solarRadiationHigh": the hourly PEAK. Both arrive through the same
+# wu._norm line, `_pick(o, "solarRadiation", "solarRadiationHigh")`, because the
+# current endpoint carries the first field and the hourly endpoint only the
+# second. Neither call site looks wrong.
+#
+# They are not close. Over 58 overlapping hours the peak exceeds the
+# instantaneous value by a median of +0.33 Kt, and 36 hours clear the 0.65 bar
+# by peak against 7 by instantaneous. So the model learned a 61% clearing base
+# rate and was scored where clearing is five times rarer -- it over-forecast by
+# construction, and the duel was measuring that mismatch rather than the model.
+#
+# Verifying on the PEAK makes the two agree, so the duel measures the model
+# rather than the mismatch. That is the whole reason for it, and the cost is
+# stated plainly here because it is not small.
+#
+# A PEAK OF 0.65 IS A SUNBREAK, NOT A CLEARED SKY, and no threshold fixes that.
+# Calibrated against 68 live hours where the instantaneous median is available:
+#
+#     peak >= 0.65   catches 7/7 sustained-clear hours, 35 FALSE ALARMS
+#     peak >= 0.85   catches 7/7                        27 false alarms
+#     peak >= 1.00   catches 2/7                        12 false alarms
+#
+# There is no cutoff that separates them, because one bright break drives the
+# hourly maximum arbitrarily high whatever the rest of the hour did -- peak Kt
+# above 1.0 appears in this data, which is cloud-edge enhancement. Sustained
+# clearing is simply not recoverable from an hourly maximum.
+#
+# SO burnoff_clears NOW MEASURES "did the sun break through at all", and the
+# board's wording -- "84% chance it clears by 3pm" -- promises more than that.
+# The honest fixes are to refit the model on a sustained measure once enough
+# live instantaneous history exists (68 hours today, growing every cycle), or
+# to change the board's wording to match. Both are open; neither is this line.
+_upper_cache = {}
+
+
+def _upper_by_hour(day):
+    """Over-cove mid/high cloud %, by UTC hour, for a recent day. {} on failure."""
+    key = str(day)
+    if key in _upper_cache:
+        return _upper_cache[key]
+    out = {}
+    try:
+        q = {"latitude": MC["cove"]["lat"], "longitude": MC["cove"]["lon"],
+             "timezone": "GMT", "hourly": "cloud_cover_mid,cloud_cover_high",
+             "past_days": 7, "forecast_days": 1}
+        h = json.load(urllib.request.urlopen(
+            "https://api.open-meteo.com/v1/forecast?" + urllib.parse.urlencode(q), timeout=30))["hourly"]
+        for i, t in enumerate(h["time"]):
+            out[t] = max(h["cloud_cover_mid"][i] or 0, h["cloud_cover_high"][i] or 0)
+    except Exception:  # noqa: BLE001
+        pass
+    _upper_cache[key] = out
+    return out
+
+
 def _kt_day(vt):
-    """Median clear-sky index by local hour for the day ending at vt."""
-    import marine, solar_qc, collections, statistics, json as _j, datetime as _dt2
+    """Deck transmission by local hour -- Kt as a fraction of what the sun angle
+    and today's upper cloud ALLOW, which is the target burnoff.py is fitted on.
+
+    Hours below skyref's elevation floor are omitted entirely rather than
+    reported as a very thick deck, because at this site a cloudless sky reads
+    Kt 0.19 at 10-15 degrees and the number means nothing.
+    """
+    import marine, skyref, collections, statistics
+    day = (vt - timedelta(hours=7)).date()
+    try:
+        import wu as _wu
+        stations = _wu.independent_stations(MC)
+    except Exception:  # noqa: BLE001
+        return {}
+    out = {}
+    for h in range(6, 19):
+        # Local -> UTC with the same fixed offset the day boundary above uses.
+        # The valid times are mid-afternoon local, so the date is unambiguous.
+        when = datetime(day.year, day.month, day.day, h, tzinfo=timezone.utc) + timedelta(hours=7)
+        elev = marine.solar_elevation(when)
+        if not skyref.usable(elev):
+            continue
+        ks = []
+        for st in stations:
+            try:
+                o = _wu.wu_hourly_at(when, station=st)
+            except Exception:  # noqa: BLE001
+                continue
+            v = (o or {}).get("solar_w_m2")
+            if v is None:
+                continue
+            k = marine.kt(float(v), when)
+            if k is not None:
+                ks.append(k)
+        if len(ks) >= 3:
+            upper = _upper_by_hour(day).get(when.strftime("%Y-%m-%dT%H:00"))
+            t = skyref.deck_transmission(statistics.median(ks), elev, upper or 0.0)
+            if t is not None:
+                out[h] = t
+    return out
+
+
+def _kt_day_sustained(vt):
+    """Median clear-sky index by local hour from INSTANTANEOUS samples.
+
+    marine_log.jsonl records marine.survey() every cycle, so each hour holds
+    roughly four point samples and their median describes what the hour was
+    actually like -- as opposed to _kt_day above, which reports the brightest
+    instant in the hour. This is the measure that means CLEAR rather than
+    CLEARING, and it is scored from today so that a refit onto it becomes
+    possible: burnoff.py cannot be fitted to a target with no history.
+    """
+    import collections, statistics, json as _j
     day = (vt - timedelta(hours=7)).date()
     hrs = collections.defaultdict(list)
     try:
@@ -810,11 +925,19 @@ def _kt_day(vt):
                     hrs[t.hour].append(d["kt_median"])
     except OSError:
         return {}
-    return {h: statistics.median(v) for h, v in hrs.items()}
+    return {h: statistics.median(v) for h, v in hrs.items() if len(v) >= 2}
+
+
+def obs_burnoff_sustained(vt):
+    """1.0 if the deck was actually CLEAR -- hourly median Kt >= 0.65, not a peak."""
+    med = _kt_day_sustained(vt)
+    if len(med) < 4:
+        return None
+    return 1.0 if any(k >= 0.65 for h, k in med.items() if 9 <= h <= 15) else 0.0
 
 
 def obs_burnoff_clears(vt):
-    """1.0 if the deck reached Kt 0.65 by the deadline hour."""
+    """1.0 if the DECK went away -- transmission 0.65 of what the sky allowed."""
     med = _kt_day(vt)
     if len(med) < 4:
         return None
@@ -928,7 +1051,13 @@ OBS = {"surge_ft": obs_surge, "wind_kt": obs_wind, "wind_gust_kt": obs_gust,
        "temp_f": obs_temp, "rain_next_hr": obs_rain, "solar_w_m2": obs_solar,
        "cloud_pct": obs_cloud,
        "sky_clear_3h": obs_sky_clear,
+       # burnoff_clears verifies on the hourly PEAK, matching what burnoff.py
+       # was fitted on. It means "the sun broke through", not "the deck cleared
+       # and stayed cleared" -- see the note above _kt_day.
        "burnoff_clears": obs_burnoff_clears, "burnoff_hour": obs_burnoff_hour,
+       # Same forecast, stricter target. The gap between these two IS the
+       # recalibration the model needs, measured rather than guessed.
+       "burnoff_sustained": obs_burnoff_sustained,
        "fog_forms": obs_fog_forms, "fog_onset_hour": obs_fog_onset,
        "fire_low_f": obs_fire_low, "fire_max_gust_kt": obs_fire_gust,
        "fire_dry_night": obs_fire_dry, "fire_clear_night": obs_fire_clear}
@@ -942,9 +1071,29 @@ except Exception:  # noqa: BLE001
     wu = None
 
 def _cove_hourly(vt):
+    """The cove observation for verification -- nearest station the rest of the
+    network does not contradict.
+
+    This took the FIRST station with data, which meant a single broken reading
+    became the observed truth and the forecast was scored against it. KWASHELT67
+    published 117 F on a 35 F afternoon and -18 F on a 65 F evening; 2% of its
+    readings were like that for two years, and every one of them would have been
+    booked here as forecast error.
+    """
     if wu is None:
         return None
-    for st in wu.independent_stations(MC):
+    stations = wu.independent_stations(MC)
+    try:
+        ok = wu.wu_hourly_consensus(vt, stations, field="temp_f")
+    except Exception:  # noqa: BLE001
+        ok = None
+    if ok:
+        for st, o in ok:
+            if o.get("temp_f") is not None or o.get("wind_kt") is not None:
+                return o
+    # No temperature anywhere, or too few peers to judge: fall back to the old
+    # behaviour rather than return nothing. A wind-only hour is still verifiable.
+    for st in stations:
         o = wu.wu_hourly_at(vt, station=st)
         if o and (o.get("temp_f") is not None or o.get("wind_kt") is not None):
             return o
@@ -962,7 +1111,8 @@ COVE_OBS = {"wind_kt": obs_cove_wind, "temp_f": obs_cove_temp}
 SCORED_VARS = ("surge_ft", "wind_kt", "temp_f", "rain_next_hr", "solar_w_m2",
                "cloud_pct", "sky_clear_3h",
                "fire_low_f", "fire_max_gust_kt", "fire_dry_night", "fire_clear_night",
-               "burnoff_clears", "burnoff_hour", "fog_forms", "fog_onset_hour")
+               "burnoff_clears", "burnoff_sustained", "burnoff_hour",
+               "fog_forms", "fog_onset_hour")
 # Probabilities, scored with Brier rather than bias/MAE.
 MIN_HOUR_N = 8          # hours with fewer verified pairs are not reported
 
@@ -986,7 +1136,7 @@ def local_hour(dt):
         return dt.astimezone(_TZ).hour
     return (dt - timedelta(hours=7)).hour          # last resort, PDT only
 PROB_VARS = {"rain_next_hr", "sky_clear_3h", "fire_dry_night", "fire_clear_night",
-             "burnoff_clears", "fog_forms"}
+             "burnoff_clears", "burnoff_sustained", "fog_forms"}
 
 
 def scorecard(entries):

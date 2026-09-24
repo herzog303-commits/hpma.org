@@ -48,6 +48,26 @@ CACHE_DIR = os.environ.get("WU_CACHE_DIR") or os.path.join(HERE, ".wu-cache")
 # ~1,900 -> ~1,250 per day.
 CACHE_TTL = {"observations/current": 240, "observations/hourly/7day": 3000}
 
+# How far a reading may sit from the network median before we treat it as a
+# broken sensor rather than a microclimate. Station-to-station spread at the
+# SAME hour has a median of 2 F and a p90 of 6 F across this network
+# (RESEARCH_NOTES), so 15 F is nowhere near a real cold pocket.
+#
+# A PHYSICAL-BOUNDS CHECK CANNOT DO THIS JOB. The archive filter was
+# `-20 < t < 130`, which happily passes 117 F on a 35 F March afternoon and
+# -17 F on a 66 F May evening -- both real readings from KWASHELT67, both
+# booked as observations. Plausibility is not a property of a number on its own;
+# it is a property of the number against nine neighbours standing in the same
+# weather.
+SPIKE_F = 15.0
+SPIKE_MIN_PEERS = 3        # below this there is no consensus to judge against
+
+# How far into the future a station may stamp an observation before we refuse to
+# verify against it. Small but not zero: clocks disagree by seconds, and WU
+# stamps the hourly aggregate at the END of its window, so a minute or two of
+# apparent lead is normal. Anything beyond this is a clock, not rounding.
+FUTURE_TOL_MIN = 5.0
+
 
 def _cache_file(path, station):
     safe = path.replace("/", "_")
@@ -171,7 +191,51 @@ def wu_hourly_at(vt, station=DEFAULT_STATION, tol_min=45):
     def t(o):
         return datetime.fromisoformat(o["obsTimeUtc"].replace("Z", "+00:00"))
     best = min(obs, key=lambda o: abs((t(o) - vt).total_seconds()))
-    return _norm(best) if abs((t(best) - vt).total_seconds()) <= tol_min * 60 else None
+    if abs((t(best) - vt).total_seconds()) > tol_min * 60:
+        return None
+    # obsTimeUtc IS THE STATION'S OWN CLOCK. A drifted station labels an
+    # observation with a time it was not taken, we match it to a forecast valid
+    # at that label, and the difference is booked as forecast error -- silently,
+    # and in whichever direction the weather was moving. A station reporting the
+    # FUTURE is the one unambiguous case: nothing observes tomorrow. Reject it
+    # rather than verify against it.
+    #
+    # WHAT THIS DOES NOT CATCH, said plainly: a clock running BEHIND is
+    # indistinguishable from ordinary upload latency in a single fetch, and no
+    # threshold here can separate them. That needs the network as a reference --
+    # wu_clockcheck.py correlates each station against the median of the others
+    # and finds the lag. It caught KWASHELT67 running +1 h through 2023-2024
+    # (r 0.827 at lag 0 against 0.892 at lag +1), clean before and since. Run it
+    # before trusting a long archive, not just the live feed.
+    skew_min = (t(best) - datetime.now(timezone.utc)).total_seconds() / 60.0
+    if skew_min > FUTURE_TOL_MIN:
+        return None
+    return _norm(best)
+
+def wu_hourly_consensus(vt, stations, field="temp_f", tol_f=SPIKE_F):
+    """[(station, obs)] at vt with readings that disagree with the network dropped.
+
+    Order is preserved, so a caller that prefers the nearest station still gets
+    it -- minus the ones the rest of the network contradicts. With fewer than
+    SPIKE_MIN_PEERS reporting there is nothing to judge against and everything
+    is returned untouched, because inventing a consensus from two stations would
+    be worse than trusting one.
+    """
+    got = []
+    for st in stations:
+        try:
+            o = wu_hourly_at(vt, station=st)
+        except Exception:  # noqa: BLE001
+            continue
+        if o and o.get(field) is not None:
+            got.append((st, o))
+    if len(got) < SPIKE_MIN_PEERS:
+        return got
+    vals = sorted(float(o[field]) for _, o in got)
+    n = len(vals)
+    med = vals[n // 2] if n % 2 else (vals[n // 2 - 1] + vals[n // 2]) / 2
+    return [(st, o) for st, o in got if abs(float(o[field]) - med) <= tol_f]
+
 
 def wu_rain_1h(station=DEFAULT_STATION):
     """Accumulation over the last hour, in inches, or None.
