@@ -88,6 +88,7 @@ def _dt(s):
 # cannot produce a confident number.
 SKY_CAL_PRIOR = 10.0     # pseudo-observations pulling each class to the base rate
 SKY_CAL_MIN_N = 30       # below this, make no calibration claim
+SKY_REFIT_UTC = "2026-09-24T00:00:00Z"   # sky_clear_3h changed instrument here
 SKY_CAL_DAYS = 7         # recency window; pooling regimes is what broke this.
                          # Measured over the calibrated era, shorter is
                          # monotonically better -- all/21/14/10 days all score
@@ -246,16 +247,34 @@ def record(now, entries=None):
         if o and (now - scan).total_seconds() <= 7200:
             lead = o.get("lead_h")
             raw = 1.0 if (o.get("clear_now") and (lead is None or lead > 3)) else 0.0
-            cal = _sky_calibration(entries, now)
-            # Before the record is deep enough to calibrate, hedge at the
-            # long-run base rate rather than shipping a 0/1 we know scores badly.
-            clear3 = cal[raw] if cal else (0.90 if raw else 0.60)
+            # PRIMARY: the fitted model. The GOES binary above is kept only as a
+            # logged field and a fallback -- it scored -0.83 skill because its
+            # TRUTH lives in goes_log.jsonl, eight days deep, so it could never
+            # be fitted, only hedged on a rolling base rate. skyclear.json is
+            # fitted on 33,310 hours across five years and scores +0.655.
+            #
+            # persist is the observed cloud fraction NOW, verified three hours
+            # out -- the single strongest feature, worth +0.549 skill on its own,
+            # and the old version did not use it at all.
+            clear3 = None
+            try:
+                import skyclear_apply
+                pc = obs_cloud(now)
+                if pc is not None:
+                    clear3 = skyclear_apply.predict(now + timedelta(minutes=180), pc / 100.0)
+            except Exception:  # noqa: BLE001
+                clear3 = None
+            _used_model = clear3 is not None
+            if clear3 is None:
+                cal = _sky_calibration(entries, now)
+                # Fallback only. Hedge at the base rate rather than ship a 0/1.
+                clear3 = cal[raw] if cal else (0.90 if raw else 0.60)
             # Log the CONTINUOUS state behind the binary too. `lead > 3` throws
             # away the difference between cloud arriving in 3.5 h and in 11.5 h,
             # which is most of the information the outlook actually has. These
             # cost nothing now and make a better predictor fittable in a month;
             # nothing reads them yet, deliberately.
-            extra["sky_clear_3h"] = {"raw": raw, "calibrated": bool(cal),
+            extra["sky_clear_3h"] = {"raw": raw, "model": bool(_used_model),
                                      "lead_h": lead, "cloud_km": o.get("cloud_km"),
                                      "cloud_pct_now": g.get("cloud_pct")}
             recs.append(("sky_clear_3h", now + timedelta(minutes=180), 180, clear3))
@@ -559,12 +578,38 @@ def obs_cloud(vt):
 
 
 def obs_sky_clear(vt):
-    """Was the sky over the cove actually clear at vt? 1/0/None.
+    """Was the sky clear at vt? 1/0/None, from the SAME truth the model was fitted on.
 
-    Truth comes from the GOES history log -- the same instrument that made the
-    prediction, which is the point: goes_cloud.json is overwritten hourly, so
-    without a log "cloud in 3 hours" is unfalsifiable.
+    TRUTH MOVED FROM GOES TO METAR ON 2026-09-24, and the move is what made the
+    variable fixable. The old truth came from goes_log.jsonl -- the same
+    instrument that made the prediction, which was deliberate, because
+    goes_cloud.json is overwritten hourly and without a log "cloud in 3 hours"
+    is unfalsifiable. But that log holds EIGHT DAYS. A target with eight days of
+    history cannot be fitted, only hedged, which is why this variable sat at
+    -0.83 skill on a rolling base rate.
+
+    The median METAR cloud fraction across four airfields has FIVE YEARS. It is
+    regional rather than over-the-cove, which score.py already accepts for
+    cloud_pct on the grounds that cloud is synoptic-scale where our rain is not.
+    Fitted on it, the model scores +0.655.
+
+    Train and verify now use the same quantity. Scoring a METAR-fitted model
+    against a GOES target would be the exact mismatch that made burnoff_clears
+    unreadable, and it is not repeated here.
     """
+    fr = obs_cloud(vt)
+    if fr is not None:
+        try:
+            import skyclear_apply
+            cut = 100.0 * (skyclear_apply.model().get("clear_max") or 0.25)
+        except Exception:  # noqa: BLE001
+            cut = 25.0
+        return 1.0 if fr <= cut else 0.0
+    return _obs_sky_clear_goes(vt)
+
+
+def _obs_sky_clear_goes(vt):
+    """The retired GOES-based truth, kept as a fallback when METAR is missing."""
     path = os.environ.get("GOES_LOG") or os.path.join(HERE, "goes_log.jsonl")
     best = None
     try:
@@ -1221,36 +1266,43 @@ def scorecard(entries):
                 cal = _sky_calibration(done, datetime.now(timezone.utc))
                 card["variables"][var]["calibration"] = cal
                 card["variables"][var]["_note"] = (
-                    "Emitted as a CALIBRATED PROBABILITY since 2026-09-21, not the 0/1 it used "
-                    "to be. The predictor (GOES sky outlook) was always informative -- it "
-                    "separates P(clear) 0.897 vs 0.589 -- but a hard 0/1 is penalised by a "
-                    "proper scoring rule against a baseline allowed to hedge at the base rate, "
-                    "which is why this read -0.446 skill while carrying real signal. Rows from "
-                    "before that date are deterministic and drag the pooled score down; the "
-                    "calibrated era should settle near +0.09 to +0.12 skill.")
-                # Split the eras, so the fix is visible now instead of in the
-                # 60 days it takes the deterministic rows to age out of the log.
-                new_rows = [e for e in v if e.get("raw") is not None]
-                if new_rows:
-                    o2 = [e["obs"] for e in new_rows]
-                    b2 = sum((e["fcst"] - e["obs"]) ** 2 for e in new_rows) / len(new_rows)
-                    base2 = sum(o2) / len(o2)
-                    clim2 = sum((base2 - x) ** 2 for x in o2) / len(o2)
-                    card["variables"][var]["_health"] = (
-                    "NEGATIVE SKILL, and the cause is the predictor rather than the "
-                    "calibration. The separation this was built on -- P(clear|outlook "
-                    "clear) 0.897 against 0.589 for cloud -- is now 0.243 against 0.144 "
-                    "over the last 307 rows, a gap of 0.10 where there was 0.31. No "
-                    "calibration window beats climatology in this regime; pure "
-                    "climatology itself scores -0.028, because the clear-sky base rate "
-                    "fell from 0.824 to 0.260 as autumn arrived and a trailing estimate "
-                    "cannot track a drift it only sees afterwards. The recency window "
-                    "recovers the self-inflicted part and none of the skill. Not shown "
-                    "on the board -- this variable exists only here.")
-                card["variables"][var]["calibrated_era"] = {
-                        "n": len(new_rows), "brier": round(b2, 3),
-                        "brier_skill_vs_climo": round(1 - b2 / clim2, 3) if clim2 > 0 else None,
-                        "_note": "rows emitted as probabilities; this is the number to watch"}
+                    "P(sky clear in 3 h). Fitted, not calibrated: an ensemble of three "
+                    "NWP cloud forecasts plus the observed sky three hours earlier, the "
+                    "layered low/mid/high cloud over the cove, wind regime, pressure, "
+                    "season and hour. Truth is the median METAR cloud fraction across "
+                    "KSHN/KOLM/KTCM/KPWT -- regional, which is acceptable because cloud "
+                    "is synoptic-scale where our rain is not. This is NOT the fog-on-the-"
+                    "water question; that is burnoff.py's, and it uses different "
+                    "instruments for good reason.")
+                card["variables"][var]["_health"] = (
+                    "REPLACED 2026-09-24. Rows up to that date came from a GOES binary "
+                    "mapped through a rolling calibration and scored -0.83 in the "
+                    "calibrated era; they are pooled here and drag the number down. The "
+                    "cause was never the calibration -- the TRUTH lived in "
+                    "goes_log.jsonl, eight days deep, so the predictor could be hedged "
+                    "but never fitted. Truth now comes from the median METAR cloud "
+                    "fraction across four airfields, which has five years, and the "
+                    "forecast comes from skyclear.json: 33,310 hours, leave-one-year-out "
+                    "Brier 0.0825, AUC 0.953, skill +0.655. Persistence alone -- the "
+                    "observed sky three hours earlier -- is worth +0.549 of that and the "
+                    "old version did not use it. Read the post-2026-09-24 rows; the "
+                    "pooled figure is two different variables added together.")
+                # The variable changed instrument on 2026-09-24, so the pooled
+                # figure above adds two different things together. This is the
+                # one to read: rows forecast by skyclear.json against a METAR
+                # target. Self-contained on purpose -- it used to depend on
+                # locals computed elsewhere in this branch.
+                nr = [e for e in v if e["valid"] >= SKY_REFIT_UTC]
+                if len(nr) >= 20:
+                    b2 = sum((e["fcst"] - e["obs"]) ** 2 for e in nr) / len(nr)
+                    bb2 = sum(e["obs"] for e in nr) / len(nr)
+                    c2 = sum((bb2 - e["obs"]) ** 2 for e in nr) / len(nr)
+                    card["variables"][var]["since_refit"] = {
+                        "n": len(nr), "base_rate": round(bb2, 3), "brier": round(b2, 4),
+                        "brier_skill_vs_climo": round(1 - b2 / c2, 3) if c2 > 0 else None,
+                        "_note": "fitted model against a METAR target, from %s. "
+                                 "The pooled number above still carries the retired "
+                                 "GOES-based rows." % SKY_REFIT_UTC[:10]}
         else:
             errs = [e["fcst"] - e["obs"] for e in v]
             bias = sum(errs) / len(errs)
