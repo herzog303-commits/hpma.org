@@ -1448,7 +1448,11 @@ def scorecard(entries):
     for src in ("live-om-raw", "live-tempfix"):
         for e in done:
             if e["var"] == "temp_f" and e.get("src") == src and e.get("lead_min") == 0:
-                _paired.setdefault(e["valid"], {})[src] = e
+                # Bucket on valid[:15], the SAME key the dedup uses. Pairing on
+                # the exact string fails whenever the raw row deduped from an
+                # earlier cycle and the corrected one is new: their timestamps
+                # then differ by seconds and the pair silently never forms.
+                _paired.setdefault(e["valid"][:15], {})[src] = e
     both = [p for p in _paired.values() if len(p) == 2]
     if len(both) >= 10:
         def _stat(src):        # noqa: E306
@@ -1482,7 +1486,7 @@ def scorecard(entries):
     for src in ("live", "live-windfix"):
         for e in done:
             if e["var"] == "wind_kt" and e.get("src") == src and e.get("lead_min") == 0:
-                _wp.setdefault(e["valid"], {})[src] = e
+                _wp.setdefault(e["valid"][:15], {})[src] = e
     wboth = [q for q in _wp.values() if len(q) == 2]
     if len(wboth) >= 10:
         def _wstat(src):
