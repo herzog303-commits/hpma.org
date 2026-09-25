@@ -88,7 +88,10 @@ def _dt(s):
 # cannot produce a confident number.
 SKY_CAL_PRIOR = 10.0     # pseudo-observations pulling each class to the base rate
 SKY_CAL_MIN_N = 30       # below this, make no calibration claim
-SKY_REFIT_UTC = "2026-09-24T00:00:00Z"   # sky_clear_3h changed instrument here
+SKY_REFIT_UTC = "2026-09-25T02:10:00Z"   # when the fitted model actually went live.
+                                         # A date-only cutover counted 116 rows of which
+                                         # only 2 were model-sourced, and reported their
+                                         # score as the model's.
 SKY_CAL_DAYS = 7         # recency window; pooling regimes is what broke this.
                          # Measured over the calibrated era, shorter is
                          # monotonically better -- all/21/14/10 days all score
@@ -207,10 +210,19 @@ def record(now, entries=None):
     try:
         import tempfix_apply
         raw_f, corr_f = tempfix_apply.corrected()
-        if corr_f is not None:
-            tempfix_rows.append({"var": "temp_f", "src": "live-tempfix",
-                                 "valid": now.strftime("%Y-%m-%dT%H:%M:%SZ"),
-                                 "lead_min": 0, "fcst": round(corr_f, 1), "obs": None})
+        if corr_f is not None and raw_f is not None:
+            # BOTH SIDES OF THE PAIR, and that is the whole point. The first
+            # version logged only the corrected value and let it be compared
+            # against src="live", which is nc["temp_cove_f"] -- a DIFFERENT
+            # forecast that already carries its own cove offset. The pair read
+            # raw MAE 0.68 against corrected 1.45 and looked like the correction
+            # had made things twice as bad; it was measuring two unrelated
+            # quantities. tempfix corrects Open-Meteo's temperature_2m, so the
+            # baseline has to be Open-Meteo's temperature_2m.
+            for src, val in (("live-om-raw", raw_f), ("live-tempfix", corr_f)):
+                tempfix_rows.append({"var": "temp_f", "src": src,
+                                     "valid": now.strftime("%Y-%m-%dT%H:%M:%SZ"),
+                                     "lead_min": 0, "fcst": round(val, 1), "obs": None})
     except Exception:  # noqa: BLE001
         pass          # the correction is an improvement, never a dependency
     # Cloud/radiation skill. Recorded only when the forecast expects meaningful
@@ -1346,19 +1358,19 @@ def scorecard(entries):
     # or a wrong feature order would not have moved a single published number.
     tf = {}
     _paired = {}
-    for src in ("live", "live-tempfix"):
+    for src in ("live-om-raw", "live-tempfix"):
         for e in done:
             if e["var"] == "temp_f" and e.get("src") == src and e.get("lead_min") == 0:
                 _paired.setdefault(e["valid"], {})[src] = e
     both = [p for p in _paired.values() if len(p) == 2]
     if len(both) >= 10:
-        def _stat(src):
+        def _stat(src):        # noqa: E306
             errs = [p[src]["fcst"] - p[src]["obs"] for p in both]
             n = len(errs)
             return {"n": n, "bias": round(sum(errs) / n, 2),
                     "mae": round(sum(abs(x) for x in errs) / n, 2),
                     "rmse": round((sum(x * x for x in errs) / n) ** 0.5, 2)}
-        tf = {"raw": _stat("live"), "corrected": _stat("live-tempfix"),
+        tf = {"raw": _stat("live-om-raw"), "corrected": _stat("live-tempfix"),
               "_note": ("paired on identical valid hours. 'corrected' is what the "
                         "board displays; 'raw' is the model before tempfix.json. "
                         "If corrected is not better here, the correction is not "
