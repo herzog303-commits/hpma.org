@@ -84,6 +84,10 @@
   <div class="stalebar" id="stalebar"></div>
   <div class="lineRow"><span id="pills"></span><span id="line">Loading…</span></div>
   <div class="lineSub" id="line2"></div>
+  <!-- The rolling "next 2 h" line on the fire view. Empty on every other view;
+       el() writes innerHTML and throws on a missing node, so the element has to
+       exist unconditionally even though only one view fills it. -->
+  <div class="lineSub" id="line3"></div>
   <div class="main"><div class="chart" id="chart"></div><div class="side" id="hero"></div></div>
   <div class="bottom"><div><span id="sun" class="tides-only"></span><span id="strip"></span><span id="fresh" class="fresh"></span></div><span class="nav" id="nav"></span></div>
 <script>
@@ -959,6 +963,25 @@ async function renderFire(nowMs) {
   el("line", `<b class="fireHead${(v.headline || "").length > 26 ? " long" : ""}">${esc(v.headline)}</b>`);
   el("line2", fireText(v.sub || ""));
 
+  // THE ROLLING HALF. The headline above judges the whole 7pm-2am window and
+  // stays that way deliberately -- "is tonight a fire night" does not change at
+  // 11pm. This answers the other question, the one that matters once you are
+  // already sitting at the ring: what is about to happen in the next two hours.
+  // Recomputed every cycle from 15-minute precipitation and the OVATION aurora
+  // nowcast, which refreshes every 30 minutes.
+  const nu = fire.next_up || {};
+  const soon = [];
+  if (nu.rain && nu.rain.starts_in_min != null)
+    soon.push(nu.rain.starts_in_min <= 5
+      ? `<b>rain starting now</b>`
+      : `<b>rain in ~${nu.rain.starts_in_min} min</b>${nu.rain.peak_at ? ` · heaviest ${esc(nu.rain.peak_at)}` : ""}`);
+  else if (nu.rain) soon.push("no rain in the next 2 h");
+  if (nu.gust && nu.gust.max_kt != null && nu.gust.max_kt >= 10)
+    soon.push(`gusts to ${Math.round(nu.gust.max_kt)} kt${nu.gust.at ? ` by ${esc(nu.gust.at)}` : ""}`);
+  if (nu.aurora && nu.aurora.prob_pct >= 10)
+    soon.push(`aurora ${nu.aurora.prob_pct}% overhead`);
+  if (soon.length) el("line3", `<span class="dim">next 2 h ·</span> ${soon.join(" · ")}`);
+
   const aq = fire.air_quality || {}, hs = fire.hours_since_rain;
   const rows = [];
   if (aq.us_aqi != null) rows.push(["Air", `AQI ${aq.us_aqi} · ${aq.us_aqi <= 50 ? "clean" : aq.us_aqi <= 100 ? "moderate" : "poor"}`]);
@@ -1124,6 +1147,10 @@ async function main() {
     if (!demo && CONFIG.NOWCAST_URL)
       nowcast = await fetch(CONFIG.NOWCAST_URL).then(x => x.json()).catch(() => null);
     const surge = makeSurgeFn({ manual, forecast, live, cfg: CONFIG });
+    // Cleared on every render: only the fire view fills it, and this is a
+    // single page -- without this the "rain in 25 min" line would follow you
+    // to the tide view and sit there going stale.
+    el("line3", "");
     if (view === "tides") renderTidesSimple({ extremes, surge, live, met, cur, alerts, annual, nowMs });
     else renderWeatherSimple({ wx, met, extremes, alerts, nowMs, nowcast, wxCorrected });
     if (!demo) renderFreshness(nowcast && nowcast.generated_utc, nowMs);
