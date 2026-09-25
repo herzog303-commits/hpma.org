@@ -1223,6 +1223,39 @@ def obs_cove_temp(vt):
 
 COVE_OBS = {"wind_kt": obs_cove_wind, "temp_f": obs_cove_temp}
 
+
+def obs_temp_network(vt):
+    """Median temperature across >=3 stations -- the quantity tempfix was FITTED on.
+
+    train_tempfix.py targets the median of at least three PWS, deliberately:
+    a headline finding in this project was once wrong because three models were
+    scored against a single station and their agreement mistaken for
+    corroboration. Verifying the resulting model against ONE station therefore
+    measures something it was never asked to predict -- KWASHELT285 sits 0.56 km
+    from the gangway and carries its own microclimate, which is the whole
+    subject of the study rather than an error to be corrected away.
+
+    Spike-filtered by the same consensus rule the rest of the pipeline uses, so
+    a broken sensor cannot become the truth.
+    """
+    if wu is None:
+        return None
+    try:
+        ok = wu.wu_hourly_consensus(vt, wu.independent_stations(MC), field="temp_f")
+    except Exception:  # noqa: BLE001
+        return None
+    vals = sorted(float(o["temp_f"]) for _, o in (ok or []) if o.get("temp_f") is not None)
+    if len(vals) < 3:
+        return None
+    n = len(vals)
+    return round(vals[n // 2] if n % 2 else (vals[n // 2 - 1] + vals[n // 2]) / 2, 1)
+
+
+# Rows whose forecast is Open-Meteo's raw 2 m temperature or the tempfix
+# correction of it are verified against the NETWORK, not the primary station.
+NETWORK_OBS = {"temp_f": obs_temp_network}
+NETWORK_SRCS = ("live-om-raw", "live-tempfix")
+
 # ---------------------------------------------------------------- scorecard
 SCORED_VARS = ("surge_ft", "wind_kt", "temp_f", "rain_next_hr", "solar_w_m2",
                "cloud_pct", "sky_clear_3h",
@@ -1371,10 +1404,18 @@ def scorecard(entries):
                     "mae": round(sum(abs(x) for x in errs) / n, 2),
                     "rmse": round((sum(x * x for x in errs) / n) ** 0.5, 2)}
         tf = {"raw": _stat("live-om-raw"), "corrected": _stat("live-tempfix"),
-              "_note": ("paired on identical valid hours. 'corrected' is what the "
-                        "board displays; 'raw' is the model before tempfix.json. "
-                        "If corrected is not better here, the correction is not "
-                        "working in production whatever the backtest said.")}
+              "_note": ("paired on identical valid hours, against the MEDIAN OF >=3 "
+                        "STATIONS -- the quantity train_tempfix.py was fitted on. "
+                        "'raw' is Open-Meteo temperature_2m, the exact input tempfix "
+                        "corrects; it is NOT nc['temp_cove_f'], which already carries "
+                        "its own cove offset and briefly stood in here, making the "
+                        "correction look twice as bad as the forecast it was not "
+                        "correcting. Verifying against the primary station alone would "
+                        "be the same category of error: KWASHELT285 has its own "
+                        "microclimate, about 1 F from the network at any hour, and that "
+                        "microclimate is this project's subject rather than model error. "
+                        "If corrected is not better here, the correction is not working "
+                        "in production whatever the backtest said.")}
         tf["mae_change_pct"] = round(100 * (tf["corrected"]["mae"] - tf["raw"]["mae"])
                                      / max(tf["raw"]["mae"], 1e-9), 1)
 
@@ -1465,7 +1506,9 @@ def scorecard(entries):
             "(forecast > 20 W/m2).")
 
     card["tempfix_verification"] = tf or {
-        "_note": "no paired hours yet; starts accumulating from 2026-09-24"}
+        "_note": "no paired hours yet; the like-for-like pairing "
+                 "(live-om-raw vs live-tempfix, network-median truth) starts "
+                 "accumulating from 2026-09-25"}
 
     if cove:
         card["cove_verification"] = {"_note": "same forecast verified at the cove (WU KWASHELT285/12, ~0.35 mi). "
@@ -1565,7 +1608,13 @@ def main():
         if vt > now - timedelta(minutes=RIPE_MIN) or vt < now - timedelta(days=PRUNE_DAYS):
             continue
         try:
-            fn = COVE_OBS.get(e["var"]) if e.get("src") == "cove" else OBS.get(e["var"])
+            src = e.get("src")
+            if src in NETWORK_SRCS:
+                fn = NETWORK_OBS.get(e["var"])
+            elif src == "cove":
+                fn = COVE_OBS.get(e["var"])
+            else:
+                fn = OBS.get(e["var"])
             o = fn(vt) if fn else None
         except Exception:  # noqa: BLE001
             o = None
