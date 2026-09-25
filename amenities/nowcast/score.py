@@ -118,6 +118,38 @@ def _sky_raw(e):
     return float(f) if f in (0.0, 1.0) else None
 
 
+def _apply_wind_correction(kt, when):
+    """The board's displayed wind, computed here so it can be scored.
+
+    Mirrors marina-board.html exactly: subtract bias_by_hour_local for the local
+    hour, then rescale to the observed spread, then clamp at zero. Reads the
+    PUBLISHED scorecard rather than recomputing, because the board reads that
+    file too and a second derivation is a second thing to keep in step.
+
+    Returns None whenever the board would also decline -- missing table, too few
+    samples per hour -- so the pair only exists on hours the correction actually
+    applied to.
+    """
+    if kt is None:
+        return None
+    try:
+        with open(CARD) as f:
+            cv = (json.load(f).get("cove_verification") or {}).get("wind_kt") or {}
+    except (OSError, ValueError):
+        return None
+    tbl = cv.get("bias_by_hour_local") or {}
+    if len(tbl) < 20 or (cv.get("min_n_per_hour") or 0) < 15:
+        return None                      # the board's own BIAS_MIN_HOURS / BIAS_MIN_N
+    b = tbl.get(str(local_hour(when)))
+    if b is None:
+        return None
+    v = kt - b
+    m = cv.get("variance_match") or {}
+    if m.get("scale"):
+        v = m["mean_observed"] + (v - m["mean_corrected"]) * m["scale"]
+    return max(0.0, v)
+
+
 def _sky_calibration(entries, now=None):
     """{1.0: P(clear|said clear), 0.0: P(clear|said cloud)} or None if too thin.
 
@@ -180,6 +212,12 @@ def interp(series, t):
 def record(now, entries=None):
     recs = []
     extra = {}          # per-variable fields carried onto the logged row
+    # Declared up front: the wind block below runs before the temperature one
+    # and referenced windfix_rows before assignment, which crashed the cycle's
+    # score step outright. Caught by running score.py from the BOARD checkout
+    # the way mini_cycle does -- from the study repo the crash never appeared,
+    # because the board's copy was a version behind.
+    tempfix_rows, windfix_rows = [], []
     nc = _load(NOWCAST)
     if nc:
         tl = nc.get("timeline", [])
@@ -188,6 +226,23 @@ def record(now, entries=None):
         w = nc.get("wind") or {}
         if w.get("regional_kt") is not None:
             recs.append(("wind_kt", now, 0, round(w["regional_kt"], 1)))
+            # AND THE CORRECTED WIND, for the same reason temperature got one.
+            # The board de-biases the displayed wind by hour and then rescales it
+            # to the observed spread; neither step was logged, so the scorecard
+            # measured the raw forecast at bias +2.90 while the screen showed
+            # something else. This applies the SAME table from the SAME file the
+            # board fetches -- the published scorecard, not a freshly computed
+            # one -- so the two cannot drift apart.
+            #
+            # Applied to regional_kt, the identical quantity logged above as
+            # src="live", so the pair is like-for-like. Pairing a correction
+            # against a differently-corrected forecast is the error that made
+            # the temperature comparison read +113% yesterday.
+            cw = _apply_wind_correction(w["regional_kt"], now)
+            if cw is not None:
+                windfix_rows.append({"var": "wind_kt", "src": "live-windfix",
+                                     "valid": now.strftime("%Y-%m-%dT%H:%M:%SZ"),
+                                     "lead_min": 0, "fcst": round(cw, 1), "obs": None})
         # Gusts are what a boater actually reads before going out, and they were
         # computed, sheltered and shown on the board but never verified.
         # REGIONAL gust is scored because G2160 (Fair Harbor, Grapeview) is a
@@ -206,7 +261,6 @@ def record(now, entries=None):
     # stale model file or a unit slip would all have left these figures looking
     # perfectly healthy. Logged as a separate src so the two sit side by side in
     # the same scorecard, over the same hours, against the same observation.
-    tempfix_rows = []
     try:
         import tempfix_apply
         raw_f, corr_f = tempfix_apply.corrected()
@@ -303,7 +357,7 @@ def record(now, entries=None):
              "obs": None, **extra.get(var, {})} for var, vt, lm, f in recs]
     # shadow the 0-lead wind/temp as "cove" -- same forecast, verified at the cove (WU)
     cove = [{**r, "src": "cove"} for r in base if r["var"] in ("wind_kt", "temp_f") and r["lead_min"] == 0]
-    return base + cove + tempfix_rows
+    return base + cove + tempfix_rows + windfix_rows
 
 # ---------------------------------------------------------------- bake-off (shadow forecast sources)
 NWS_HOURLY = "https://api.weather.gov/gridpoints/SEW/105,57/forecast/hourly"   # cove gridpoint (api.weather.gov/points)
@@ -1419,6 +1473,47 @@ def scorecard(entries):
         tf["mae_change_pct"] = round(100 * (tf["corrected"]["mae"] - tf["raw"]["mae"])
                                      / max(tf["raw"]["mae"], 1e-9), 1)
 
+    # Does the shipped WIND correction help? Same construction as
+    # tempfix_verification: identical valid hours, identical truth, one side
+    # corrected. Until this existed the board de-biased and rescaled the wind
+    # and nothing measured the result.
+    wf = {}
+    _wp = {}
+    for src in ("live", "live-windfix"):
+        for e in done:
+            if e["var"] == "wind_kt" and e.get("src") == src and e.get("lead_min") == 0:
+                _wp.setdefault(e["valid"], {})[src] = e
+    wboth = [q for q in _wp.values() if len(q) == 2]
+    if len(wboth) >= 10:
+        def _wstat(src):
+            er = [q[src]["fcst"] - q[src]["obs"] for q in wboth]
+            n = len(er)
+            sd = (sum((x - sum(er)/n) ** 2 for x in er) / n) ** 0.5
+            return {"n": n, "bias": round(sum(er)/n, 2),
+                    "mae": round(sum(abs(x) for x in er)/n, 2),
+                    "rmse": round((sum(x*x for x in er)/n) ** 0.5, 2),
+                    "sd_of_error": round(sd, 2)}
+        obs_sd = None
+        ov = [q["live"]["obs"] for q in wboth]
+        if len(ov) > 1:
+            mo = sum(ov)/len(ov)
+            obs_sd = (sum((x-mo)**2 for x in ov)/len(ov)) ** 0.5
+        fv = [q["live-windfix"]["fcst"] for q in wboth]
+        mf = sum(fv)/len(fv)
+        f_sd = (sum((x-mf)**2 for x in fv)/len(fv)) ** 0.5
+        wf = {"raw": _wstat("live"), "corrected": _wstat("live-windfix"),
+              "sharpness_pct": round(100 * f_sd / obs_sd, 1) if obs_sd else None,
+              "_note": ("paired on identical valid hours. 'corrected' is what the board "
+                        "displays -- hour-of-day de-bias then rescaled to the observed "
+                        "spread -- applied to regional_kt, the same quantity 'raw' logs. "
+                        "sharpness_pct is the corrected forecast's spread against the "
+                        "observed; the point of the rescale was that the hour-corrected "
+                        "wind carried ~158% of it, unbiased on average and still too "
+                        "windy at the top. Near 100 is the target; well under is the "
+                        "shrinkage trap that killed the gradient-boosted attempt.")}
+        wf["mae_change_pct"] = round(100 * (wf["corrected"]["mae"] - wf["raw"]["mae"])
+                                     / max(wf["raw"]["mae"], 1e-9), 1)
+
     # cove verification: the SAME live wind/temp forecasts scored at the cove (WU) --
     # compare bias/rmse here against the Grapeview-verified numbers in variables{} above.
     cove = {}
@@ -1505,6 +1600,8 @@ def scorecard(entries):
             "NOT forecast error. Model-to-model comparison is unaffected. Daytime only "
             "(forecast > 20 W/m2).")
 
+    card["windfix_verification"] = wf or {
+        "_note": "no paired hours yet; starts accumulating from 2026-09-25"}
     card["tempfix_verification"] = tf or {
         "_note": "no paired hours yet; the like-for-like pairing "
                  "(live-om-raw vs live-tempfix, network-median truth) starts "
