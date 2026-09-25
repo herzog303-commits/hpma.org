@@ -26,7 +26,15 @@
      box and drew ON TOP of the line below it. A positional layout breaks the
      next time anyone adds a line, so the slack now belongs to .main by name. */
   .main { flex:1 1 0; display:grid; grid-template-columns:minmax(0,1fr) 236px; gap:14px; min-height:0; }
-  .side { display:flex; flex-direction:column; gap:6px; min-width:0; }
+  /* overflow:hidden does two jobs, and the second is the load-bearing one.
+     It is the backstop -- an unanticipated case gets clipped at the pane edge
+     rather than drawn over the footer. It also gives this grid item an
+     automatic minimum size of zero, so the row stops sizing itself to the
+     list and the list's own overflow becomes MEASURABLE, which is what lets
+     renderFire below see that it does not fit. A grid-auto-rows pin was tried
+     here first and fault injection showed it changed nothing: this does it.
+     A six-bullet night measures 368px of content in a 298px box. */
+  .side { display:flex; flex-direction:column; gap:6px; min-width:0; overflow:hidden; }
   .big { display:flex; align-items:baseline; gap:6px; flex-wrap:wrap; }
   .big .n { font-size:58px; font-weight:800; letter-spacing:-.03em; line-height:.95; }
   .big .u { font-size:20px; font-weight:700; }
@@ -87,6 +95,21 @@
   .joy { font-size:13px; line-height:1.45; margin-top:6px; }
   .joy div { display:flex; gap:6px; }
   .joy .g { flex:none; width:13px; text-align:center; color:var(--accent); }
+  /* DENSITY BEFORE DELETION. The insight list is the only part of the page
+     whose LENGTH is not bounded: sky, moon, aurora, DNR danger, fog risk and
+     the dew-point crossing can all fire on one night, each running one to
+     three wrapped lines in a 236px column. Capping the count is the wrong
+     lever -- any fixed cap drops a bullet that would have fitted on a short
+     night and keeps one that does not on a long one. So renderFire measures,
+     tightens, and only then drops, which keeps every bullet on all but the
+     busiest nights. */
+  .side.compact .joy { font-size:12px; line-height:1.34; margin-top:4px; }
+  .side.compact .joy div { gap:5px; }
+  .side.compact .list { font-size:13px; line-height:1.22; }
+  .side.compact .next { padding-bottom:3px; }
+  .side.compact .next b { font-size:17px; }
+  .side.compact .next span { font-size:13px; }
+  .side.compact { gap:3px; }
   body.color .joy { font-family:Georgia,"Times New Roman",serif; }
   .fireHead { font-size:22px; font-weight:800; letter-spacing:-.01em; line-height:1.1; }
   .fireHead.long { font-size:18px; }
@@ -998,7 +1021,22 @@ async function renderFire(nowMs) {
   const aq = fire.air_quality || {}, hs = fire.hours_since_rain;
   const rows = [];
   if (aq.us_aqi != null) rows.push(["Air", `AQI ${aq.us_aqi} · ${aq.us_aqi <= 50 ? "clean" : aq.us_aqi <= 100 ? "moderate" : "poor"}`]);
-  if (hs != null) rows.push(["Last rain", hs >= 168 ? "over a week" : hs >= 48 ? `${(hs / 24).toFixed(0)} days ago` : `${hs.toFixed(hs < 10 ? 1 : 0)} h ago`]);
+  // LAST RAIN, IN UNITS A PERSON USES. This said "0.8 h ago", which is 48
+  // minutes, reads as eight hours, and is a quantity nobody has ever thought
+  // in. Under 90 minutes it is now minutes; past two days, days.
+  //
+  // And when rain is FALLING, its age is not the answer. The gauge feed is
+  // hourly, so mid-shower it reports the top of the hour and the row said
+  // "last rain 0.8 h ago" while the line above said rain was on its way --
+  // two true numbers making the page contradict itself. Present tense wins.
+  const raining = nu.rain && nu.rain.starts_in_min === 0;
+  const sinceRain = hs == null ? null
+    : hs >= 168 ? "over a week ago"
+    : hs >= 48 ? `${Math.round(hs / 24)} days ago`
+    : hs >= 1.5 ? `${Math.round(hs)} h ago`
+    : `${Math.max(1, Math.round(hs * 60))} min ago`;
+  if (raining) rows.push(["Rain", "falling now"]);
+  else if (sinceRain) rows.push(["Last rain", sinceRain]);
   for (const e of extremes.filter(e => e.t >= nowMs && e.t <= nowMs + 12 * 3600000).slice(0, 2))
     rows.push([e.type === "H" ? "High tide" : "Low tide", `${e.h.toFixed(1)} ft ${clock(e.t)}`]);
 
@@ -1010,6 +1048,26 @@ async function renderFire(nowMs) {
   el("hero", `${head}<div class="list">${rows.map(([k, val]) =>
       `<div><span><b>${esc(k)}</b></span><span class="t">${esc(val)}</span></div>`).join("")}</div>
     <div class="joy">${joy}</div>`);
+
+  // FIT THE COLUMN, MEASURED RATHER THAN GUESSED. .side is overflow:hidden and
+  // its row is pinned to .main, so scrollHeight past clientHeight is a real
+  // overflow and not an artefact. Tighten first; drop from the end only if
+  // tightening was not enough, and never drop the last bullet standing.
+  (() => {
+    const box = document.getElementById("hero");
+    const list = box && box.querySelector(".joy");
+    if (!list) return;
+    // Cleared first: el() rewrites innerHTML but not the class, so a compact
+    // night would otherwise leave the pane permanently squashed for every
+    // later render of this single-page board.
+    box.classList.remove("compact");
+    const over = () => box.scrollHeight > box.clientHeight + 1;
+    if (!over()) return;
+    box.classList.add("compact");
+    let guard = 0;
+    while (over() && list.children.length > 1 && guard++ < 12)
+      list.removeChild(list.lastElementChild);
+  })();
 
   // The legal caveat is a standing condition, not news, so it lives along the
   // bottom rather than stealing the headline. fire.py deliberately does not
