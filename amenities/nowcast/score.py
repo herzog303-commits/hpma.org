@@ -88,6 +88,15 @@ def _dt(s):
 # cannot produce a confident number.
 SKY_CAL_PRIOR = 10.0     # pseudo-observations pulling each class to the base rate
 SKY_CAL_MIN_N = 30       # below this, make no calibration claim
+SKY_CAL_DAYS = 7         # recency window; pooling regimes is what broke this.
+                         # Measured over the calibrated era, shorter is
+                         # monotonically better -- all/21/14/10 days all score
+                         # -0.089, 7 days -0.087, 5 days -0.050 -- which says the
+                         # base rate DRIFTS rather than stepping once, so a long
+                         # window is always averaging over a sky that has moved.
+                         # 5 scored best and is not chosen: on a 25-day record
+                         # that is fitting noise, and 7 days still leaves ~100
+                         # rows to estimate two classes from.
 
 
 def _sky_raw(e):
@@ -105,11 +114,45 @@ def _sky_raw(e):
     return float(f) if f in (0.0, 1.0) else None
 
 
-def _sky_calibration(entries):
-    """{1.0: P(clear|said clear), 0.0: P(clear|said cloud)} or None if too thin."""
+def _sky_calibration(entries, now=None):
+    """{1.0: P(clear|said clear), 0.0: P(clear|said cloud)} or None if too thin.
+
+    RECENCY-LIMITED, because this pooled two incompatible regimes. Verified rows
+    before 2026-09-21 carry a clear-sky base rate of 0.824; rows after carry
+    0.260 -- autumn arriving. A calibration fitted across both emits ~0.85 for
+    "clear" into a world where clear happens a quarter of the time, and the
+    published skill went to -0.165 as a result.
+
+    HONEST LIMITS, because this does not rescue the variable. Measured over the
+    calibrated era: as emitted -0.165, recency-windowed about -0.05 to -0.09,
+    and PURE CLIMATOLOGY -0.028. No window beats climatology, and the -0.028
+    floor is not zero because the base rate drifts faster than any trailing
+    estimate tracks it -- a real-time forecast is scored against a climatology
+    that knows the future. So the window recovers most of the self-inflicted
+    loss and none of the skill.
+
+    THE PREDICTOR ITSELF HAS DECAYED. The separation this variable was built on
+    was P(clear|outlook clear) 0.897 against P(clear|cloud) 0.589. Over the last
+    307 verified rows it is 0.243 against 0.144 -- a gap of 0.10 where there was
+    0.31. The GOES outlook is not currently telling us much about this sky.
+
+    WHAT LOOKS BETTER, recorded rather than shipped: the continuous `lead_h`
+    behind the binary separates 0.000 / 0.029 / 0.437 by tercile against the
+    binary's 0.099, exactly as the note at the emission site predicted. A
+    threshold at 12 h scores +0.017 against the shipped 3 h at -0.018 -- but on
+    EIGHT rows, and a day-blocked bootstrap prefers it in only 87.7% of
+    resamples, below this project's bar. It needs a season, not a fortnight.
+    """
     v = [e for e in (entries or [])
          if e.get("var") == "sky_clear_3h" and e.get("obs") is not None
          and e.get("src", "live") == "live" and _sky_raw(e) is not None]
+    if now is not None and SKY_CAL_DAYS:
+        cut = now - timedelta(days=SKY_CAL_DAYS)
+        recent = [e for e in v if _dt(e["valid"]) >= cut]
+        # Fall back to the full record rather than make no claim at all: a stale
+        # calibration still beats the 0/1 this replaced.
+        if len(recent) >= SKY_CAL_MIN_N:
+            v = recent
     if len(v) < SKY_CAL_MIN_N:
         return None
     base = sum(e["obs"] for e in v) / len(v)
@@ -203,7 +246,7 @@ def record(now, entries=None):
         if o and (now - scan).total_seconds() <= 7200:
             lead = o.get("lead_h")
             raw = 1.0 if (o.get("clear_now") and (lead is None or lead > 3)) else 0.0
-            cal = _sky_calibration(entries)
+            cal = _sky_calibration(entries, now)
             # Before the record is deep enough to calibrate, hedge at the
             # long-run base rate rather than shipping a 0/1 we know scores badly.
             clear3 = cal[raw] if cal else (0.90 if raw else 0.60)
@@ -1173,7 +1216,9 @@ def scorecard(entries):
                                       "brier_skill_vs_climo": round(skill, 3),
                                       "note": "lower Brier better; skill>0 beats always-forecasting-climatology"}
             if var == "sky_clear_3h":
-                cal = _sky_calibration(done)
+                # Same recency window the emission site uses, so the map the
+                # scorecard reports is the map that is actually being shipped.
+                cal = _sky_calibration(done, datetime.now(timezone.utc))
                 card["variables"][var]["calibration"] = cal
                 card["variables"][var]["_note"] = (
                     "Emitted as a CALIBRATED PROBABILITY since 2026-09-21, not the 0/1 it used "
@@ -1191,7 +1236,18 @@ def scorecard(entries):
                     b2 = sum((e["fcst"] - e["obs"]) ** 2 for e in new_rows) / len(new_rows)
                     base2 = sum(o2) / len(o2)
                     clim2 = sum((base2 - x) ** 2 for x in o2) / len(o2)
-                    card["variables"][var]["calibrated_era"] = {
+                    card["variables"][var]["_health"] = (
+                    "NEGATIVE SKILL, and the cause is the predictor rather than the "
+                    "calibration. The separation this was built on -- P(clear|outlook "
+                    "clear) 0.897 against 0.589 for cloud -- is now 0.243 against 0.144 "
+                    "over the last 307 rows, a gap of 0.10 where there was 0.31. No "
+                    "calibration window beats climatology in this regime; pure "
+                    "climatology itself scores -0.028, because the clear-sky base rate "
+                    "fell from 0.824 to 0.260 as autumn arrived and a trailing estimate "
+                    "cannot track a drift it only sees afterwards. The recency window "
+                    "recovers the self-inflicted part and none of the skill. Not shown "
+                    "on the board -- this variable exists only here.")
+                card["variables"][var]["calibrated_era"] = {
                         "n": len(new_rows), "brier": round(b2, 3),
                         "brier_skill_vs_climo": round(1 - b2 / clim2, 3) if clim2 > 0 else None,
                         "_note": "rows emitted as probabilities; this is the number to watch"}
