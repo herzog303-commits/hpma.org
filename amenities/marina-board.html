@@ -10,7 +10,7 @@
   * { box-sizing:border-box; }
   html, body { margin:0; background:var(--paper); color:var(--ink); }
   body { width:800px; height:480px; overflow:hidden; padding:18px 22px 12px; font-family:"Inter","Helvetica Neue",Arial,sans-serif; font-variant-numeric:tabular-nums;
-         display:grid; grid-template-columns:minmax(0,1fr); grid-template-rows:auto auto 1fr auto; gap:8px; }
+         display:flex; flex-direction:column; gap:6px; }
   @media (min-width:900px) { html{background:#ddd;} body{margin:24px auto; outline:1px solid #000;} }
 
   .top { display:flex; justify-content:space-between; align-items:baseline; }
@@ -18,7 +18,14 @@
   .top .when { font-size:16px; color:var(--muted); }
   .top .when b { color:var(--ink); font-weight:700; margin-left:6px; }
 
-  .main { display:grid; grid-template-columns:minmax(0,1fr) 236px; gap:14px; min-height:0; }
+  /* THE FLEXIBLE ROW IS NAMED, NOT COUNTED. body used to be a grid with
+     `grid-template-rows:auto auto 1fr auto`, which handed the 1fr to whichever
+     child happened to land third. That was #line2. It survived only because
+     there was slack to absorb; adding #line3 turned the free space negative,
+     the 1fr row resolved to 0, and #line2's text overflowed a zero-height row
+     box and drew ON TOP of the line below it. A positional layout breaks the
+     next time anyone adds a line, so the slack now belongs to .main by name. */
+  .main { flex:1 1 0; display:grid; grid-template-columns:minmax(0,1fr) 236px; gap:14px; min-height:0; }
   .side { display:flex; flex-direction:column; gap:6px; min-width:0; }
   .big { display:flex; align-items:baseline; gap:6px; flex-wrap:wrap; }
   .big .n { font-size:58px; font-weight:800; letter-spacing:-.03em; line-height:.95; }
@@ -38,6 +45,12 @@
      Deliberately quieter than the headline -- it explains WHY, it is not the call. */
   .lineSub { display:block; font-size:14px; line-height:1.3; opacity:.62; min-height:0; }
   .lineSub:empty { display:none; }
+  /* The rolling next-2h line. Louder than .lineSub on purpose: line2 explains,
+     line3 tells you to pack up. The lead clause is bolded by the renderer and
+     gets full ink; the "next 2 h" label is the only quiet part. */
+  #line3 { opacity:1; color:var(--muted); }
+  #line3 b { color:var(--ink); font-weight:700; }
+  #line3 .dim { color:var(--muted); opacity:.75; }
   body.color .lineSub { font-family:Georgia,"Times New Roman",serif; }
   .lineRow #pills { margin-right:6px; }
   .lineRow .pill { display:inline-block; margin:0 4px 2px 0; vertical-align:2px; }
