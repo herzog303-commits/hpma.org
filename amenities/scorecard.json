@@ -1,10 +1,10 @@
 {
-  "generated_utc": "2026-09-25T03:42:40Z",
-  "n_verified": 18887,
+  "generated_utc": "2026-09-25T03:58:24Z",
+  "n_verified": 18899,
   "n_pending": 869,
   "variables": {
     "surge_ft": {
-      "n": 3203,
+      "n": 3205,
       "bias": -0.12,
       "mae": 0.2,
       "rmse": 0.25,
@@ -40,7 +40,7 @@
       "_diurnal": "bias_by_hour_local is the SAME bias split by local hour. Where diurnal_range approaches or exceeds the overall bias, a flat correction is the wrong instrument and an hour-of-day correction is warranted."
     },
     "wind_kt": {
-      "n": 1982,
+      "n": 1983,
       "bias": 2.9,
       "mae": 3.25,
       "rmse": 3.86,
@@ -66,7 +66,7 @@
         "17": 2.94,
         "18": 3.29,
         "19": 4.19,
-        "20": 3.9,
+        "20": 3.88,
         "21": 4.01,
         "22": 4.48,
         "23": 4.22
@@ -76,7 +76,7 @@
       "_diurnal": "bias_by_hour_local is the SAME bias split by local hour. Where diurnal_range approaches or exceeds the overall bias, a flat correction is the wrong instrument and an hour-of-day correction is warranted."
     },
     "temp_f": {
-      "n": 1982,
+      "n": 1983,
       "bias": 1.55,
       "mae": 2.07,
       "rmse": 2.75,
@@ -102,7 +102,7 @@
         "17": 2.54,
         "18": 1.49,
         "19": 1.28,
-        "20": 1.08,
+        "20": 1.07,
         "21": 1.16,
         "22": 1.13,
         "23": 1.42
@@ -112,10 +112,10 @@
       "_diurnal": "bias_by_hour_local is the SAME bias split by local hour. Where diurnal_range approaches or exceeds the overall bias, a flat correction is the wrong instrument and an hour-of-day correction is warranted."
     },
     "rain_next_hr": {
-      "n": 2117,
+      "n": 2118,
       "brier": 0.03,
       "base_rate": 0.057,
-      "brier_skill_vs_climo": 0.439,
+      "brier_skill_vs_climo": 0.441,
       "note": "lower Brier better; skill>0 beats always-forecasting-climatology"
     },
     "solar_w_m2": {
@@ -180,14 +180,14 @@
       "_note": "Cloud-cover skill. Forecast Open-Meteo cloud_cover vs the median METAR sky condition at KSHN/KOLM/KTCM/KPWT, mapped from okta mid-points (FEW 19%, SCT 44%, BKN 75%, OVC 100%). Airfields are 23 km+, so this is REGIONAL cloud -- acceptable because cloud is synoptic-scale where our rain is not. Radar cannot supply this: it detects hydrometeors, not cloud droplets, so an overcast sky returns no echo."
     },
     "sky_clear_3h": {
-      "n": 800,
+      "n": 801,
       "brier": 0.216,
-      "base_rate": 0.56,
-      "brier_skill_vs_climo": 0.122,
+      "base_rate": 0.559,
+      "brier_skill_vs_climo": 0.123,
       "note": "lower Brier better; skill>0 beats always-forecasting-climatology",
       "calibration": {
-        "0.0": 0.251,
-        "1.0": 0.704
+        "0.0": 0.25,
+        "1.0": 0.702
       },
       "_note": "P(sky clear in 3 h). Fitted, not calibrated: an ensemble of three NWP cloud forecasts plus the observed sky three hours earlier, the layered low/mid/high cloud over the cove, wind regime, pressure, season and hour. Truth is the median METAR cloud fraction across KSHN/KOLM/KTCM/KPWT -- regional, which is acceptable because cloud is synoptic-scale where our rain is not. This is NOT the fog-on-the-water question; that is burnoff.py's, and it uses different instruments for good reason.",
       "_health": "REPLACED 2026-09-24. Rows up to that date came from a GOES binary mapped through a rolling calibration and scored -0.83 in the calibrated era; they are pooled here and drag the number down. The cause was never the calibration -- the TRUTH lived in goes_log.jsonl, eight days deep, so the predictor could be hedged but never fitted. Truth now comes from the median METAR cloud fraction across four airfields, which has five years, and the forecast comes from skyclear.json: 33,310 hours, leave-one-year-out Brier 0.0825, AUC 0.953, skill +0.655. Persistence alone -- the observed sky three hours earlier -- is worth +0.549 of that and the old version did not use it. Read the post-2026-09-24 rows; the pooled figure is two different variables added together."
@@ -278,9 +278,9 @@
   "cove_verification": {
     "_note": "same forecast verified at the cove (WU KWASHELT285/12, ~0.35 mi). This USED to be the contrast against Grapeview in variables{}, but GW2160 went off the air on 2026-09-16 and the live reference moved to the same cove station on 2026-09-21, so the two now share a SOURCE -- though not a SAMPLE, since cove rows shadow only the 0-lead forecasts, which is why the two still differ (1.42 vs 1.77 F when switched). The board corrects its displayed forecast from THIS table, so it is kept as the stable, board-facing contract. Restoring a genuine second site means adding a Grapeview WU station (KWAGRAPE21); it is not free, because the two-site agreement is what makes the +3 kt wind bias a finding rather than a siting artifact.",
     "wind_kt": {
-      "n": 1345,
+      "n": 1346,
       "bias": 2.8,
-      "mae": 3.13,
+      "mae": 3.12,
       "rmse": 3.7,
       "bias_by_hour_local": {
         "0": 3.95,
@@ -303,7 +303,7 @@
         "17": 2.87,
         "18": 3.53,
         "19": 3.89,
-        "20": 4.2,
+        "20": 4.17,
         "21": 4.29,
         "22": 4.36,
         "23": 4.14
@@ -312,17 +312,17 @@
       "min_n_per_hour": 52,
       "diurnal_range": 3.95,
       "variance_match": {
-        "mean_corrected": 1.593,
-        "mean_observed": 1.592,
-        "sd_corrected": 2.35,
+        "mean_corrected": 1.591,
+        "mean_observed": 1.591,
+        "sd_corrected": 2.351,
         "sd_observed": 1.491,
-        "scale": 0.6344,
+        "scale": 0.6343,
         "_apply": "after subtracting bias_by_hour_local: v = mean_observed + (v - mean_corrected) * scale",
         "_why": "the hour-corrected forecast carries 158% of the observed spread, so it is unbiased on average and still too windy at the top. Shrinking, not inflating."
       }
     },
     "temp_f": {
-      "n": 1345,
+      "n": 1346,
       "bias": 1.18,
       "mae": 1.87,
       "rmse": 2.54,
@@ -347,7 +347,7 @@
         "17": 3.4,
         "18": 2.15,
         "19": 0.75,
-        "20": 0.18,
+        "20": 0.17,
         "21": 0.12,
         "22": 0.05,
         "23": 0.2
