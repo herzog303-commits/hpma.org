@@ -15,13 +15,18 @@ This records a second row, src="live-tempfix", from the same model the board
 runs. The two are then directly comparable in the same scorecard, over the same
 hours, against the same observation.
 
-UNITS ARE REQUESTED, NOT CONVERTED. The model was fitted on Open-Meteo's
-archive: Fahrenheit, KNOTS, and precipitation in MILLIMETRES. Asking the API for
-exactly that is safer than asking for display units and converting -- the board
-has to convert inches back to mm and that multiply is one of the few places a
-silent 25x error could live. nowcast.py's own call is left alone: it does not
-set wind_speed_unit, so it receives km/h, and changing that to serve this would
-move numbers the wind logic already depends on.
+UNITS ARE REQUESTED, NOT CONVERTED, and as of 2026-09-24 there is nothing left
+to convert. The model was fitted on Fahrenheit and KNOTS, which this asks for
+directly. Precipitation used to be a feature and was the one input needing
+arithmetic -- the board displays inches and had to multiply by 25.4 to reach the
+archive's millimetres. It was worth 0.0000 F of MAE, so it was removed from the
+model rather than defended: a feature worth nothing that carries a silent 25x
+failure mode is a liability. No model input is now touched between the API and
+the trees, on either side.
+
+nowcast.py's own call is left alone: it does not set wind_speed_unit, so it
+receives km/h, and changing that to serve this would move numbers the wind
+logic already depends on.
 """
 import json
 import math
@@ -91,7 +96,7 @@ def _feed():
         q = {"latitude": lat, "longitude": lon, "timezone": "GMT",
              "temperature_unit": "fahrenheit", "wind_speed_unit": "kn",
              "hourly": ("temperature_2m,dew_point_2m,relative_humidity_2m,"
-                        "cloud_cover,shortwave_radiation,precipitation,"
+                        "cloud_cover,shortwave_radiation,"
                         "wind_speed_10m,wind_gusts_10m"),
              "past_days": 1, "forecast_days": 2}
         h = json.load(urllib.request.urlopen(
@@ -142,8 +147,7 @@ def corrected(when=None):
     raw = g("temperature_2m")
     parts = {"f_temp": raw, "f_dewp": g("dew_point_2m"), "f_rh": g("relative_humidity_2m"),
              "f_cloud": g("cloud_cover"), "f_swr": g("shortwave_radiation"),
-             "f_precip": g("precipitation"), "f_wind": g("wind_speed_10m"),
-             "f_gust": g("wind_gusts_10m")}
+             "f_wind": g("wind_speed_10m"), "f_gust": g("wind_gusts_10m")}
     if any(v is None for v in parts.values()):
         return raw, None
     d = now - timedelta(hours=SOLAR_OFF_H)

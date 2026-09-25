@@ -318,16 +318,19 @@ const localHour = ms => +fmt(ms, { hour: "numeric", hourCycle: "h23" });
    math.sin differ in the last bit, tree thresholds are literal data values, and
    a row landing exactly on one took different branches. Integers cannot do that.
 
-   UNITS MUST MATCH THE TRAINING SET: temperature and dewpoint F, wind knots,
-   precipitation MILLIMETRES. The board requests inches for display, so precip
-   is converted back on the way in -- a silent 25x error otherwise. */
+   UNITS MUST MATCH THE TRAINING SET: temperature and dewpoint F, wind knots.
+   Nothing is converted. Precipitation used to be a feature and was the only one
+   needing arithmetic here -- the board displays inches, the model was trained on
+   the archive's millimetres, so this multiplied by 25.4. It was worth 0.0000 F
+   of MAE, so it was cut from the model instead of defended. A feature worth
+   nothing that carries a silent 25x failure mode is a liability, and every
+   model input now reaches the trees exactly as the API returned it. */
 const SOLAR_OFF = 8 * 3600000;
 function tempfixVec(model, h, tempF) {
   if (!model || !h) return null;
   const parts = { f_temp: tempF, f_swr: h.swr, f_cloud: h.cloud, f_rh: h.rh,
-                  f_dewp: h.dewp, f_wind: h.kt, f_gust: h.gust,
-                  f_precip: h.inch == null ? null : h.inch * 25.4 };
-  for (const k of ["f_temp", "f_swr", "f_cloud", "f_rh", "f_dewp", "f_wind", "f_gust", "f_precip"])
+                  f_dewp: h.dewp, f_wind: h.kt, f_gust: h.gust };
+  for (const k of ["f_temp", "f_swr", "f_cloud", "f_rh", "f_dewp", "f_wind", "f_gust"])
     if (parts[k] == null || !isFinite(parts[k])) return null;
   const d = new Date(h.t - SOLAR_OFF);
   parts.hr = d.getUTCHours();
