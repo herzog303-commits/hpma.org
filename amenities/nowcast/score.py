@@ -1289,6 +1289,43 @@ def scorecard(entries):
                      "hours_covered": len(hourly),
                      "min_n_per_hour": min((len(x) for x in byh.values()), default=0),
                      "diurnal_range": round(max(hourly.values()) - min(hourly.values()), 2) if hourly else None}
+        # VARIANCE MATCH, for wind only and for a measured reason. Subtracting
+        # the hour-of-day bias fixes the MEAN and leaves the spread alone, and
+        # the spread is wrong: the hour-corrected forecast carries 128% of the
+        # observed standard deviation. So it is unbiased on average while still
+        # calling 8 kt on a day the anemometer never passed 6.
+        #
+        # Rescaling to the observed spread is the classic inflation step, run
+        # in the SHRINKING direction here. On a chronological split -- fit on
+        # the first half of the verified rows, scored on the second -- it beat
+        # the shipped hour-of-day correction on every measure that matters:
+        #
+        #     raw                     MAE 3.031  RMSE 3.525  bias +2.68  sharp 123%
+        #     hour-of-day [shipped]   MAE 1.521  RMSE 1.981  bias -0.43  sharp 128%
+        #     + variance match        MAE 1.375  RMSE 1.784  bias +0.04  sharp 113%
+        #
+        # Quantile mapping reached a marginally better MAE (1.371) and a worse
+        # everything else -- it under-disperses to 88% and drops recall of the
+        # few hours above 6 kt from 0.36 to 0.29. This is NOT the shrinkage trap
+        # that killed the gradient-boosted wind correction: that one flattened
+        # an already-underdispersed series, this one trims an overdispersed one.
+        if var == "wind_kt" and len(v) >= 200:
+            corr = [e["fcst"] - hourly.get(str(local_hour(_dt(e["valid"]))),
+                                           sum(errs) / len(errs)) for e in v]
+            obs = [e["obs"] for e in v]
+            mc, mo = sum(corr) / len(corr), sum(obs) / len(obs)
+            sc = (sum((x - mc) ** 2 for x in corr) / len(corr)) ** 0.5
+            so = (sum((x - mo) ** 2 for x in obs) / len(obs)) ** 0.5
+            if sc > 1e-6:
+                cove[var]["variance_match"] = {
+                    "mean_corrected": round(mc, 3), "mean_observed": round(mo, 3),
+                    "sd_corrected": round(sc, 3), "sd_observed": round(so, 3),
+                    "scale": round(so / sc, 4),
+                    "_apply": ("after subtracting bias_by_hour_local: "
+                               "v = mean_observed + (v - mean_corrected) * scale"),
+                    "_why": ("the hour-corrected forecast carries %.0f%% of the observed "
+                             "spread, so it is unbiased on average and still too windy "
+                             "at the top. Shrinking, not inflating." % (100 * sc / max(so, 1e-9)))}
     if card["variables"].get("cloud_pct"):
         card["variables"]["cloud_pct"]["_note"] = (
             "Cloud-cover skill. Forecast Open-Meteo cloud_cover vs the median METAR sky "
