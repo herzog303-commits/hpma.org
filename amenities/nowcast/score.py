@@ -1707,8 +1707,29 @@ def scorecard(entries):
     # cove verification: the SAME live wind/temp forecasts scored at the cove (WU) --
     # compare bias/rmse here against the Grapeview-verified numbers in variables{} above.
     cove = {}
-    for var in ("wind_kt", "temp_f"):
-        v = [e for e in done if e["var"] == var and e.get("src") == "cove"]
+    for var in ("wind_kt", "temp_f", "wind_gust_kt"):
+        if var == "wind_gust_kt":
+            # GUSTS GET THEIR OWN TABLE. The board used to correct gusts with the
+            # WIND table and the wind spread factor, which squeezes a gust toward
+            # the mean WIND speed and shaves the top off: gusts of 14 kt or more
+            # displayed about 15.5 against an observed 18.8, and 2026-09-25
+            # read "breezy" (20) on a "windy" (23) day. Fitted on gusts, the same
+            # two steps -- hour-of-day bias, then variance match -- did better on
+            # a chronological split (fit 09-04..09-20, test 09-20..09-27):
+            #
+            #     board, wind tables    bias -0.45  MAE 2.22  obs>=10 kt: 14.2 vs 15.6  word 7/8
+            #     gust hour + spread    bias +0.31  MAE 2.08  obs>=10 kt: 15.7 vs 15.6  word 8/8
+            #
+            # Small test (8 days, 38 hours >= 10 kt, one windy day); the board
+            # falls back to the wind table until this one clears its gates.
+            #
+            # There is no "cove" shadow row for gusts: the live row IS verified at
+            # the cove, but only since the reference station moved, so rows
+            # before REFERENCE_SWITCHED_UTC (Grapeview) are left out.
+            v = [e for e in done if e["var"] == var and e.get("src", "live") == "live"
+                 and e["valid"] >= REFERENCE_SWITCHED_UTC]
+        else:
+            v = [e for e in done if e["var"] == var and e.get("src") == "cove"]
         if not v:
             continue
         errs = [e["fcst"] - e["obs"] for e in v]
@@ -1755,7 +1776,7 @@ def scorecard(entries):
         # few hours above 6 kt from 0.36 to 0.29. This is NOT the shrinkage trap
         # that killed the gradient-boosted wind correction: that one flattened
         # an already-underdispersed series, this one trims an overdispersed one.
-        if var == "wind_kt" and len(v) >= 200:
+        if var in ("wind_kt", "wind_gust_kt") and len(v) >= 200:
             corr = [e["fcst"] - hourly.get(str(local_hour(_dt(e["valid"]))),
                                            sum(errs) / len(errs)) for e in v]
             obs = [e["obs"] for e in v]
@@ -1770,8 +1791,9 @@ def scorecard(entries):
                     "_apply": ("after subtracting bias_by_hour_local: "
                                "v = mean_observed + (v - mean_corrected) * scale"),
                     "_why": ("the hour-corrected forecast carries %.0f%% of the observed "
-                             "spread, so it is unbiased on average and still too windy "
-                             "at the top. Shrinking, not inflating." % (100 * sc / max(so, 1e-9)))}
+                             "spread, so it is unbiased on average and still %s "
+                             "at the top." % (100 * sc / max(so, 1e-9),
+                                              "too windy" if sc > so else "too tame"))}
     if card["variables"].get("cloud_pct"):
         card["variables"]["cloud_pct"]["_note"] = (
             "Cloud-cover skill. Forecast Open-Meteo cloud_cover vs the median METAR sky "

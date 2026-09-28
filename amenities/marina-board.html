@@ -323,6 +323,18 @@ async function fetchBias() {
     // an underdispersed one.
     if (cv.wind_kt && cv.wind_kt.variance_match
         && (cv.wind_kt.min_n_per_hour || 0) >= BIAS_MIN_N) out.gustVar = cv.wind_kt.variance_match;
+    // Gusts, fitted on GUSTS. Borrowing the wind table squeezed every gust toward
+    // the mean wind speed and shaved the top off -- 14 kt+ gusts displayed ~15.5
+    // against 18.8 observed, and a 23 kt day read "breezy". score.py now fits the
+    // same two steps on gusts; until that table clears the same gates, gusts
+    // keep the wind table as before.
+    const cg = cv.wind_gust_kt;
+    if (cg && cg.variance_match && cg.bias_by_hour_local
+        && Object.keys(cg.bias_by_hour_local).length >= BIAS_MIN_HOURS
+        && (cg.min_n_per_hour || 0) >= BIAS_MIN_N) {
+      out.gustOwn = cg.bias_by_hour_local;
+      out.gustOwnVar = cg.variance_match;
+    }
     // The regime table ships in microclimate.json via nowcast.json, and the
     // live regime comes from the nowcast itself.
     try {
@@ -417,12 +429,14 @@ function applyBias(wx, bias) {
   // Wind only: rescale to the observed spread after the hour-of-day step.
   // Clamped at zero because a scaled-down light wind can cross it and a
   // negative wind speed on the board would be worse than an uncorrected one.
-  const varFix = v => {
-    const m = bias.gustVar;
+  const varFix = (v, m = bias.gustVar) => {
     if (v == null || !m || !m.scale) return v;
     const out = m.mean_observed + (v - m.mean_corrected) * m.scale;
     return isFinite(out) ? Math.max(0, out) : v;
   };
+  // Gust: its own table when score.py has published one, else the wind table.
+  const gustFix = (v, ms) => bias.gustOwn ? varFix(fix(v, bias.gustOwn, ms), bias.gustOwnVar)
+                                          : varFix(fix(v, bias.gust, ms));
   // Regime adjustment. Clear, near-calm nights let the cove decouple and pool
   // cold air, which a 1-2 km grid cannot resolve -- measured over 5.7 years,
   // drainage nights run +1.55 F warmer in error than mechanical ones BEYOND
@@ -469,12 +483,12 @@ function applyBias(wx, bias) {
     // on it -- but it is the same air, and the old code applied the temperature
     // table to it for exactly that reason. Same delta, same argument.
     wx.current.feelsF = tempFix(wx.current.feelsF, wx.current.t, row);
-    wx.current.gust = varFix(fix(wx.current.gust, bias.gust, wx.current.t));
+    wx.current.gust = gustFix(wx.current.gust, wx.current.t);
     wx.current.kt = varFix(fix(wx.current.kt, bias.gust, wx.current.t));
   }
   for (const h of wx.hourly) {
     h.tempF = tempFix(h.tempF, h.t, h);
-    h.gust = varFix(fix(h.gust, bias.gust, h.t));
+    h.gust = gustFix(h.gust, h.t);
     h.kt = varFix(fix(h.kt, bias.gust, h.t));
   }
   // Daily extremes are corrected by the bias AT THE HOUR THE EXTREME OCCURS,
@@ -504,7 +518,9 @@ function applyBias(wx, bias) {
     // that hour's feature row, with the extreme substituted for the hourly value.
     d.hi = hr ? tempFix(d.hi, hr.t, hr) : fixAtHour(d.hi, bias.tempF, 16);
     d.lo = lr ? tempFix(d.lo, lr.t, lr) : fixAtHour(d.lo, bias.tempF, 6);
-    d.gust = varFix(fixAtHour(d.gust, bias.gust, hr == null ? 16 : localHour(hr.t)));
+    const gh = hr == null ? 16 : localHour(hr.t);
+    d.gust = bias.gustOwn ? varFix(fixAtHour(d.gust, bias.gustOwn, gh), bias.gustOwnVar)
+                          : varFix(fixAtHour(d.gust, bias.gust, gh));
   }
   return { wx, corrected: true };
 }
