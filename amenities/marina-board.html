@@ -649,6 +649,60 @@ function renderTidesSimple({ extremes, surge, live, met, cur, alerts, annual, no
   el("strip", bits.map(b => `<span>${b}</span>`).join("") + `<span class="dim">NOAA + live surge</span>`);
 }
 
+// TAP READOUT -- one helper for all three charts, at a member's request.
+// Tap a chart for the time and the values at that moment; tap the same spot
+// again, or wait a few seconds, and it goes away. Nothing is drawn until
+// someone taps, so the resting board is exactly what it was, and a display
+// nobody can touch never shows it at all.
+//
+// Every chart maps time to x the same way, x = L + (t - t0) / (t1 - t0) * (W - L - R),
+// so a renderer only has to say what to read at a time t: rows of
+// { text(t) -> string, or "" to skip; y(t) -> svg y for a dot, optional }.
+// Keeping it to that one shape is the point -- a new chart gets a readout by
+// listing its values, not by growing its own tap code.
+const READOUT_MS = 8000;
+function chartReadout(spec) {
+  const node = document.getElementById("chart");
+  node._readout = spec;
+  if (node._readoutBound) return;
+  node._readoutBound = true;
+  node.addEventListener("click", ev => {
+    const s = node._readout, svg = node.querySelector("svg");
+    if (!s || !svg || !svg.getScreenCTM()) return;
+    const pt = svg.createSVGPoint(); pt.x = ev.clientX; pt.y = ev.clientY;
+    const px = pt.matrixTransform(svg.getScreenCTM().inverse()).x;
+    const old = svg.querySelector("#readout");
+    clearTimeout(node._readoutTimer);
+    if (old) { old.remove(); if (Math.abs(px - +old.dataset.x) < 14) return; }
+    if (px < s.L || px > s.W - s.R) return;
+    const t = Math.round((s.t0 + (px - s.L) / (s.W - s.L - s.R) * (s.t1 - s.t0)) / 300000) * 300000;
+    const x = s.L + (t - s.t0) / (s.t1 - s.t0) * (s.W - s.L - s.R);
+    const color = isColor(), ink = color ? "#1a1a19" : "#000", paper = color ? "#fcfcfb" : "#fff";
+    const sameDay = localParts(t).midnight === localParts(s.nowMs).midnight;
+    const when = (sameDay ? "" : fmt(t, { weekday: "short" }) + " ") + hhmm(t);
+    const vals = s.rows.map(r => ({ r, v: r.text(t) })).filter(o => o.v);
+    const dots = vals.filter(o => o.r.y).map(o => o.r.y(t)).filter(y => y != null && isFinite(y))
+      .map(y => `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="4" fill="${paper}" stroke="${ink}" stroke-width="2"/>`).join("");
+    const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+    g.setAttribute("id", "readout"); g.dataset.x = x;
+    const right = x < (s.L + s.W - s.R) / 2, tx = right ? x + 8 : x - 8;
+    g.innerHTML = `<line x1="${x.toFixed(1)}" y1="${s.T}" x2="${x.toFixed(1)}" y2="${(s.H - s.B).toFixed(1)}" stroke="${ink}" stroke-width="1.2" stroke-dasharray="3 3"/>${dots}
+      <rect class="bg" rx="4" fill="${paper}" stroke="${ink}" stroke-width="1"/>
+      <text x="${tx.toFixed(1)}" y="${(s.T + 16).toFixed(1)}" font-size="12.5" font-weight="600" text-anchor="${right ? "start" : "end"}" fill="${ink}">${[when, ...vals.map(o => o.v)].join(" · ")}</text>`;
+    svg.appendChild(g);
+    // Keep the whole label on the chart: the fire readout runs to five values,
+    // and anchored at mid-chart it would otherwise paint past the edge.
+    const txt = g.querySelector("text"); let bb = txt.getBBox();
+    const M = 7;   // the background box pads 5 beyond the text; keep 2 clear of the edge
+    const shift = bb.x < M ? M - bb.x : bb.x + bb.width > s.W - M ? s.W - M - (bb.x + bb.width) : 0;
+    if (shift) { txt.setAttribute("x", (tx + shift).toFixed(1)); bb = txt.getBBox(); }
+    const bg = g.querySelector(".bg");
+    bg.setAttribute("x", (bb.x - 5).toFixed(1)); bg.setAttribute("y", (bb.y - 3).toFixed(1));
+    bg.setAttribute("width", (bb.width + 10).toFixed(1)); bg.setAttribute("height", (bb.height + 6).toFixed(1));
+    node._readoutTimer = setTimeout(() => g.remove(), READOUT_MS);
+  });
+}
+
 function renderCurve(extremes, surge, annual, nowMs) {
   const color = isColor(), W = 520, H = 300, L = 14, R = 12, T = 8, B = 24;
   const t0 = nowMs - CONFIG.HOURS_BACK * 3600000, t1 = nowMs + CONFIG.HOURS_AHEAD * 3600000, x = t => L + (t - t0) / (t1 - t0) * (W - L - R);
@@ -690,6 +744,9 @@ function renderCurve(extremes, surge, annual, nowMs) {
     ${night}${zero}${dayLbls}${noonLbls}${fill}${curve}${labels}
     <line x1="${nowX.toFixed(1)}" y1="${T}" x2="${nowX.toFixed(1)}" y2="${(H - B).toFixed(1)}" stroke="${accent}" stroke-width="2"/>
     <circle cx="${nowX.toFixed(1)}" cy="${nowY.toFixed(1)}" r="5" fill="${accent}" stroke="${color ? "#fcfcfb" : "#fff"}" stroke-width="2"/></svg>`;
+  const level = t => tideAt(extremes, t) + surge.fn(t);
+  chartReadout({ W, H, L, R, T, B, t0, t1, nowMs,
+    rows: [{ text: t => `${level(t).toFixed(1)} ft`, y: t => y(level(t)) }] });
 }
 
 function renderSunSimple(nowMs) {
@@ -964,6 +1021,14 @@ function renderWeatherChart(wx, nowMs) {
     ${night}${dayLbls}${noonLbls}${rainArea}${rainCap}${rainPkLbl}${fill}${curve}${marks}
     <line x1="${nowX.toFixed(1)}" y1="${T}" x2="${nowX.toFixed(1)}" y2="${(H - B).toFixed(1)}" stroke="${accent}" stroke-width="2"/>
     <circle cx="${nowX.toFixed(1)}" cy="${nowY.toFixed(1)}" r="5" fill="${accent}" stroke="${color ? "#fcfcfb" : "#fff"}" stroke-width="2"/></svg>`;
+  // Temperature interpolated between the hourly points the curve is drawn
+  // through, so the dot sits on the line; rain chance is the hour's own.
+  const tempAt = t => { const i = hrs.findIndex(h => h.t > t); if (i <= 0) return null;
+    const a = hrs[i - 1], b = hrs[i]; return a.tempF + (b.tempF - a.tempF) * (t - a.t) / (b.t - a.t); };
+  const popAt = t => { const h = hrs.reduce((a, b) => (Math.abs(b.t - t) < Math.abs(a.t - t) ? b : a)); return h.pop || 0; };
+  chartReadout({ W, H, L, R, T, B, t0, t1, nowMs, rows: [
+    { text: t => { const f = tempAt(t); return f == null ? "" : `${f.toFixed(0)}°`; }, y: t => { const f = tempAt(t); return f == null ? null : yT(f); } },
+    { text: t => anyRain ? `${popAt(t).toFixed(0)}% rain` : "" }] });
 }
 
 /* ===================== FIRE (easter egg view) =====================
@@ -1158,11 +1223,12 @@ function renderFireChart(hourly, extremes, t0, t1, nowMs) {
 
   // Tide along the base. Sampled rather than drawn from the extremes so the
   // curve keeps its shape across a window that may hold only one turning point.
-  let tide = "", tideLbls = "";
+  let tide = "", tideLbls = "", tideY = null;
   if (extremes.length >= 2) {
     const samples = []; for (let t = t0; t <= t1; t += 900000) samples.push([t, tideAt(extremes, t)]);
     const hs = samples.map(s => s[1]), tl = Math.min(...hs), th = Math.max(...hs), sp = Math.max(1.5, th - tl);
     const tTop = H - B - PB + 14, tBot = H - B - 2, yH = h => tBot - (h - tl) / sp * (tBot - tTop);
+    tideY = yH;
     const d = samples.map(([t, h], i) => `${i ? "L" : "M"}${x(t).toFixed(1)},${yH(h).toFixed(1)}`).join(" ");
     tide = `<path d="${d} L${x(t1).toFixed(1)},${tBot.toFixed(1)} L${x(t0).toFixed(1)},${tBot.toFixed(1)} Z" fill="${blue}" opacity="0.16"/><path d="${d}" fill="none" stroke="${blue}" stroke-width="2"/>`;
     tideLbls = `<text x="${L}" y="${(tTop - 3).toFixed(1)}" font-size="9.5" fill="${blue}">tide</text>`;
@@ -1177,6 +1243,15 @@ function renderFireChart(hourly, extremes, t0, t1, nowMs) {
   const nowMark = nowMs > t0 && nowMs < t1
     ? `<line x1="${x(nowMs).toFixed(1)}" y1="${T}" x2="${x(nowMs).toFixed(1)}" y2="${(H - B).toFixed(1)}" stroke="${accent}" stroke-width="2"/>` : "";
   node.innerHTML = `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">${track}${strip}${stripLbl}${tide}${tideLbls}${dewLine}${tempLine}${tempTag}${ends}${ticks}${nowMark}</svg>`;
+  const lerp = (t, k) => { const i = pts.findIndex(p => p.t > t); if (i <= 0) return null;
+    const a = pts[i - 1], b = pts[i]; return a[k] + (b[k] - a[k]) * (t - a.t) / (b.t - a.t); };
+  const hourOf = t => pts.reduce((a, b) => (Math.abs(b.t - t) < Math.abs(a.t - t) ? b : a));
+  const tideOk = tideY && extremes.length >= 2;
+  chartReadout({ W, H, L, R, T, B, t0, t1, nowMs, rows: [
+    { text: t => { const f = lerp(t, "temp_f"); return f == null ? "" : `${f.toFixed(0)}°`; }, y: t => { const f = lerp(t, "temp_f"); return f == null ? null : yT(f); } },
+    { text: t => { const f = lerp(t, "dew_f"); return f == null ? "" : `dew ${f.toFixed(0)}°`; }, y: t => { const f = lerp(t, "dew_f"); return f == null ? null : yT(f); } },
+    { text: t => `${(hourOf(t).cloud || 0).toFixed(0)}% cloud` },
+    { text: t => tideOk ? `tide ${tideAt(extremes, t).toFixed(1)} ft` : "", y: t => tideOk ? tideY(tideAt(extremes, t)) : null }] });
 }
 
 /* ============================== MAIN ============================== */
