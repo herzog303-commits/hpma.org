@@ -699,6 +699,75 @@ def _obs_sky_clear_goes(vt):
     return 1 if best[1]["cloud_pct"] < 25 else 0
 
 
+def obs_cloud_sat(vt):
+    """Observed cloud %, from the GOES cloud mask over the cove, nearest scan
+    within 45 minutes.
+
+    WHY A SECOND TRUTH FOR THE SAME FORECAST. obs_cloud reads airfield METARs,
+    and an automated airfield ceilometer sees nothing above 12,000 ft: under a
+    high overcast it reports CLR. On the night of 2026-09-26 the model said
+    100%, GOES said 92-100% for eleven hours, and every METAR said clear -- so
+    cloud_pct booked a 100-point miss for a forecast that was right. The model's
+    cloud_cover is TOTAL cloud, all heights; the satellite sees all heights.
+
+    Neither replaces the other. METAR remains the right truth for sky_clear_3h,
+    which was fitted on it, and GOES misses thin fog (the ACM has reported 0%
+    through confirmed fog). Reading the two side by side is the point: where
+    cloud_pct is far worse than cloud_pct_sat, the "error" was high cloud the
+    airfields cannot see.
+    """
+    path = os.environ.get("GOES_LOG") or os.path.join(HERE, "goes_log.jsonl")
+    best = None
+    try:
+        with open(path) as f:
+            for line in f:
+                try:
+                    r = json.loads(line)
+                    gap = abs((_dt(r["scan_utc"]) - vt).total_seconds())
+                except Exception:  # noqa: BLE001
+                    continue
+                if r.get("cloud_pct") is not None and gap <= 2700 and (best is None or gap < best[0]):
+                    best = (gap, r["cloud_pct"])
+    except OSError:
+        return None
+    return round(best[1], 1) if best else None
+
+
+def _goes_log_start():
+    """Timestamp of the first GOES scan on record, or None."""
+    path = os.environ.get("GOES_LOG") or os.path.join(HERE, "goes_log.jsonl")
+    try:
+        with open(path) as f:
+            for line in f:
+                try:
+                    return _dt(json.loads(line)["scan_utc"])
+                except Exception:  # noqa: BLE001
+                    continue
+    except OSError:
+        pass
+    return None
+
+
+def mirror_cloud_sat(entries):
+    """Give every live cloud_pct forecast a cloud_pct_sat twin (same number,
+    satellite truth). Derived here rather than at record time so one source
+    produces both, and so forecasts made before this existed are scored too --
+    back to the start of goes_log, beyond which there is nothing to verify
+    against and a twin would only sit pending until pruned."""
+    start = _goes_log_start()
+    if start is None:
+        return []
+    have = {e["valid"][:13] for e in entries if e["var"] == "cloud_pct_sat"}
+    out = []
+    for e in entries:
+        if (e["var"] == "cloud_pct" and e.get("src", "live") == "live"
+                and e["valid"][:13] not in have and _dt(e["valid"]) >= start):
+            out.append({"var": "cloud_pct_sat", "src": "live", "valid": e["valid"],
+                        "lead_min": e.get("lead_min"), "fcst": e["fcst"], "obs": None})
+            have.add(e["valid"][:13])
+    return out
+
+
 def _nws_series():
     """{hour_utc: (temp_f, wind_kt)} from the NWS gridpoint hourly forecast (NBM)."""
     req = urllib.request.Request(NWS_HOURLY, headers={"User-Agent": "hpma-marina-board", "Accept": "application/geo+json"})
@@ -1219,7 +1288,7 @@ def obs_fire_clear(vt):
 
 OBS = {"surge_ft": obs_surge, "wind_kt": obs_wind, "wind_gust_kt": obs_gust,
        "temp_f": obs_temp, "rain_next_hr": obs_rain, "solar_w_m2": obs_solar,
-       "cloud_pct": obs_cloud,
+       "cloud_pct": obs_cloud, "cloud_pct_sat": obs_cloud_sat,
        "sky_clear_3h": obs_sky_clear,
        # burnoff_clears verifies on the hourly PEAK, matching what burnoff.py
        # was fitted on. It means "the sun broke through", not "the deck cleared
@@ -1312,7 +1381,7 @@ NETWORK_SRCS = ("live-om-raw", "live-tempfix")
 
 # ---------------------------------------------------------------- scorecard
 SCORED_VARS = ("surge_ft", "wind_kt", "temp_f", "rain_next_hr", "solar_w_m2",
-               "cloud_pct", "sky_clear_3h",
+               "cloud_pct", "cloud_pct_sat", "sky_clear_3h",
                "fire_low_f", "fire_max_gust_kt", "fire_dry_night", "fire_clear_night",
                "burnoff_clears", "burnoff_sustained", "burnoff_hour",
                "fog_forms", "fog_onset_hour")
@@ -1595,6 +1664,18 @@ def scorecard(entries):
             "is not. Radar cannot supply this: it detects hydrometeors, not cloud "
             "droplets, so an overcast sky returns no echo.")
 
+        card["variables"]["cloud_pct"]["_blind_spot"] = (
+            "Airfield ceilometers see nothing above 12,000 ft, so a high overcast "
+            "verifies here as CLR and a correct cloudy forecast books as a large miss. "
+            "Read beside cloud_pct_sat.")
+    if card["variables"].get("cloud_pct_sat"):
+        card["variables"]["cloud_pct_sat"]["_note"] = (
+            "The SAME Open-Meteo cloud_cover forecast as cloud_pct, verified against the "
+            "GOES-18 cloud mask over the cove (nearest scan within 45 min), which sees "
+            "cloud at every height. Where cloud_pct is much worse than this, the "
+            "difference is high cloud the airfields cannot see. The mask misses thin "
+            "fog, so neither truth is complete on its own.")
+
     if card["variables"].get("solar_w_m2"):
         card["variables"]["solar_w_m2"]["_note"] = (
             "Cloud/radiation skill. Forecast is Open-Meteo shortwave_radiation, an "
@@ -1695,6 +1776,10 @@ def main():
     seen = {key(e) for e in entries}
     added = 0
     for r in record(now, entries) + record_bakeoff(now):
+        if key(r) not in seen:
+            entries.append(r); seen.add(key(r)); added += 1
+
+    for r in mirror_cloud_sat(entries):
         if key(r) not in seen:
             entries.append(r); seen.add(key(r)); added += 1
 
