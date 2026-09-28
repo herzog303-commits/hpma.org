@@ -748,23 +748,38 @@ def _goes_log_start():
     return None
 
 
-def mirror_cloud_sat(entries):
-    """Give every live cloud_pct forecast a cloud_pct_sat twin (same number,
-    satellite truth). Derived here rather than at record time so one source
-    produces both, and so forecasts made before this existed are scored too --
-    back to the start of goes_log, beyond which there is nothing to verify
-    against and a twin would only sit pending until pruned."""
+SAT_TWINS = (("cloud_pct", "cloud_pct_sat", ("live",)),
+             ("burnoff_clears", "burnoff_clears_sat", ("live", "v1-climatology")),
+             ("burnoff_hour", "burnoff_hour_sat", ("live", "v1-climatology")))
+
+
+def mirror_sat(entries):
+    """Satellite-verified twins of every variable in SAT_TWINS."""
+    out = []
+    for src_var, twin, srcs in SAT_TWINS:
+        out += _mirror(entries, src_var, twin, srcs)
+    return out
+
+
+def _mirror(entries, src_var, twin, srcs):
+    """Give each src_var forecast a twin with the same number and satellite
+    truth. Derived here rather than at record time so one source produces both,
+    and so forecasts made before a twin existed are scored too -- back to the
+    start of goes_log, beyond which there is nothing to verify against and a
+    twin would only sit pending until pruned."""
     start = _goes_log_start()
     if start is None:
         return []
-    have = {e["valid"][:13] for e in entries if e["var"] == "cloud_pct_sat"}
+    have = {(e.get("src", "live"), e["valid"][:13]) for e in entries if e["var"] == twin}
     out = []
     for e in entries:
-        if (e["var"] == "cloud_pct" and e.get("src", "live") == "live"
-                and e["valid"][:13] not in have and _dt(e["valid"]) >= start):
-            out.append({"var": "cloud_pct_sat", "src": "live", "valid": e["valid"],
-                        "lead_min": e.get("lead_min"), "fcst": e["fcst"], "obs": None})
-            have.add(e["valid"][:13])
+        k = (e.get("src", "live"), e["valid"][:13])
+        if e["var"] == src_var and k[0] in srcs and k not in have and _dt(e["valid"]) >= start:
+            r = {"var": twin, "src": k[0], "valid": e["valid"], "lead_min": e.get("lead_min"),
+                 "fcst": e["fcst"], "obs": None}
+            if e.get("model"):
+                r["model"] = e["model"]
+            out.append(r); have.add(k)
     return out
 
 
@@ -1192,6 +1207,91 @@ def obs_burnoff_hour(vt):
     return float(hit[0]) if hit else None
 
 
+# THE SATELLITE TRUTH FOR BURN-OFF. Everything above judges the deck from the
+# pyranometer network, and the network cannot see a clear sky for much of the
+# morning. Measured on five years of archive hours that were genuinely clear --
+# all four airfields CLR and no mid/high cloud over the cove -- the median-Kt
+# rule said "cleared" on 3% of September 10am hours, 41% at 11am, 63% at noon;
+# in October 0% at 11am and 13% at noon. Trees and hillsides shade the sensors
+# from the low sun, and a DIFFERENT set at each hour. So burnoff_clears and
+# burnoff_hour largely record when the shade leaves the sensors, not when the
+# deck broke -- the likely reason the clearing HOUR was never forecastable.
+#
+# The satellite does not care where the trees are. Per GOES scan, 09-15 local:
+#   deck GONE     cloud mask under 25% over the cove
+#   deck PRESENT  mask >= 50%, top within 25 K of the surface (a low top), and
+#                 a split window under 1.8 K (water, not ice)
+#   otherwise     undecidable -- notably overcast with a cold or icy top, which
+#                 may be cirrus alone or cirrus over a deck, and is not guessed
+# The mask misses thin fog at night; by day it has the visible channels, and
+# these hours are all daylight. stratus_log rows before 2026-09-28 carry no
+# split window, so on those days an icy top cannot be excluded and a warm-
+# topped overcast counts as deck.
+DECK_GONE_PCT, DECK_PRESENT_PCT, SAT_MIN_SCANS = 25.0, 50.0, 3
+
+
+def _deck_by_hour_sat(vt):
+    """{local hour: True (deck present) | False (gone)} for vt's day, 09-15."""
+    day = (vt.astimezone(_TZ) if _TZ else vt - timedelta(hours=7)).date()
+    gpath = os.environ.get("GOES_LOG") or os.path.join(HERE, "goes_log.jsonl")
+    spath = os.environ.get("STRATUS_LOG") or os.path.join(HERE, "stratus_log.jsonl")
+    tops = []
+    try:
+        for ln in open(spath):
+            try:
+                r = json.loads(ln); t = _dt(r["scan_utc"])
+            except Exception:  # noqa: BLE001
+                continue
+            if abs((t - vt).total_seconds()) < 36 * 3600:
+                tops.append((t, r))
+    except OSError:
+        pass
+    out = {}
+    try:
+        for ln in open(gpath):
+            try:
+                r = json.loads(ln); t = _dt(r["scan_utc"])
+            except Exception:  # noqa: BLE001
+                continue
+            loc = t.astimezone(_TZ) if _TZ else t - timedelta(hours=7)
+            if loc.date() != day or not 9 <= loc.hour <= 15 or r.get("cloud_pct") is None:
+                continue
+            c = r["cloud_pct"]
+            if c < DECK_GONE_PCT:
+                out[loc.hour] = False
+                continue
+            if c < DECK_PRESENT_PCT:
+                continue
+            near = min(tops, key=lambda x: abs((x[0] - t).total_seconds()), default=None)
+            if not near or abs((near[0] - t).total_seconds()) > 2700:
+                continue
+            sr = near[1]; g = (sr.get("ground") or {}).get("temp_f")
+            if g is None or sr.get("bt11_mean_k") is None:
+                continue
+            dep = (g - 32) / 1.8 + 273.15 - sr["bt11_mean_k"]
+            sw = sr.get("split_btd_k")
+            if dep <= 25.0 and (sw is None or sw < 1.8):
+                out.setdefault(loc.hour, True)
+    except OSError:
+        return {}
+    return out
+
+
+def obs_burnoff_clears_sat(vt):
+    """1.0 if the satellite saw the deck go by 15:00, 0.0 if it saw it stay."""
+    d = _deck_by_hour_sat(vt)
+    if any(v is False for v in d.values()):
+        return 1.0
+    return 0.0 if len(d) >= SAT_MIN_SCANS else None
+
+
+def obs_burnoff_hour_sat(vt):
+    """First local hour the satellite saw the deck gone, or None."""
+    d = _deck_by_hour_sat(vt)
+    gone = [h for h, v in sorted(d.items()) if v is False]
+    return float(gone[0]) if gone else None
+
+
 # ------------------------------------------------- fire-window verification
 # The fire page makes claims about a WINDOW (7pm-2am), not an instant: the
 # overnight low, the peak gust, whether it stayed dry, whether it stayed clear.
@@ -1297,6 +1397,8 @@ OBS = {"surge_ft": obs_surge, "wind_kt": obs_wind, "wind_gust_kt": obs_gust,
        # Same forecast, stricter target. The gap between these two IS the
        # recalibration the model needs, measured rather than guessed.
        "burnoff_sustained": obs_burnoff_sustained,
+       # Same forecasts, satellite truth: independent of where the trees are.
+       "burnoff_clears_sat": obs_burnoff_clears_sat, "burnoff_hour_sat": obs_burnoff_hour_sat,
        "fog_forms": obs_fog_forms, "fog_onset_hour": obs_fog_onset,
        "fire_low_f": obs_fire_low, "fire_max_gust_kt": obs_fire_gust,
        "fire_dry_night": obs_fire_dry, "fire_clear_night": obs_fire_clear}
@@ -1384,6 +1486,7 @@ SCORED_VARS = ("surge_ft", "wind_kt", "temp_f", "rain_next_hr", "solar_w_m2",
                "cloud_pct", "cloud_pct_sat", "sky_clear_3h",
                "fire_low_f", "fire_max_gust_kt", "fire_dry_night", "fire_clear_night",
                "burnoff_clears", "burnoff_sustained", "burnoff_hour",
+               "burnoff_clears_sat", "burnoff_hour_sat",
                "fog_forms", "fog_onset_hour")
 # Probabilities, scored with Brier rather than bias/MAE.
 MIN_HOUR_N = 8          # hours with fewer verified pairs are not reported
@@ -1408,7 +1511,7 @@ def local_hour(dt):
         return dt.astimezone(_TZ).hour
     return (dt - timedelta(hours=7)).hour          # last resort, PDT only
 PROB_VARS = {"rain_next_hr", "sky_clear_3h", "fire_dry_night", "fire_clear_night",
-             "burnoff_clears", "burnoff_sustained", "fog_forms"}
+             "burnoff_clears", "burnoff_sustained", "burnoff_clears_sat", "fog_forms"}
 
 
 def scorecard(entries):
@@ -1779,7 +1882,7 @@ def main():
         if key(r) not in seen:
             entries.append(r); seen.add(key(r)); added += 1
 
-    for r in mirror_cloud_sat(entries):
+    for r in mirror_sat(entries):
         if key(r) not in seen:
             entries.append(r); seen.add(key(r)); added += 1
 
