@@ -825,6 +825,11 @@ function renderWeatherSimple({ wx, met, alerts, nowMs, nowcast, wxCorrected }) {
       const age = (nowMs - Date.parse(b.generated_utc)) / 3600000;
       const h = +fmt(nowMs, { hour: "numeric", hourCycle: "h23" });
       if (age > 3 || h < 7 || h > 13) return;
+      // burnoff.py now REPLACES its call when it declines (deck gone, sun
+      // through, high cloud, unmeasurable) instead of leaving the last one up,
+      // and marks that with a null probability. Without this guard the line
+      // would read "only a 0% chance" under a clear sky.
+      if (b.p_clear_by_15 == null) return;
       // NOTE: this takes over the sub-line, replacing the nowcast's
       // "regime, confidence" text for those hours. On a morning with a deck
       // overhead, this is the more useful of the two.
