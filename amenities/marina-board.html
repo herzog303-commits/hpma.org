@@ -872,6 +872,24 @@ function nowcastDetail(nc) {
   if (nc.confidence) bits.push(`confidence ${nc.confidence}`);
   return bits.join(" · ");
 }
+// THE SKY WORD, OBSERVED. The headline "clear" / "overcast" was the model's
+// weather_code, and over 1,127 cycles it disagreed with the satellite by two or
+// more categories 16% of the time -- on 2026-09-26 it said clear through four
+// hours of marine deck. For the CURRENT hour we have the sky itself, so the
+// word comes from nowcast.sky (GOES cloud mask, band 2 by day, the stratus
+// detector by night). Precipitation, fog and storm codes still come from the
+// model: the satellite sees cloud, not what falls from it. Stale or missing
+// observations fall back to the model word.
+const SKY_MAX_AGE_MIN = 90;
+function skyWord(code, nowcast) {
+  const s = nowcast && nowcast.sky;
+  const modelWord = WMO[code] || "";
+  if (code > 3 || !s || s.cloud_pct == null || s.scan_age_min == null || s.scan_age_min > SKY_MAX_AGE_MIN) return modelWord;
+  if (s.low_deck === true) return "low cloud";
+  const c = s.cloud_pct;
+  if (c >= 70) return s.thin_high ? "high overcast" : "overcast";
+  return c >= 35 ? "partly cloudy" : c >= 10 ? "mostly clear" : "clear";
+}
 function renderWeatherSimple({ wx, met, alerts, nowMs, nowcast, wxCorrected }) {
   const c = wx.current, today = wx.daily[0];
   const rainBit = d => d && d.pop != null && d.pop >= 20 ? `${d.pop.toFixed(0)}% rain` : "";
@@ -882,7 +900,7 @@ function renderWeatherSimple({ wx, met, alerts, nowMs, nowcast, wxCorrected }) {
   // already gives part-of-day language ("Windy this afternoon, breezy this
   // evening") and was only reachable from a fallback that almost never runs.
   const subline = [rainBit(today), windPhrase(wx, nowMs)].filter(Boolean).join(" · ");
-  el("hero", `<div class="big"><span class="n">${c.tempF.toFixed(0)}°</span><span class="dir">${WMO[c.code] || ""} · feels ${c.feelsF.toFixed(0)}°</span></div>
+  el("hero", `<div class="big"><span class="n">${c.tempF.toFixed(0)}°</span><span class="dir">${skyWord(c.code, nowcast)} · feels ${c.feelsF.toFixed(0)}°</span></div>
     <div class="next"><b>High ${today.hi.toFixed(0)}° · Low ${today.lo.toFixed(0)}°</b><span>${subline}</span></div>
     <div class="list">${wx.daily.slice(0, 3).map((d, i) => `<div><span><b>${i === 0 ? "Today" : fmt(d.t + 12 * 3600000, { weekday: "short" })}</b> ${d.hi.toFixed(0)}°/${d.lo.toFixed(0)}°</span><span class="t">${dayRight(d)}</span></div>`).join("")}</div>`);
   el("pills", alerts.length ? `<span class="pill warn">${alerts[0].event}</span>` : "");

@@ -174,9 +174,43 @@ def _sky_outlook():
             "scan_age_min": round(age),
             "source": "GOES-18",
             "caveat": o.get("note"),
+            **_deck_now(),
         }
     except Exception:  # noqa: BLE001
         return None
+
+
+# THE DECK, OBSERVED -- for the board's current-conditions word. The headline
+# sky ("clear", "overcast") was the model's weather_code, and over 1,127 cycles
+# it disagreed with the satellite by two or more categories 16% of the time --
+# on 2026-09-26 it read 0-9% cloud through four hours of 90-100% marine deck.
+# The cloud mask above is the base; these add what the mask gets wrong:
+#   deck_frac   band-2 fraction of the 10 km box brighter than a deck (day)
+#   low_deck    True: a marine deck is overhead (band 2 by day, the BTD stratus
+#               detector by night, where the mask misses thin fog); False: band
+#               2 sees it gone; None: cannot tell
+#   thin_high   the cloud the mask sees is an ice veil (split window >= 1.8 K)
+# All derived from public satellite data; no station values leave this repo.
+DECK_MAX_AGE_MIN = 90
+
+
+def _deck_now():
+    try:
+        sp = os.environ.get("STRATUS_OUT") or os.path.join(HERE, "stratus.json")
+        with open(sp) as f:
+            d = json.load(f)
+        scan = datetime.strptime(d["scan_utc"], "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
+        if (datetime.now(timezone.utc) - scan).total_seconds() / 60 > DECK_MAX_AGE_MIN:
+            return {}
+    except Exception:  # noqa: BLE001
+        return {}
+    vis, sw = d.get("vis_cloud_frac"), d.get("split_btd_k")
+    icy = sw is not None and sw >= 1.8
+    if vis is not None:
+        low = True if vis >= 0.6 and not icy else False if vis < 0.2 else None
+    else:
+        low = True if d.get("stratus") is True else None
+    return {"deck_frac": vis, "low_deck": low, "thin_high": icy}
 
 
 def rain_now(params):
