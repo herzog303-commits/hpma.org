@@ -1227,7 +1227,15 @@ def obs_burnoff_hour(vt):
 # these hours are all daylight. stratus_log rows before 2026-09-28 carry no
 # split window, so on those days an icy top cannot be excluded and a warm-
 # topped overcast counts as deck.
+#
+# BAND 2 FIRST, WHEN WE HAVE IT. From 2026-09-28 stratus.py records the 0.64 um
+# visible reflectance over a 10 km box (see its notes: clear 0.06-0.10, marine
+# deck 0.37-0.71). Where a scan carries it, the fraction of bright pixels decides
+# -- gone under VIS_GONE, present at VIS_PRESENT or more with a low watery top --
+# because it sees the deck itself rather than a cloud/no-cloud mask that thin
+# cirrus also trips. The mask remains the fallback for scans without it.
 DECK_GONE_PCT, DECK_PRESENT_PCT, SAT_MIN_SCANS = 25.0, 50.0, 3
+VIS_GONE, VIS_PRESENT = 0.20, 0.60
 
 
 def _deck_by_hour_sat(vt):
@@ -1257,15 +1265,21 @@ def _deck_by_hour_sat(vt):
             if loc.date() != day or not 9 <= loc.hour <= 15 or r.get("cloud_pct") is None:
                 continue
             c = r["cloud_pct"]
-            if c < DECK_GONE_PCT:
+            near = min(tops, key=lambda x: abs((x[0] - t).total_seconds()), default=None)
+            sr = near[1] if near and abs((near[0] - t).total_seconds()) <= 2700 else {}
+            vis = sr.get("vis_cloud_frac")
+            if vis is not None:
+                if vis < VIS_GONE:
+                    out[loc.hour] = False
+                    continue
+                if vis < VIS_PRESENT:
+                    continue
+            elif c < DECK_GONE_PCT:
                 out[loc.hour] = False
                 continue
-            if c < DECK_PRESENT_PCT:
+            elif c < DECK_PRESENT_PCT:
                 continue
-            near = min(tops, key=lambda x: abs((x[0] - t).total_seconds()), default=None)
-            if not near or abs((near[0] - t).total_seconds()) > 2700:
-                continue
-            sr = near[1]; g = (sr.get("ground") or {}).get("temp_f")
+            g = (sr.get("ground") or {}).get("temp_f")
             if g is None or sr.get("bt11_mean_k") is None:
                 continue
             dep = (g - 32) / 1.8 + 273.15 - sr["bt11_mean_k"]
