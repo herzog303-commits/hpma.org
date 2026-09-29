@@ -1388,7 +1388,29 @@ def obs_fire_dry(vt):
 
 
 def obs_fire_clear(vt):
-    """1.0 if the GOES cloud mask averaged under FIRE_CLEAR_PCT across the window."""
+    """1.0 if the GOES cloud mask averaged under FIRE_CLEAR_PCT across the window
+    AND the cove did not fog in.
+
+    THE MASK ALONE FLATTERS THIS. By night the cloud mask has only thermal
+    channels, and shallow inlet fog sits at nearly the water's temperature, so
+    it reads clear through fog -- fire.py's docstring predicted this score would
+    verify optimistically. On the night of 2026-09-19 the mask averaged 0%, the
+    forecast said 99% clear and was scored a hit, while the cove consensus
+    reached saturation (RH >= 97% in 6 cycles). A night you cannot see the sky
+    through is not a clear night, so fog formation -- obs_fog_forms, the same
+    dewpoint-depression truth the fog forecast is scored on -- now vetoes it.
+    The BTD stratus detector is deliberately NOT used: its night threshold is
+    provisional (stratus.py), and swapping one unproven truth for another would
+    hide the problem rather than fix it.
+    """
+    clear = _mask_clear(vt)
+    if clear is None:
+        return None
+    return 0.0 if clear == 1.0 and obs_fog_forms(vt) == 1.0 else clear
+
+
+def _mask_clear(vt):
+    """The cloud-mask half of obs_fire_clear: 1.0 / 0.0 / None."""
     path = os.environ.get("GOES_LOG") or os.path.join(HERE, "goes_log.jsonl")
     rows = []
     try:
