@@ -277,6 +277,14 @@ def record(now, entries=None):
                 tempfix_rows.append({"var": "temp_f", "src": src,
                                      "valid": now.strftime("%Y-%m-%dT%H:%M:%SZ"),
                                      "lead_min": 0, "fcst": round(val, 1), "obs": None})
+            # THE CARRY-FORWARD THE BOARD NOW APPLIES, scored against the plain
+            # correction at the same leads. The board nudges the next hours by
+            # the corrected forecast's current error times 0.7^h, which cut
+            # archive error 29% / 13% / 6% at 1 / 2 / 3 h. Both are logged so the
+            # live gain is measured, not assumed. The lead is in the src: the
+            # log de-duplicates on (var, src, valid), and a 1 h row from one
+            # cycle and a 2 h row from another can share a valid time.
+            tempfix_rows += carry_rows(now, nc or {}, corr_f, tempfix_apply.corrected)
     except Exception:  # noqa: BLE001
         pass          # the correction is an improvement, never a dependency
     # Cloud/radiation skill. Recorded only when the forecast expects meaningful
@@ -1493,7 +1501,32 @@ def obs_temp_network(vt):
 # Rows whose forecast is Open-Meteo's raw 2 m temperature or the tempfix
 # correction of it are verified against the NETWORK, not the primary station.
 NETWORK_OBS = {"temp_f": obs_temp_network}
-NETWORK_SRCS = ("live-om-raw", "live-tempfix")
+CARRY_DECAY = 0.7          # the board's CARRY_DECAY; see the carry-forward note in record()
+
+
+def carry_rows(now, nc, corr_now, corrected):
+    """Rows scoring the board's 1-3 h temperature with and without the carry.
+
+    corr_now is tempfix's corrected temperature for now; corrected(t) returns
+    (raw, corrected) for hour t. Nothing is logged unless nowcast carries a
+    genuine observed consensus -- the model+offset fallback is not a measurement.
+    """
+    ob = nc.get("temp_cove_f")
+    if ob is None or corr_now is None or not str(nc.get("temp_source", "")).startswith("observed_consensus"):
+        return []
+    r0, out = corr_now - ob, []
+    for h in (1, 2, 3):
+        vt = now + timedelta(hours=h)
+        _, c_h = corrected(vt)
+        if c_h is None:
+            continue
+        for src, val in (("live-tempfix+%d" % (60 * h), c_h),
+                         ("live-tempfix-carry+%d" % (60 * h), c_h - r0 * CARRY_DECAY ** h)):
+            out.append({"var": "temp_f", "src": src, "valid": vt.strftime("%Y-%m-%dT%H:%M:%SZ"),
+                        "lead_min": 60 * h, "fcst": round(val, 1), "obs": None})
+    return out
+CARRY_SRCS = tuple("live-tempfix%s+%d" % (k, 60 * h) for h in (1, 2, 3) for k in ("", "-carry"))
+NETWORK_SRCS = ("live-om-raw", "live-tempfix") + CARRY_SRCS
 
 # ---------------------------------------------------------------- scorecard
 SCORED_VARS = ("surge_ft", "wind_kt", "temp_f", "rain_next_hr", "solar_w_m2",
@@ -1823,6 +1856,23 @@ def scorecard(entries):
             "mean under broken cloud, so the bias carries a negative artefact that is "
             "NOT forecast error. Model-to-model comparison is unaffected. Daytime only "
             "(forecast > 20 W/m2).")
+
+    cv_rows = {}
+    for h in (1, 2, 3):
+        pair = {}
+        for k in ("", "-carry"):
+            v = [e for e in done if e["var"] == "temp_f" and e.get("src") == "live-tempfix%s+%d" % (k, 60 * h)]
+            if v:
+                err = [e["fcst"] - e["obs"] for e in v]
+                pair["carry" if k else "tempfix"] = {"n": len(v), "bias": round(sum(err) / len(err), 2),
+                                                     "mae": round(sum(abs(x) for x in err) / len(err), 2)}
+        if pair:
+            cv_rows["%dh" % h] = pair
+    card["carry_verification"] = cv_rows or {"_note": "no verified hours yet; starts accumulating from 2026-09-28"}
+    card["carry_verification"]["_about"] = (
+        "The board's temperature 1-3 h ahead: tempfix alone vs tempfix plus 0.7^h of its current "
+        "error against the observed consensus. Archive (leave-one-year-out) expectation: MAE -29% / "
+        "-13% / -6% at 1 / 2 / 3 h. Truth is the network median, as for tempfix.")
 
     card["windfix_verification"] = wf or {
         "_note": "no paired hours yet; starts accumulating from 2026-09-25"}

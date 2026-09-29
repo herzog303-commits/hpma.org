@@ -302,6 +302,22 @@ const compass = deg => COMPASS[Math.round(((deg % 360) + 360) % 360 / 22.5) % 16
    Guarded: if the scorecard is missing, thin, or does not cover the day, the
    raw model values are shown unchanged and the board says so. */
 const BIAS_MIN_HOURS = 20, BIAS_MIN_N = 15;
+// CARRY THE CURRENT ERROR FORWARD. tempfix corrects the model from the model's
+// own inputs, so when the model's premise is wrong -- a sky forecast of 39-51%
+// cloud on a morning that cleared, 2026-09-28 -- the corrected forecast is
+// wrong the same way for hours. The miss IS observable: we have the measured
+// temperature now. Leave-one-year-out over 48,000 archive hours, tempfix's
+// residual h hours ahead is ~0.7^h times its residual now, and carrying that
+// fraction forward cut error by 29% at 1 h, 13% at 2 h and 6% at 3 h. The
+// observed SKY was tested too and added ~1%: by the time a wrong cloud forecast
+// matters, it already shows in the temperature. Beyond 6 h the carry is under
+// 12% and is dropped.
+const OBS_MAX_AGE_MS = 45 * 60000, CARRY_DECAY = 0.7, CARRY_MAX_H = 6;
+function carryForward(t, r0, t0) {
+  const L = (t - t0) / 3600000;
+  if (!(L > -1 && L <= CARRY_MAX_H)) return 0;
+  return r0 * Math.pow(CARRY_DECAY, Math.max(0, L));
+}
 async function fetchBias() {
   try {
     const c = await fetch(CONFIG.SCORECARD_URL).then(r => r.json());
@@ -344,6 +360,16 @@ async function fetchBias() {
         out.drainage = tab.by_hour_local;
         out.mode = nc.wind.mode;
       }
+      // The OBSERVED temperature now: nowcast.py's QC'd median across the cove
+      // sensors, published as a derived value (MADIS_NOTES). Only when it is a
+      // real consensus and fresh -- the model+offset fallback is not an
+      // observation and must not be treated as one.
+      // Never in ?demo: the demo weather is synthetic, and pulling it toward a
+      // real measurement would draw a fiction bent by a fact.
+      const age = Date.now() - Date.parse(nc && nc.generated_utc);
+      if (!new URL(location.href).searchParams.has("demo")
+          && nc && typeof nc.temp_cove_f === "number" && /^observed_consensus/.test(nc.temp_source || "")
+          && age >= 0 && age <= OBS_MAX_AGE_MS) out.obsTemp = { f: nc.temp_cove_f, t: Date.parse(nc.generated_utc) };
     } catch (e) { /* regime split is optional */ }
     // The model supersedes the temperature table. Loaded last and kept optional:
     // if it is missing or malformed the tables below still apply, so a bad
@@ -486,8 +512,13 @@ function applyBias(wx, bias) {
     wx.current.gust = gustFix(wx.current.gust, wx.current.t);
     wx.current.kt = varFix(fix(wx.current.kt, bias.gust, wx.current.t));
   }
+  // Residual of the CORRECTED forecast against the observation, right now.
+  const obs = bias.obsTemp;
+  const r0 = obs && wx.current && wx.current.tempF != null ? wx.current.tempF - obs.f : null;
+  const carry = t => (r0 == null ? 0 : carryForward(t, r0, obs.t));
   for (const h of wx.hourly) {
     h.tempF = tempFix(h.tempF, h.t, h);
+    if (h.tempF != null) h.tempF -= carry(h.t);
     h.gust = gustFix(h.gust, h.t);
     h.kt = varFix(fix(h.kt, bias.gust, h.t));
   }
@@ -516,11 +547,20 @@ function applyBias(wx, bias) {
     const hr = extremeRow(d, "hi"), lr = extremeRow(d, "lo");
     // The extreme is corrected as if it were the temperature at its own hour:
     // that hour's feature row, with the extreme substituted for the hourly value.
-    d.hi = hr ? tempFix(d.hi, hr.t, hr) : fixAtHour(d.hi, bias.tempF, 16);
-    d.lo = lr ? tempFix(d.lo, lr.t, lr) : fixAtHour(d.lo, bias.tempF, 6);
+    // The extreme rows were already carried forward in the hourly loop; the
+    // daily value gets the same carry at the same hour, so the headline high
+    // and the chart's marked high cannot disagree.
+    d.hi = hr ? tempFix(d.hi, hr.t, hr) - carry(hr.t) : fixAtHour(d.hi, bias.tempF, 16);
+    d.lo = lr ? tempFix(d.lo, lr.t, lr) - carry(lr.t) : fixAtHour(d.lo, bias.tempF, 6);
     const gh = hr == null ? 16 : localHour(hr.t);
     d.gust = bias.gustOwn ? varFix(fixAtHour(d.gust, bias.gustOwn, gh), bias.gustOwnVar)
                           : varFix(fixAtHour(d.gust, bias.gust, gh));
+  }
+  // The headline temperature is the MEASUREMENT when we have one: a forecast of
+  // the present is strictly worse than the present. Feels-like moves with it.
+  if (r0 != null) {
+    wx.current.tempF = obs.f;
+    if (wx.current.feelsF != null) wx.current.feelsF -= r0;
   }
   return { wx, corrected: true };
 }
