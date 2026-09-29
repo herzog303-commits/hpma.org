@@ -44,7 +44,13 @@ OUT = os.environ.get("GOES_OUT") or os.path.join(HERE, "goes_cloud.json")
 BUCKET = "https://noaa-goes18.s3.amazonaws.com"
 PRODUCT = "ABI-L2-ACMC"
 UA = {"User-Agent": "indian-cove-microclimate/1.0 (marina microclimate study)"}
-MIN_INTERVAL_S = 3300          # never resample inside ~55 min
+# Every cycle, since 2026-09-29. The board's current-conditions word reads this
+# file, and hourly sampling left it up to an hour behind the sky -- on
+# 2026-09-28 it said "high overcast" for 50 minutes after the satellite and
+# three sensors in full sun agreed it had cleared. Reading only the chunks we
+# need (below) makes a sample ~0.75 MB instead of 4.2, so four an hour costs
+# less than the one full download did.
+MIN_INTERVAL_S = 600
 
 MC = json.load(open(os.path.join(HERE, "microclimate.json")))
 LAT, LON = MC["cove"]["lat"], MC["cove"]["lon"]
@@ -136,9 +142,10 @@ RANGES_KM = (0, 20, 40, 60, 80, 120, 160)
 def _upwind_profile(bcm, idx, wind_from_deg):
     """Cloud fraction along the upwind bearing, out to 160 km.
 
-    We already download the whole CONUS array -- 3.8 million pixels -- and use
-    25 of them. Reading a profile out to 160 km costs nothing extra, and it is
-    the difference between "it is clear now" and "it will stay clear".
+    We read the cove box and these few points by range request, not the whole
+    CONUS array; a profile out to 160 km costs one or two extra chunks, and it
+    is the difference between "it is clear now" and "it will stay clear".
+    `bcm` may be a lazy xarray variable, so every window goes through asarray.
     """
     import numpy as np
     out = []
@@ -149,7 +156,7 @@ def _upwind_profile(bcm, idx, wind_from_deg):
             out.append({"km": km, "cloud_pct": None})
             continue
         jy, jx = r
-        w = bcm[max(0, jy - 3):jy + 4, max(0, jx - 3):jx + 4].astype("float64")
+        w = np.asarray(bcm[max(0, jy - 3):jy + 4, max(0, jx - 3):jx + 4], dtype="float64")
         w = w[np.isfinite(w)]
         out.append({"km": km, "cloud_pct": round(100.0 * float(w.mean()), 1) if w.size else None})
     return out
@@ -218,33 +225,62 @@ def _clear_outlook(profile, wind_kt, threshold=50.0):
                     "50%% solid-cloud threshold used here"}
 
 
-def sample(box=5, key=None):
-    """Download the newest cloud mask and average a box around the cove."""
-    import numpy as np
+BLOCK = 256 * 1024
+
+
+def _open(key):
+    """(dataset, bytes_read, cleanup). Range requests first, whole file if that fails.
+
+    The file is HDF5 in row chunks of 104 x 2500, so the cove box and the
+    upwind points touch two or three of them. If the partial read is not
+    available -- fsspec or h5netcdf missing, a server that ignores ranges --
+    fall back to the full download rather than to nothing.
+    """
     import xarray as xr
+    try:
+        import fsspec
+        f = fsspec.filesystem("http", headers=UA).open(BUCKET + "/" + key, block_size=BLOCK,
+                                                       cache_type="blockcache")
+        ds = xr.open_dataset(f, engine="h5netcdf")
+        return ds, (lambda: BLOCK * f.cache.cache_info().misses), (lambda: (ds.close(), f.close()))
+    except Exception as exc:  # noqa: BLE001
+        print("goes: partial read unavailable (%s) -- downloading the whole file" % exc)
+    with urllib.request.urlopen(urllib.request.Request(BUCKET + "/" + key, headers=UA),
+                                timeout=180) as r:
+        raw = r.read()
+    tmp = os.path.join(HERE, ".goes-tmp-%d.nc" % os.getpid())
+    with open(tmp, "wb") as f:
+        f.write(raw)
+    ds = xr.open_dataset(tmp)
+
+    def cleanup():
+        ds.close()
+        try:
+            os.remove(tmp)
+        except OSError:
+            pass
+    return ds, (lambda: len(raw)), cleanup
+
+
+def sample(box=5, key=None):
+    """Read the newest cloud mask and average a box around the cove."""
+    import numpy as np
 
     key = key or newest_key()
     if not key:
         return None
     try:
-        with urllib.request.urlopen(urllib.request.Request(BUCKET + "/" + key, headers=UA),
-                                    timeout=180) as r:
-            raw = r.read()
+        ds, nbytes, cleanup = _open(key)
     except Exception as exc:  # noqa: BLE001
         print("goes: download failed (%s)" % exc)
         return None
-
-    tmp = os.path.join(HERE, ".goes-tmp-%d.nc" % os.getpid())
     try:
-        with open(tmp, "wb") as f:
-            f.write(raw)
-        ds = xr.open_dataset(tmp)
         xy = _projection(ds)(LAT, LON)
         if xy is None:
             return None
         ix = int(np.abs(ds.x.values - xy[0]).argmin())
         iy = int(np.abs(ds.y.values - xy[1]).argmin())
-        bcm = ds["BCM"].values
+        bcm = ds["BCM"]            # lazy: only the windows below are fetched
         # The binary mask is not all this file carries. A deep-research spike
         # (2026-09-17) established that ACMC also holds a CONTINUOUS
         # Cloud_Probabilities field and the four-level ACM, and that we had
@@ -252,13 +288,13 @@ def sample(box=5, key=None):
         # reported 1-4% while Cloud_Probabilities ran 0.23-0.27 mean with a box
         # maximum of 0.82, against 0.003 mean / 0.023 max on a clear afternoon.
         # The binarisation threshold was flattening a real signal to a null.
-        prob = ds["Cloud_Probabilities"].values if "Cloud_Probabilities" in ds else None
-        acm = ds["ACM"].values if "ACM" in ds else None
+        prob = ds["Cloud_Probabilities"] if "Cloud_Probabilities" in ds else None
+        acm = ds["ACM"] if "ACM" in ds else None
         h = box // 2
         sl = (slice(max(0, iy - h), iy + h + 1), slice(max(0, ix - h), ix + h + 1))
-        win = bcm[sl].astype("float64")
-        pwin = prob[sl].astype("float64") if prob is not None else None
-        awin = acm[sl].astype("float64") if acm is not None else None
+        win = np.asarray(bcm[sl], dtype="float64")
+        pwin = np.asarray(prob[sl], dtype="float64") if prob is not None else None
+        awin = np.asarray(acm[sl], dtype="float64") if acm is not None else None
         win = win[np.isfinite(win)]
         if win.size == 0:
             return None
@@ -312,29 +348,24 @@ def sample(box=5, key=None):
             "cloud_prob_max": _stat(pwin, "max"),
             "acm_mean": _stat(awin, "mean"),
             "solar_zenith_deg": _sza(ts),
-            "centre_cloudy": bool(bcm[iy, ix] >= 0.5),
+            "centre_cloudy": bool(float(np.asarray(bcm[iy, ix])) >= 0.5),
             "pixel_km": [2.0, 3.6],
-            "bytes": len(raw),
+            "bytes": nbytes(),
             "upwind": prof,
             "outlook": outlook,
         }
-        ds.close()
         return out
     finally:
-        try:
-            os.remove(tmp)
-        except OSError:
-            pass
+        cleanup()
 
 
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--box", type=int, default=5)
-    ap.add_argument("--force", action="store_true", help="ignore the hourly interval")
+    ap.add_argument("--force", action="store_true", help="ignore the sampling interval")
     a = ap.parse_args()
 
-    # Hourly is deliberate: 4.22 MB a file, and cloud at 2 km does not change
-    # meaningfully inside an hour. Per-cycle sampling would be ~405 MB/day.
+    # Was hourly, when a sample meant a 4.22 MB download. See MIN_INTERVAL_S.
     if not a.force and os.path.exists(OUT):
         try:
             age = time.time() - os.path.getmtime(OUT)
