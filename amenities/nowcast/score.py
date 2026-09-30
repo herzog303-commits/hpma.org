@@ -1136,6 +1136,20 @@ def _upper_by_hour(day):
     return out
 
 
+def _to_local(t):
+    return t.astimezone(_TZ) if _TZ is not None else t - timedelta(hours=7)
+
+
+def _local_date(t):
+    return _to_local(t).date()
+
+
+def _local_to_utc(day, hour):
+    if _TZ is not None:
+        return datetime(day.year, day.month, day.day, hour, tzinfo=_TZ).astimezone(timezone.utc)
+    return datetime(day.year, day.month, day.day, hour, tzinfo=timezone.utc) + timedelta(hours=7)
+
+
 def _kt_day(vt):
     """Deck transmission by local hour -- Kt as a fraction of what the sun angle
     and today's upper cloud ALLOW, which is the target burnoff.py is fitted on.
@@ -1145,7 +1159,7 @@ def _kt_day(vt):
     Kt 0.19 at 10-15 degrees and the number means nothing.
     """
     import marine, skyref, collections, statistics
-    day = (vt - timedelta(hours=7)).date()
+    day = _local_date(vt)
     try:
         import wu as _wu
         stations = _wu.independent_stations(MC)
@@ -1153,9 +1167,9 @@ def _kt_day(vt):
         return {}
     out = {}
     for h in range(6, 19):
-        # Local -> UTC with the same fixed offset the day boundary above uses.
-        # The valid times are mid-afternoon local, so the date is unambiguous.
-        when = datetime(day.year, day.month, day.day, h, tzinfo=timezone.utc) + timedelta(hours=7)
+        # Local -> UTC through the real timezone: this was a fixed +7 h, which
+        # is PDT only and would have filed every hour one off from 2026-11-01.
+        when = _local_to_utc(day, h)
         elev = marine.solar_elevation(when)
         if not skyref.usable(elev):
             continue
@@ -1190,14 +1204,17 @@ def _kt_day_sustained(vt):
     possible: burnoff.py cannot be fitted to a target with no history.
     """
     import collections, statistics, json as _j
-    day = (vt - timedelta(hours=7)).date()
+    day = _local_date(vt)
     hrs = collections.defaultdict(list)
     try:
-        with open(os.path.join(HERE, "marine_log.jsonl")) as f:
+        # MARINE_LOG, not HERE: in production this runs from the board repo's
+        # amenities/nowcast/, where there is no marine_log.jsonl, so it silently
+        # found nothing and burnoff_sustained never verified once.
+        with open(os.environ.get("MARINE_LOG") or os.path.join(HERE, "marine_log.jsonl")) as f:
             for ln in f:
                 try:
                     d = _j.loads(ln)
-                    t = _dt(d["t"]) - timedelta(hours=7)
+                    t = _to_local(_dt(d["t"]))
                 except Exception:  # noqa: BLE001
                     continue
                 if t.date() == day and d.get("kt_median") is not None:
@@ -2071,6 +2088,11 @@ def main():
 
     # 2. verify ripe, unverified forecasts
     verified = 0
+    # A verifier that RAISES is not the same as one that found no data, and the
+    # two were indistinguishable: from 2026-09-25 the board-side copy of this
+    # file could not import marine, every burn-off row came back None, and
+    # nothing said so for four days. Count the exceptions and publish them.
+    verify_errors = {}
     for e in entries:
         if e.get("obs") is not None:
             continue
@@ -2086,8 +2108,10 @@ def main():
             else:
                 fn = OBS.get(e["var"])
             o = fn(vt) if fn else None
-        except Exception:  # noqa: BLE001
+        except Exception as exc:  # noqa: BLE001
             o = None
+            k = "%s: %s" % (e["var"], type(exc).__name__)
+            verify_errors[k] = verify_errors.get(k, 0) + 1
         if o is not None:
             e["obs"] = o
             e["err"] = None if e["var"] in PROB_VARS else round(e["fcst"] - o, 2)
@@ -2115,7 +2139,10 @@ def main():
                  "Bake-off RANKING is unaffected: at any timestamp every model is scored "
                  "against the same observation, whichever station supplied it."}
     card["generated_utc"] = now.strftime("%Y-%m-%dT%H:%M:%SZ")
+    card["verify_errors"] = verify_errors or {"_note": "no verifier raised this cycle"}
     json.dump(card, open(CARD, "w"), indent=2)
+    if verify_errors:
+        print("score: VERIFIER ERRORS -- " + ", ".join("%s x%d" % kv for kv in sorted(verify_errors.items())))
     print(f"score: +{added} logged, {verified} verified, {card['n_verified']} total verified / {card['n_pending']} pending")
     for var, s in card["variables"].items():
         print(f"  {var:14} {s}")
