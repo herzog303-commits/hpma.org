@@ -683,7 +683,12 @@ def obs_sky_clear(vt):
 
 
 def _obs_sky_clear_goes(vt):
-    """The retired GOES-based truth, kept as a fallback when METAR is missing."""
+    """GOES truth for "clear in 3 h": nearest scan within 45 min, mask under 25%.
+
+    Retired as sky_clear_3h's own truth (the model is fitted on METAR), kept as
+    its fallback when METAR is missing, and now the truth for sky_clear_3h_sat,
+    which scores the same forecast against a sensor that sees high cloud.
+    """
     path = os.environ.get("GOES_LOG") or os.path.join(HERE, "goes_log.jsonl")
     best = None
     try:
@@ -756,20 +761,28 @@ def _goes_log_start():
     return None
 
 
-SAT_TWINS = (("cloud_pct", "cloud_pct_sat", ("live",)),
-             ("burnoff_clears", "burnoff_clears_sat", ("live", "v1-climatology")),
-             ("burnoff_hour", "burnoff_hour_sat", ("live", "v1-climatology")))
+# (forecast var, twin var, srcs, earliest valid time or None)
+SAT_TWINS = (("cloud_pct", "cloud_pct_sat", ("live",), None),
+             ("burnoff_clears", "burnoff_clears_sat", ("live", "v1-climatology"), None),
+             ("burnoff_hour", "burnoff_hour_sat", ("live", "v1-climatology"), None),
+             # sky_clear_3h is FITTED on the airfield METARs, whose ceilometers see
+             # nothing above 12,000 ft, so under a high overcast it can verify
+             # "clear" -- not what a member means by a clear sky. The twin scores
+             # the same probability against the satellite, which sees every
+             # height. Only the current model: rows before SKY_REFIT_UTC came
+             # from the retired GOES-binary version.
+             ("sky_clear_3h", "sky_clear_3h_sat", ("live",), SKY_REFIT_UTC))
 
 
 def mirror_sat(entries):
     """Satellite-verified twins of every variable in SAT_TWINS."""
     out = []
-    for src_var, twin, srcs in SAT_TWINS:
-        out += _mirror(entries, src_var, twin, srcs)
+    for src_var, twin, srcs, since in SAT_TWINS:
+        out += _mirror(entries, src_var, twin, srcs, since)
     return out
 
 
-def _mirror(entries, src_var, twin, srcs):
+def _mirror(entries, src_var, twin, srcs, since=None):
     """Give each src_var forecast a twin with the same number and satellite
     truth. Derived here rather than at record time so one source produces both,
     and so forecasts made before a twin existed are scored too -- back to the
@@ -778,10 +791,14 @@ def _mirror(entries, src_var, twin, srcs):
     start = _goes_log_start()
     if start is None:
         return []
-    have = {(e.get("src", "live"), e["valid"][:13]) for e in entries if e["var"] == twin}
+    if since is not None:
+        start = max(start, _dt(since))
+    # Keyed on the full valid time: sky_clear_3h is logged every cycle, and an
+    # hour-level key would silently keep one row in four.
+    have = {(e.get("src", "live"), e["valid"]) for e in entries if e["var"] == twin}
     out = []
     for e in entries:
-        k = (e.get("src", "live"), e["valid"][:13])
+        k = (e.get("src", "live"), e["valid"])
         if e["var"] == src_var and k[0] in srcs and k not in have and _dt(e["valid"]) >= start:
             r = {"var": twin, "src": k[0], "valid": e["valid"], "lead_min": e.get("lead_min"),
                  "fcst": e["fcst"], "obs": None}
@@ -1443,6 +1460,7 @@ OBS = {"surge_ft": obs_surge, "wind_kt": obs_wind, "wind_gust_kt": obs_gust,
        "burnoff_sustained": obs_burnoff_sustained,
        # Same forecasts, satellite truth: independent of where the trees are.
        "burnoff_clears_sat": obs_burnoff_clears_sat, "burnoff_hour_sat": obs_burnoff_hour_sat,
+       "sky_clear_3h_sat": _obs_sky_clear_goes,
        "fog_forms": obs_fog_forms, "fog_onset_hour": obs_fog_onset,
        "fire_low_f": obs_fire_low, "fire_max_gust_kt": obs_fire_gust,
        "fire_dry_night": obs_fire_dry, "fire_clear_night": obs_fire_clear}
@@ -1552,7 +1570,7 @@ NETWORK_SRCS = ("live-om-raw", "live-tempfix") + CARRY_SRCS
 
 # ---------------------------------------------------------------- scorecard
 SCORED_VARS = ("surge_ft", "wind_kt", "temp_f", "rain_next_hr", "solar_w_m2",
-               "cloud_pct", "cloud_pct_sat", "sky_clear_3h",
+               "cloud_pct", "cloud_pct_sat", "sky_clear_3h", "sky_clear_3h_sat",
                "fire_low_f", "fire_max_gust_kt", "fire_dry_night", "fire_clear_night",
                "burnoff_clears", "burnoff_sustained", "burnoff_hour",
                "burnoff_clears_sat", "burnoff_hour_sat",
@@ -1579,7 +1597,7 @@ def local_hour(dt):
     if _TZ is not None:
         return dt.astimezone(_TZ).hour
     return (dt - timedelta(hours=7)).hour          # last resort, PDT only
-PROB_VARS = {"rain_next_hr", "sky_clear_3h", "fire_dry_night", "fire_clear_night",
+PROB_VARS = {"rain_next_hr", "sky_clear_3h", "sky_clear_3h_sat", "fire_dry_night", "fire_clear_night",
              "burnoff_clears", "burnoff_sustained", "burnoff_clears_sat", "fog_forms"}
 
 
@@ -1869,6 +1887,16 @@ def scorecard(entries):
             "cloud at every height. Where cloud_pct is much worse than this, the "
             "difference is high cloud the airfields cannot see. The mask misses thin "
             "fog, so neither truth is complete on its own.")
+
+    if card["variables"].get("sky_clear_3h_sat"):
+        card["variables"]["sky_clear_3h_sat"]["_note"] = (
+            "The SAME P(clear in 3 h) as sky_clear_3h, scored against the GOES cloud mask "
+            "(nearest scan within 45 min, under 25%) instead of the airfield METARs it was "
+            "fitted on. METAR cannot see cloud above 12,000 ft, so this is the 'is the sky "
+            "actually clear' reading. First look (2026-09-29, 447 hours since the refit): "
+            "skill +0.50 against METAR, +0.03 against the satellite; the truths disagreed on "
+            "23% of hours, 100 of 103 of them airfields-clear under satellite cloud. Not "
+            "shown on the board.")
 
     if card["variables"].get("solar_w_m2"):
         card["variables"]["solar_w_m2"]["_note"] = (
