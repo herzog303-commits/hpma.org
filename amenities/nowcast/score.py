@@ -1601,6 +1601,40 @@ PROB_VARS = {"rain_next_hr", "sky_clear_3h", "sky_clear_3h_sat", "fire_dry_night
              "burnoff_clears", "burnoff_sustained", "burnoff_clears_sat", "fog_forms"}
 
 
+def _solar_shade_check(done):
+    """solar_w_m2 on satellite-clear hours: observed/forecast by local hour, and
+    the bias there against the bias overall. None if too few clear hours.
+
+    On a clear hour the forecast has nothing to get wrong about cloud, so an
+    observed/forecast ratio well under 1 is the sensors failing to see the sun.
+    """
+    import bisect, statistics
+    path = os.environ.get("GOES_LOG") or os.path.join(HERE, "goes_log.jsonl")
+    try:
+        scans = sorted((_dt(r["scan_utc"]), r["cloud_pct"]) for r in
+                       (json.loads(ln) for ln in open(path)) if r.get("cloud_pct") is not None)
+    except (OSError, ValueError, KeyError):
+        return None
+    def clear_at(t):
+        i = bisect.bisect(scans, (t,))
+        c = [scans[j] for j in (i - 1, i) if 0 <= j < len(scans)]
+        b = min(c, key=lambda x: abs((x[0] - t).total_seconds()), default=None)
+        return b is not None and abs((b[0] - t).total_seconds()) <= 2700 and b[1] == 0
+    v = [e for e in done if e["var"] == "solar_w_m2" and e.get("src", "live") == "live" and e["fcst"] > 0]
+    clear = [e for e in v if clear_at(_dt(e["valid"]))]
+    if len(clear) < 20:
+        return None
+    byh = {}
+    for e in clear:
+        byh.setdefault(local_hour(_dt(e["valid"])), []).append(e["obs"] / e["fcst"])
+    return {"n_clear_hours": len(clear),
+            "bias_clear": round(sum(e["fcst"] - e["obs"] for e in clear) / len(clear), 1),
+            "bias_all": round(sum(e["fcst"] - e["obs"] for e in v) / len(v), 1),
+            "obs_over_fcst_by_hour_local": {str(h): round(statistics.median(x), 2)
+                                            for h, x in sorted(byh.items()) if len(x) >= 2},
+            "_read": "near 1.0 = the sensors see a clear sky; well under = shade"}
+
+
 def scorecard(entries):
     import math
     done = [e for e in entries if e.get("obs") is not None]
@@ -1906,6 +1940,17 @@ def scorecard(entries):
             "mean under broken cloud, so the bias carries a negative artefact that is "
             "NOT forecast error. Model-to-model comparison is unaffected. Daytime only "
             "(forecast > 20 W/m2).")
+        card["variables"]["solar_w_m2"]["_shade"] = (
+            "The larger artefact runs the OTHER way, and it is shade, not cloud. Trees "
+            "and hillsides shade the pyranometers from the low sun -- a different set "
+            "each hour -- so the observed median reads well under a clear sky for much "
+            "of the day, and the bias is LARGER on hours the satellite calls clear than "
+            "overall. That is the signature of sensors that cannot see the sun, not of "
+            "a cloud forecast that is wrong. See shade_check for the live measure, and "
+            "RESEARCH_NOTES 'The burn-off label records the trees, not the deck'.")
+        sc = _solar_shade_check(done)
+        if sc:
+            card["variables"]["solar_w_m2"]["shade_check"] = sc
 
     cv_rows = {}
     for h in (1, 2, 3):
