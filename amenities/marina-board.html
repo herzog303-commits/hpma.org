@@ -912,6 +912,21 @@ function nowcastDetail(nc) {
   if (nc.confidence) bits.push(`confidence ${nc.confidence}`);
   return bits.join(" · ");
 }
+/* THE MARINA WIND, labelled "est." -- it is the regional model wind times a
+   WindNinja shelter factor that no anemometer has ever checked (study repo
+   RESEARCH_NOTES, 2026-10-01). Top-level so smoke_board.py can unit-test it:
+   ?demo never loads nowcast.json, so no rendered case ever reaches this. */
+function marinaWindSpan(w) {
+  if (!w || w.marina_kt == null) return "";
+  const dir = w.marina_dir_deg != null ? " " + compass(w.marina_dir_deg) : "";
+  const est = ` <span style="opacity:.6">est.</span>`;
+  if (w.mode === "drainage")
+    return `<span>Marina <b>${w.marina_kt.toFixed(0)} kt</b>${est}${dir} <span style="opacity:.6">near-calm</span></span>`;
+  const ex = w.exposed, windy = ex && (ex.kt >= 12 || ex.gust_kt >= 15);
+  const exBit = windy ? ` <span style="opacity:.75">· exposed <b>${ex.kt.toFixed(0)}</b> gusting <b>${ex.gust_kt.toFixed(0)}</b></span>` : "";
+  return `<span>Marina <b>${w.marina_kt.toFixed(0)} kt</b>${est}${dir}${exBit}</span>`;
+}
+
 // THE SKY WORD, OBSERVED. The headline "clear" / "overcast" was the model's
 // weather_code, and over 1,127 cycles it disagreed with the satellite by two or
 // more categories 16% of the time -- on 2026-09-26 it said clear through four
@@ -1029,18 +1044,7 @@ function renderWeatherSimple({ wx, met, alerts, nowMs, nowcast, wxCorrected }) {
       el("line2", `${b.deck} ${kind} · ${call}`);
     } catch (e) { /* no call today */ }
   })();
-  const w = nowcast && nowcast.wind;
-  let windSpan = "";
-  if (w && w.marina_kt != null) {
-    const dir = w.marina_dir_deg != null ? " " + compass(w.marina_dir_deg) : "";
-    if (w.mode === "drainage") {
-      windSpan = `<span>Marina <b>${w.marina_kt.toFixed(0)} kt</b>${dir} <span style="opacity:.6">near-calm</span></span>`;
-    } else {
-      const ex = w.exposed, windy = ex && (ex.kt >= 12 || ex.gust_kt >= 15);
-      const exBit = windy ? ` <span style="opacity:.75">· exposed <b>${ex.kt.toFixed(0)}</b> gusting <b>${ex.gust_kt.toFixed(0)}</b></span>` : "";
-      windSpan = `<span>Marina <b>${w.marina_kt.toFixed(0)} kt</b>${dir}${exBit}</span>`;
-    }
-  }
+  const windSpan = marinaWindSpan(nowcast && nowcast.wind);
   const waterSpan = met.waterF != null ? `<span>Water ${met.waterF.toFixed(0)}°</span>` : "";
   // Say when the forecast has been de-biased, and equally when it has not.
   const calSpan = `<span class="dim">${wxCorrected ? "site-corrected" : "raw model"}</span>`;
