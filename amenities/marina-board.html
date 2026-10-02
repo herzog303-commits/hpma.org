@@ -914,8 +914,10 @@ function nowcastDetail(nc) {
 }
 /* THE MARINA WIND, labelled "est." -- it is the regional model wind times a
    WindNinja shelter factor that no anemometer has ever checked (study repo
-   RESEARCH_NOTES, 2026-10-01). Top-level so smoke_board.py can unit-test it:
-   ?demo never loads nowcast.json, so no rendered case ever reaches this. */
+   RESEARCH_NOTES, 2026-10-01). The exposed (Dougall Point) figure is built the
+   same way from that point's factor, so it carries "est." too. Top-level so
+   smoke_board.py can unit-test it: ?demo never loads nowcast.json, so no
+   rendered case ever reaches this. */
 function marinaWindSpan(w) {
   if (!w || w.marina_kt == null) return "";
   const dir = w.marina_dir_deg != null ? " " + compass(w.marina_dir_deg) : "";
@@ -923,7 +925,7 @@ function marinaWindSpan(w) {
   if (w.mode === "drainage")
     return `<span>Marina <b>${w.marina_kt.toFixed(0)} kt</b>${est}${dir} <span style="opacity:.6">near-calm</span></span>`;
   const ex = w.exposed, windy = ex && (ex.kt >= 12 || ex.gust_kt >= 15);
-  const exBit = windy ? ` <span style="opacity:.75">· exposed <b>${ex.kt.toFixed(0)}</b> gusting <b>${ex.gust_kt.toFixed(0)}</b></span>` : "";
+  const exBit = windy ? ` <span style="opacity:.75">· exposed <b>${ex.kt.toFixed(0)}</b> gusting <b>${ex.gust_kt.toFixed(0)}</b>${est}</span>` : "";
   return `<span>Marina <b>${w.marina_kt.toFixed(0)} kt</b>${est}${dir}${exBit}</span>`;
 }
 
