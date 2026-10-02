@@ -1163,10 +1163,16 @@ async function renderFire(nowMs) {
   // nowcast, which refreshes every 30 minutes.
   const nu = fire.next_up || {};
   const soon = [];
-  if (nu.rain && nu.rain.starts_in_min != null)
-    soon.push(nu.rain.starts_in_min <= 5
-      ? `<b>rain starting now</b>`
-      : `<b>rain in ~${nu.rain.starts_in_min} min</b>${nu.rain.peak_at ? ` · heaviest ${esc(nu.rain.peak_at)}` : ""}`);
+  // OBSERVED RAIN BEATS THE MODEL, as on the weather view: gauges or METARs
+  // within 8 mi (fire.observed_rain, from nowcast.json). Until 2026-10-01 this
+  // line read the model alone and could say "no rain" under a wet gauge.
+  const r = nu.rain || {}, seen = r.observed_nearby, ib = r.inbound;
+  if (r.starts_in_min != null && r.starts_in_min <= 5) soon.push(`<b>rain starting now</b>`);
+  else if (seen) soon.push(`<b>rain observed nearby</b>`);
+  else if (r.starts_in_min != null)
+    soon.push(`<b>rain in ~${r.starts_in_min} min</b>${r.peak_at ? ` · heaviest ${esc(r.peak_at)}` : ""}`);
+  else if (ib && ib.lead_h != null && ib.lead_h <= 2)
+    soon.push(`<b>rain upwind${ib.from ? ` to the ${esc(ib.from)}` : ""}, ~${ib.lead_h} h out</b>`);
   else if (nu.rain) soon.push("no rain in the next 2 h");
   if (nu.gust && nu.gust.max_kt != null && nu.gust.max_kt >= 10)
     soon.push(`gusts to ${Math.round(nu.gust.max_kt)} kt${nu.gust.at ? ` by ${esc(nu.gust.at)}` : ""}`);
