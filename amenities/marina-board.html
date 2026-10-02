@@ -1137,6 +1137,14 @@ async function renderFire(nowMs) {
   const t0 = Date.parse(fire.window.start_utc), t1 = Date.parse(fire.window.end_utc);
   // Tide bracketing the window, and enough of it to answer "next 12 hours".
   const extremes = await fetchExtremes(CONFIG.DP_STATION, Math.min(nowMs, t0) - 8 * 3600000, 28).catch(() => []);
+  // THE SAME WATER AS THE TIDES VIEW. This used to be NOAA's astronomical
+  // prediction alone, so the fire page and the tide page disagreed by the surge
+  // (2026-10-01). Same surge function, same feed, same ?surge override.
+  const q = new URL(location.href).searchParams;
+  const surgeFc = CONFIG.SURGE_FORECAST_URL
+    ? await fetch(CONFIG.SURGE_FORECAST_URL).then(r => r.json()).catch(() => null) : null;
+  const surge = makeSurgeFn({ manual: q.has("surge") ? parseFloat(q.get("surge")) : null,
+                              forecast: surgeFc, live: null, cfg: CONFIG });
 
   // The ban is the one thing that can make the whole page moot, so when wood
   // is out it gets a warn pill next to the window, not just a footer line.
@@ -1186,7 +1194,7 @@ async function renderFire(nowMs) {
   if (raining) rows.push(["Rain", "falling now"]);
   else if (sinceRain) rows.push(["Last rain", sinceRain]);
   for (const e of extremes.filter(e => e.t >= nowMs && e.t <= nowMs + 12 * 3600000).slice(0, 2))
-    rows.push([e.type === "H" ? "High tide" : "Low tide", `${e.h.toFixed(1)} ft ${clock(e.t)}`]);
+    rows.push([e.type === "H" ? "High tide" : "Low tide", `${(e.h + surge.fn(e.t)).toFixed(1)} ft ${clock(e.t)}`]);
 
   const head = sum
     ? `<div class="next"><b>Low ${sum.low_f.toFixed(0)}° at ${esc(sum.low_at)} · dew ${sum.low_dew.toFixed(0)}°</b>
@@ -1248,14 +1256,16 @@ async function renderFire(nowMs) {
     banTxt += ` · ORCAA still lists a ban (${bb.orcaa_stale_days}d older)`;
   if (bb.stale_h != null) banTxt += ` (${bb.stale_h}h old)`;
   el("strip", `<span>${banTxt}</span>`);
-  renderFireChart(hourly, extremes, t0, t1, nowMs);
+  renderFireChart(hourly, extremes, t0, t1, nowMs, surge);
   renderFreshness(fire.generated_utc, nowMs);
 }
 // Three registers, no unit soup: cloud cover as a strip along the top, the
 // temperature/dew-point pair through the middle (their gap IS the fog-and-damp
 // story), and the tide along the base -- which for a fire ON A BEACH is not
 // decoration.
-function renderFireChart(hourly, extremes, t0, t1, nowMs) {
+function renderFireChart(hourly, extremes, t0, t1, nowMs, surge) {
+  const sfn = surge ? surge.fn : () => 0;
+  const water = t => tideAt(extremes, t) + sfn(t);      // tide + surge, as the Tides view draws it
   const color = isColor(), W = 520, H = 300, L = 14, R = 12, T = 8, B = 22, CS = 12, PB = 74;
   const node = document.getElementById("chart");
   if (!hourly.length) { node.innerHTML = ""; return; }
@@ -1303,16 +1313,17 @@ function renderFireChart(hourly, extremes, t0, t1, nowMs) {
   // curve keeps its shape across a window that may hold only one turning point.
   let tide = "", tideLbls = "", tideY = null;
   if (extremes.length >= 2) {
-    const samples = []; for (let t = t0; t <= t1; t += 900000) samples.push([t, tideAt(extremes, t)]);
+    const samples = []; for (let t = t0; t <= t1; t += 900000) samples.push([t, water(t)]);
     const hs = samples.map(s => s[1]), tl = Math.min(...hs), th = Math.max(...hs), sp = Math.max(1.5, th - tl);
     const tTop = H - B - PB + 14, tBot = H - B - 2, yH = h => tBot - (h - tl) / sp * (tBot - tTop);
     tideY = yH;
     const d = samples.map(([t, h], i) => `${i ? "L" : "M"}${x(t).toFixed(1)},${yH(h).toFixed(1)}`).join(" ");
     tide = `<path d="${d} L${x(t1).toFixed(1)},${tBot.toFixed(1)} L${x(t0).toFixed(1)},${tBot.toFixed(1)} Z" fill="${blue}" opacity="0.16"/><path d="${d}" fill="none" stroke="${blue}" stroke-width="2"/>`;
-    tideLbls = `<text x="${L}" y="${(tTop - 3).toFixed(1)}" font-size="9.5" fill="${blue}">tide</text>`;
+    tideLbls = `<text x="${L}" y="${(tTop - 3).toFixed(1)}" font-size="9.5" fill="${blue}">${surge && surge.label !== "astronomical only" ? "tide + surge" : "tide"}</text>`;
     for (const e of extremes.filter(e => e.t > t0 + 1800000 && e.t < t1 - 1800000)) {
-      tideLbls += `<circle cx="${x(e.t).toFixed(1)}" cy="${yH(e.h).toFixed(1)}" r="2.8" fill="${color ? "#fcfcfb" : "#fff"}" stroke="${blue}" stroke-width="1.8"/>
-        <text x="${x(e.t).toFixed(1)}" y="${(yH(e.h) - 7).toFixed(1)}" font-size="10.5" font-weight="600" text-anchor="middle" fill="${blue}">${e.h.toFixed(1)} ft</text>`;
+      const eh = e.h + sfn(e.t);
+      tideLbls += `<circle cx="${x(e.t).toFixed(1)}" cy="${yH(eh).toFixed(1)}" r="2.8" fill="${color ? "#fcfcfb" : "#fff"}" stroke="${blue}" stroke-width="1.8"/>
+        <text x="${x(e.t).toFixed(1)}" y="${(yH(eh) - 7).toFixed(1)}" font-size="10.5" font-weight="600" text-anchor="middle" fill="${blue}">${eh.toFixed(1)} ft</text>`;
     }
   }
   let ticks = "";
@@ -1329,7 +1340,7 @@ function renderFireChart(hourly, extremes, t0, t1, nowMs) {
     { text: t => { const f = lerp(t, "temp_f"); return f == null ? "" : `${f.toFixed(0)}°`; }, y: t => { const f = lerp(t, "temp_f"); return f == null ? null : yT(f); } },
     { text: t => { const f = lerp(t, "dew_f"); return f == null ? "" : `dew ${f.toFixed(0)}°`; }, y: t => { const f = lerp(t, "dew_f"); return f == null ? null : yT(f); } },
     { text: t => `${(hourOf(t).cloud || 0).toFixed(0)}% cloud` },
-    { text: t => tideOk ? `tide ${tideAt(extremes, t).toFixed(1)} ft` : "", y: t => tideOk ? tideY(tideAt(extremes, t)) : null }] });
+    { text: t => tideOk ? `tide ${water(t).toFixed(1)} ft` : "", y: t => tideOk ? tideY(water(t)) : null }] });
 }
 
 /* ============================== MAIN ============================== */
