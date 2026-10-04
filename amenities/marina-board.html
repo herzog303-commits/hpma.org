@@ -886,6 +886,7 @@ function nowcastLine(nc) {
     : (rn.total > 0 && rn.observed)
       ? `<span style="color:var(--warn-fg)">rain at 1 of ${rn.total} gauges${rn.nearest_rate_in_hr ? " (" + rn.nearest_rate_in_hr + " in/hr)" : ""}</span>`
     : o.now ? `<span style="color:var(--warn-fg)">rain nearby</span>`
+    : (nc.lookout && nc.lookout.fired) ? `<span style="color:var(--warn-fg)">${lookoutPhrase(nc.lookout)}</span>`
     : o.inbound ? `<span style="color:var(--warn-fg)">rain inbound ~${o.inbound.lead_h}h ${o.inbound.from_dir}</span>`
     : ncWord(nextHr);
   // Satellite sky outlook. Answers the question a model cannot and the
@@ -911,6 +912,18 @@ function nowcastDetail(nc) {
   if (nc.detail) bits.push(nc.detail);
   if (nc.confidence) bits.push(`confidence ${nc.confidence}`);
   return bits.join(" · ");
+}
+/* RAIN LOOKOUTS (study repo lookout.py): two Shelton-side stations that, in
+   S/SW/W flow, see rain ~15-20 min before the cove (backtest 2026-10-04: first
+   at 24 of 27 and 21 of 28 arrivals, ~2/3 followed by cove rain within 90 min).
+   nowcast.json carries `lookout` (weather view) and fire.json rain.lookout (fire
+   view) in slightly different shapes; both reach here. Top-level for smoke_board.py. */
+function lookoutPhrase(lk) {
+  if (!lk) return "";
+  const mi = lk.mi != null ? Math.round(lk.mi) + " mi " : "";
+  const from = lk.from_dir || lk.from || "";
+  const eta = lk.eta_min != null ? `, here in ~${lk.eta_min} min` : "";
+  return `rain ${esc(mi + from)} upwind${eta}`;
 }
 /* THE MARINA WIND, labelled "est." -- it is the regional model wind times a
    WindNinja shelter factor that no anemometer has ever checked (study repo
@@ -1171,6 +1184,7 @@ async function renderFire(nowMs) {
   const r = nu.rain || {}, seen = r.observed_nearby, ib = r.inbound;
   if (r.starts_in_min != null && r.starts_in_min <= 5) soon.push(`<b>rain starting now</b>`);
   else if (seen) soon.push(`<b>rain observed nearby</b>`);
+  else if (r.lookout) soon.push(`<b>${lookoutPhrase(r.lookout)}</b>`);
   else if (r.starts_in_min != null)
     soon.push(`<b>rain in ~${r.starts_in_min} min</b>${r.peak_at ? ` · heaviest ${esc(r.peak_at)}` : ""}`);
   else if (ib && ib.lead_h != null && ib.lead_h <= 2)
