@@ -47,6 +47,7 @@
   .list div { display:flex; justify-content:space-between; gap:6px; white-space:nowrap; }
   .list .t { color:var(--muted); }
   .list .flag { font-size:12px; font-weight:700; color:var(--accent); }
+  .list .exp { font-size:12px; color:var(--muted); }
 
   .lineRow { display:block; font-size:17px; line-height:1.35; min-height:24px; }
   /* Secondary context under the nowcast: driving regime and pressure tendency.
@@ -163,6 +164,7 @@ const CONFIG = {
   TEMPFIX_URL: "tempfix.json",       // train_tempfix.py: the gradient-boosted temperature correction that supersedes the hour-of-day table
   FIRE_URL: "fire.json",
   BURNOFF_URL: "burnoff.json",     // burnoff.py: whether this morning's deck clears
+  OUTLOOK_URL: "outlook.json",     // outlook.py: tomorrow + 2 days from the corrected four-model blend (experimental)
        // fire.py: the 7pm-2am beach-fire outlook at the Point (easter egg view)
   FIRE_LAT: 47.300420, FIRE_LON: -122.847355,  // the ring itself, 0.73 mi NE of the marina
   // 1h + 1-4h rain projection from nowcast.py, served alongside the board
@@ -972,7 +974,28 @@ function renderWeatherSimple({ wx, met, alerts, nowMs, nowcast, wxCorrected }) {
   const subline = [rainBit(today), windPhrase(wx, nowMs)].filter(Boolean).join(" · ");
   el("hero", `<div class="big"><span class="n">${c.tempF.toFixed(0)}°</span><span class="dir">${skyWord(c.code, nowcast)} · feels ${c.feelsF.toFixed(0)}°</span></div>
     <div class="next"><b>High ${today.hi.toFixed(0)}° · Low ${today.lo.toFixed(0)}°</b><span>${subline}</span></div>
-    <div class="list">${wx.daily.slice(0, 3).map((d, i) => `<div><span><b>${i === 0 ? "Today" : fmt(d.t + 12 * 3600000, { weekday: "short" })}</b> ${d.hi.toFixed(0)}°/${d.lo.toFixed(0)}°</span><span class="t">${dayRight(d)}</span></div>`).join("")}</div>`);
+    <div class="list" id="dayList">${wx.daily.slice(0, 3).map((d, i) => `<div><span><b>${i === 0 ? "Today" : fmt(d.t + 12 * 3600000, { weekday: "short" })}</b> ${d.hi.toFixed(0)}°/${d.lo.toFixed(0)}°</span><span class="t">${dayRight(d)}</span></div>`).join("")}</div>`);
+  // The next three days from outlook.py: a corrected blend of four models,
+  // checked against the cove's own stations, with wind at the dock's exposure.
+  // Today stays on the live, site-corrected forecast above. Experimental, and
+  // labelled so. A missing, stale or out-of-step file leaves the list above.
+  (async () => {
+    try {
+      const o = await fetch(CONFIG.OUTLOOK_URL).then(r => r.json());
+      const age = (nowMs - Date.parse(o.issued_utc)) / 3600000;
+      const ymd = ms => new Intl.DateTimeFormat("en-CA", { timeZone: CONFIG.TZ }).format(new Date(ms));
+      const days = (o.days || []).filter(d => d.high_f != null && d.low_f != null);
+      if (!(age >= 0 && age <= 8) || !days.length || days[0].date !== ymd(nowMs + 86400000)) return;
+      const node = document.getElementById("dayList");
+      if (!node) return;
+      const right = d => [d.rain_chance != null && d.rain_chance >= 0.2 ? `${Math.round(100 * d.rain_chance)}% rain` : "",
+                          d.gust_kt != null ? windWord(d.gust_kt) : ""].filter(Boolean).join(" · ");
+      const label = d => fmt(Date.parse(d.date + "T19:00:00Z"), { weekday: "short" });
+      node.innerHTML = `<div><span><b>Today</b> ${today.hi.toFixed(0)}°/${today.lo.toFixed(0)}°</span><span class="t">${dayRight(today)}</span></div>`
+        + days.map(d => `<div><span><b>${label(d)}</b> ${d.high_f.toFixed(0)}°/${d.low_f.toFixed(0)}°</span><span class="t">${right(d)}</span></div>`).join("")
+        + `<div class="exp"><span>Next 3 days: four-model blend · experimental</span></div>`;
+    } catch (e) { /* no outlook: the default list stays */ }
+  })();
   el("pills", alerts.length ? `<span class="pill warn">${alerts[0].event}</span>` : "");
   el("line", nowcast ? nowcastLine(nowcast) : wxLine(wx, nowMs, nowcast));
   el("line2", nowcast ? nowcastDetail(nowcast) : "");
