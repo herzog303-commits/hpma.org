@@ -1,17 +1,17 @@
 {
-  "generated_utc": "2026-10-08T08:27:45Z",
-  "n_verified": 43786,
-  "n_pending": 1014,
+  "generated_utc": "2026-10-08T08:44:19Z",
+  "n_verified": 43808,
+  "n_pending": 1013,
   "variables": {
     "surge_ft": {
-      "n": 5058,
+      "n": 5060,
       "bias": -0.09,
       "mae": 0.19,
       "rmse": 0.24,
       "suggested_adjustment": 0.09,
       "bias_by_hour_local": {
         "0": -0.07,
-        "1": -0.04,
+        "1": -0.05,
         "2": -0.07,
         "3": -0.08,
         "4": -0.08,
@@ -40,14 +40,14 @@
       "_diurnal": "bias_by_hour_local is the SAME bias split by local hour. Where diurnal_range approaches or exceeds the overall bias, a flat correction is the wrong instrument and an hour-of-day correction is warranted."
     },
     "wind_kt": {
-      "n": 3158,
+      "n": 3159,
       "bias": 3.03,
       "mae": 3.31,
       "rmse": 3.9,
       "suggested_adjustment": -3.03,
       "bias_by_hour_local": {
         "0": 3.95,
-        "1": 3.83,
+        "1": 3.84,
         "2": 3.64,
         "3": 3.42,
         "4": 3.31,
@@ -76,14 +76,14 @@
       "_diurnal": "bias_by_hour_local is the SAME bias split by local hour. Where diurnal_range approaches or exceeds the overall bias, a flat correction is the wrong instrument and an hour-of-day correction is warranted."
     },
     "temp_f": {
-      "n": 3158,
+      "n": 3159,
       "bias": 0.99,
       "mae": 1.71,
       "rmse": 2.37,
       "suggested_adjustment": -0.99,
       "bias_by_hour_local": {
         "0": 0.48,
-        "1": 0.38,
+        "1": 0.37,
         "2": 0.21,
         "3": 0.23,
         "4": 0.21,
@@ -112,12 +112,12 @@
       "_diurnal": "bias_by_hour_local is the SAME bias split by local hour. Where diurnal_range approaches or exceeds the overall bias, a flat correction is the wrong instrument and an hour-of-day correction is warranted."
     },
     "rain_next_hr": {
-      "n": 3294,
-      "brier": 0.046,
+      "n": 3295,
+      "brier": 0.045,
       "base_rate": 0.087,
       "brier_skill_vs_climo": 0.428,
       "note": "lower Brier better; skill>0 beats always-forecasting-climatology",
-      "n_cond": 3294,
+      "n_cond": 3295,
       "brier_cond_climo": 0.082,
       "brier_skill_vs_cond_climo": 0.446,
       "contingency_p50": {
@@ -252,64 +252,64 @@
       "_note": "The SAME Open-Meteo cloud_cover forecast as cloud_pct, verified against the GOES-18 cloud mask over the cove (nearest scan within 45 min), which sees cloud at every height. Where cloud_pct is much worse than this, the difference is high cloud the airfields cannot see. The mask misses thin fog, so neither truth is complete on its own."
     },
     "sky_clear_3h": {
-      "n": 1979,
+      "n": 1980,
       "brier": 0.177,
-      "base_rate": 0.551,
+      "base_rate": 0.552,
       "brier_skill_vs_climo": 0.284,
       "note": "lower Brier better; skill>0 beats always-forecasting-climatology",
-      "n_cond": 1979,
+      "n_cond": 1980,
       "brier_cond_climo": 0.231,
-      "brier_skill_vs_cond_climo": 0.234,
+      "brier_skill_vs_cond_climo": 0.235,
       "contingency_p50": {
-        "hits": 858,
+        "hits": 859,
         "false_alarms": 226,
         "misses": 233,
-        "pod": 0.786,
+        "pod": 0.787,
         "far": 0.208,
-        "csi": 0.651,
+        "csi": 0.652,
         "freq_bias": 0.994,
         "_note": "event = obs 1; forecast 'yes' when p >= 0.5. CSI ignores correct no's, so it is not inflated by an easy base rate."
       },
       "calibration": {
-        "0.0": 0.496,
-        "1.0": 0.692
+        "0.0": 0.494,
+        "1.0": 0.693
       },
       "_note": "P(sky clear in 3 h). Fitted, not calibrated: an ensemble of three NWP cloud forecasts plus the observed sky three hours earlier, the layered low/mid/high cloud over the cove, wind regime, pressure, season and hour. Truth is the median METAR cloud fraction across KSHN/KOLM/KTCM/KPWT -- regional, which is acceptable because cloud is synoptic-scale where our rain is not. This is NOT the fog-on-the-water question; that is burnoff.py's, and it uses different instruments for good reason.",
       "_health": "REPLACED 2026-09-24. Rows up to that date came from a GOES binary mapped through a rolling calibration and scored -0.83 in the calibrated era; they are pooled here and drag the number down. The cause was never the calibration -- the TRUTH lived in goes_log.jsonl, eight days deep, so the predictor could be hedged but never fitted. Truth now comes from the median METAR cloud fraction across four airfields, which has five years, and the forecast comes from skyclear.json: 33,310 hours, leave-one-year-out Brier 0.0825, AUC 0.953, skill +0.655. Persistence alone -- the observed sky three hours earlier -- is worth +0.549 of that and the old version did not use it. Read the post-2026-09-24 rows; the pooled figure is two different variables added together.",
       "since_refit": {
-        "n": 1185,
+        "n": 1186,
         "base_rate": 0.543,
-        "brier": 0.1502,
+        "brier": 0.1501,
         "brier_skill_vs_climo": 0.395,
         "_note": "fitted model against a METAR target, from 2026-09-25. The pooled number above still carries the retired GOES-based rows.",
-        "n_cond": 1185,
+        "n_cond": 1186,
         "brier_cond_climo": 0.232,
-        "brier_skill_vs_cond_climo": 0.353,
+        "brier_skill_vs_cond_climo": 0.354,
         "contingency_p50": {
-          "hits": 499,
+          "hits": 500,
           "false_alarms": 121,
           "misses": 144,
           "pod": 0.776,
           "far": 0.195,
-          "csi": 0.653,
+          "csi": 0.654,
           "freq_bias": 0.964,
           "_note": "event = obs 1; forecast 'yes' when p >= 0.5. CSI ignores correct no's, so it is not inflated by an easy base rate."
         }
       }
     },
     "sky_clear_3h_sat": {
-      "n": 1185,
-      "brier": 0.219,
-      "base_rate": 0.404,
-      "brier_skill_vs_climo": 0.093,
+      "n": 1186,
+      "brier": 0.218,
+      "base_rate": 0.405,
+      "brier_skill_vs_climo": 0.094,
       "note": "lower Brier better; skill>0 beats always-forecasting-climatology",
       "contingency_p50": {
-        "hits": 362,
+        "hits": 363,
         "false_alarms": 258,
         "misses": 117,
         "pod": 0.756,
-        "far": 0.416,
-        "csi": 0.491,
+        "far": 0.415,
+        "csi": 0.492,
         "freq_bias": 1.294,
         "_note": "event = obs 1; forecast 'yes' when p >= 0.5. CSI ignores correct no's, so it is not inflated by an easy base rate."
       },
@@ -522,52 +522,52 @@
   "carry_verification": {
     "1h": {
       "tempfix": {
-        "n": 823,
-        "bias": 0.14,
+        "n": 824,
+        "bias": 0.15,
         "mae": 1.44
       },
       "carry": {
-        "n": 823,
+        "n": 824,
         "bias": 0.03,
         "mae": 0.76
       }
     },
     "2h": {
       "tempfix": {
-        "n": 819,
+        "n": 820,
         "bias": 0.13,
         "mae": 1.51
       },
       "carry": {
-        "n": 819,
+        "n": 820,
         "bias": 0.05,
-        "mae": 1.1
+        "mae": 1.09
       }
     },
     "3h": {
       "tempfix": {
-        "n": 816,
+        "n": 817,
         "bias": 0.09,
         "mae": 1.55
       },
       "carry": {
-        "n": 816,
+        "n": 817,
         "bias": 0.04,
-        "mae": 1.31
+        "mae": 1.3
       }
     },
     "_about": "The board's temperature 1-3 h ahead: tempfix alone vs tempfix plus 0.7^h of its current error against the observed consensus. Archive (leave-one-year-out) expectation: MAE -29% / -13% / -6% at 1 / 2 / 3 h. Truth is the network median, as for tempfix."
   },
   "windfix_verification": {
     "raw": {
-      "n": 1176,
+      "n": 1177,
       "bias": 3.24,
       "mae": 3.4,
       "rmse": 3.96,
       "sd_of_error": 2.27
     },
     "corrected": {
-      "n": 1176,
+      "n": 1177,
       "bias": 0.22,
       "mae": 1.01,
       "rmse": 1.41,
@@ -579,13 +579,13 @@
   },
   "tempfix_verification": {
     "raw": {
-      "n": 1177,
+      "n": 1178,
       "bias": 1.68,
       "mae": 2.0,
       "rmse": 2.41
     },
     "corrected": {
-      "n": 1177,
+      "n": 1178,
       "bias": 0.15,
       "mae": 1.52,
       "rmse": 1.92
@@ -596,13 +596,13 @@
   "cove_verification": {
     "_note": "same forecast verified at the cove (WU KWASHELT285/12, ~0.35 mi). This USED to be the contrast against Grapeview in variables{}, but GW2160 went off the air on 2026-09-16 and the live reference moved to the same cove station on 2026-09-21, so the two now share a SOURCE -- though not a SAMPLE, since cove rows shadow only the 0-lead forecasts, which is why the two still differ (1.42 vs 1.77 F when switched). The board corrects its displayed forecast from THIS table, so it is kept as the stable, board-facing contract. Restoring a genuine second site means GW2160 again -- done 2026-10-05, see two_site_verification; it matters because the two-site agreement is what makes the +3 kt wind bias a finding rather than a siting artifact.",
     "wind_kt": {
-      "n": 2521,
+      "n": 2522,
       "bias": 3.0,
       "mae": 3.25,
       "rmse": 3.82,
       "bias_by_hour_local": {
         "0": 4.05,
-        "1": 3.86,
+        "1": 3.87,
         "2": 3.76,
         "3": 3.61,
         "4": 3.36,
@@ -630,9 +630,9 @@
       "min_n_per_hour": 99,
       "diurnal_range": 3.51,
       "variance_match": {
-        "mean_corrected": 1.581,
+        "mean_corrected": 1.58,
         "mean_observed": 1.58,
-        "sd_corrected": 2.677,
+        "sd_corrected": 2.676,
         "sd_observed": 1.69,
         "scale": 0.6314,
         "_apply": "after subtracting bias_by_hour_local: v = mean_observed + (v - mean_corrected) * scale",
@@ -640,13 +640,13 @@
       }
     },
     "temp_f": {
-      "n": 2521,
+      "n": 2522,
       "bias": 0.66,
       "mae": 1.51,
       "rmse": 2.14,
       "bias_by_hour_local": {
         "0": -0.42,
-        "1": -0.5,
+        "1": -0.49,
         "2": -0.55,
         "3": -0.33,
         "4": -0.28,
@@ -675,13 +675,13 @@
       "diurnal_range": 4.12
     },
     "wind_gust_kt": {
-      "n": 1522,
+      "n": 1523,
       "bias": 4.0,
       "mae": 4.5,
       "rmse": 5.82,
       "bias_by_hour_local": {
         "0": 5.25,
-        "1": 5.06,
+        "1": 5.04,
         "2": 3.98,
         "3": 3.19,
         "4": 3.41,
@@ -709,11 +709,11 @@
       "min_n_per_hour": 58,
       "diurnal_range": 5.2,
       "variance_match": {
-        "mean_corrected": 4.164,
-        "mean_observed": 4.165,
-        "sd_corrected": 5.692,
+        "mean_corrected": 4.162,
+        "mean_observed": 4.164,
+        "sd_corrected": 5.69,
         "sd_observed": 3.178,
-        "scale": 0.5584,
+        "scale": 0.5585,
         "_apply": "after subtracting bias_by_hour_local: v = mean_observed + (v - mean_corrected) * scale",
         "_why": "the hour-corrected forecast carries 179% of the observed spread, so it is unbiased on average and still too windy at the top."
       }
@@ -723,36 +723,36 @@
     "_note": "The 0-lead wind and temperature forecasts verified at the cove (KWASHELT285 via WU) and at Grapeview (GW2160 via CWOP, 4.5 km W) on the same hours. Restored 2026-10-05 when aprsis.py's silence-guard bug was fixed; Grapeview rows start then. If the model's wind bias is about the same at both, it is the model; if it differs, it is siting.",
     "wind_kt": {
       "grapeview_all": {
-        "n": 243,
+        "n": 244,
         "bias": 2.48,
-        "mae": 2.78
+        "mae": 2.79
       },
-      "n_paired": 243,
+      "n_paired": 244,
       "cove": {
-        "n": 243,
+        "n": 244,
         "bias": 2.62,
-        "mae": 2.73
+        "mae": 2.74
       },
       "grapeview": {
-        "n": 243,
+        "n": 244,
         "bias": 2.48,
-        "mae": 2.78
+        "mae": 2.79
       }
     },
     "temp_f": {
       "grapeview_all": {
-        "n": 243,
+        "n": 244,
         "bias": 0.12,
         "mae": 0.65
       },
-      "n_paired": 243,
+      "n_paired": 244,
       "cove": {
-        "n": 243,
-        "bias": 0.5,
+        "n": 244,
+        "bias": 0.49,
         "mae": 0.83
       },
       "grapeview": {
-        "n": 243,
+        "n": 244,
         "bias": 0.12,
         "mae": 0.65
       }
@@ -761,14 +761,14 @@
   "rain_truth": {
     "_note": "rain_next_hr is verified against the COVE's own gauges from switched_utc (the board's 'observed' rule: one gauge >= 0.02 in/h or two at any rate, over the hour). Before that it was GW2160 and then KSHN/KOLM METAR, 20+ km away, which disagreed with the cove on 11.5% of hours over 2025-26. variables.rain_next_hr therefore steps on that date. 'regional' keeps scoring the same forecasts against the old truth so the step can be read across.",
     "switched_utc": "2026-10-05T08:00:00Z",
-    "n_paired": 256,
+    "n_paired": 257,
     "cove": {
-      "brier": 0.1535,
-      "base_rate": 0.168
+      "brier": 0.1529,
+      "base_rate": 0.167
     },
     "regional": {
-      "brier": 0.0201,
-      "base_rate": 0.02
+      "brier": 0.02,
+      "base_rate": 0.019
     },
     "disagree": 40
   },
