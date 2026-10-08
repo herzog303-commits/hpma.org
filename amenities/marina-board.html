@@ -1013,6 +1013,12 @@ function renderWeatherSimple({ wx, met, alerts, nowMs, nowcast, wxCorrected }) {
       // through, high cloud, unmeasurable) instead of leaving the last one up,
       // and marks that with a null probability. Without this guard the line
       // would read "only a 0% chance" under a clear sky.
+      //
+      // Except "breaking", which is news, not a decline: sensors in full sun
+      // or the satellite seeing the sun through at the cove. Hiding it left
+      // the line blank at the one moment the deck was actually going (from
+      // 11:11 on 2026-10-08). Say so, with no time and no probability.
+      if (b.status === "breaking") { el("line2", "low cloud breaking up now"); return; }
       if (b.p_clear_by_15 == null) return;
       // NOTE: this takes over the sub-line, replacing the nowcast's
       // "regime, confidence" text for those hours. On a morning with a deck
