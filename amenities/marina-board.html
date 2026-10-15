@@ -43,6 +43,7 @@
   body.color .next { border-color:#d9d7cd; }
   .next b { display:block; font-size:19px; }
   .next span { display:block; font-size:14px; color:var(--muted); }
+  .next .mtn { color:var(--ink); font-weight:700; }
   .list { font-size:14px; line-height:1.35; }
   .list div { display:flex; justify-content:space-between; gap:6px; white-space:nowrap; }
   .list .t { color:var(--muted); }
@@ -165,6 +166,7 @@ const CONFIG = {
   FIRE_URL: "fire.json",
   BURNOFF_URL: "burnoff.json",     // burnoff.py: whether this morning's deck clears
   OUTLOOK_URL: "outlook.json",     // outlook.py: tomorrow + 2 days from the corrected four-model blend (experimental)
+  RAINIER_URL: "rainier.json",     // is the mountain out: a public airport camera's last frames, as a yes/maybe (experimental)
        // fire.py: the 7pm-2am beach-fire outlook at the Point (easter egg view)
   FIRE_LAT: 47.300420, FIRE_LON: -122.847355,  // the ring itself, 0.73 mi NE of the marina
   // 1h + 1-4h rain projection from nowcast.py, served alongside the board
@@ -973,7 +975,7 @@ function renderWeatherSimple({ wx, met, alerts, nowMs, nowcast, wxCorrected }) {
   // evening") and was only reachable from a fallback that almost never runs.
   const subline = [rainBit(today), windPhrase(wx, nowMs)].filter(Boolean).join(" · ");
   el("hero", `<div class="big"><span class="n">${c.tempF.toFixed(0)}°</span><span class="dir">${skyWord(c.code, nowcast)} · feels ${c.feelsF.toFixed(0)}°</span></div>
-    <div class="next"><b>High ${today.hi.toFixed(0)}° · Low ${today.lo.toFixed(0)}°</b><span>${subline}</span></div>
+    <div class="next"><b>High ${today.hi.toFixed(0)}° · Low ${today.lo.toFixed(0)}°</b><span>${subline}</span><span class="mtn" id="mtn"></span></div>
     <div class="list" id="dayList">${wx.daily.slice(0, 3).map((d, i) => `<div><span><b>${i === 0 ? "Today" : fmt(d.t + 12 * 3600000, { weekday: "short" })}</b> ${d.hi.toFixed(0)}°/${d.lo.toFixed(0)}°</span><span class="t">${dayRight(d)}</span></div>`).join("")}</div>`);
   // The next three days from outlook.py: a corrected blend of four models,
   // checked against the cove's own stations, with wind at the dock's exposure.
@@ -995,6 +997,21 @@ function renderWeatherSimple({ wx, met, alerts, nowMs, nowcast, wxCorrected }) {
         + days.map(d => `<div><span><b>${label(d)}</b> ${d.high_f.toFixed(0)}°/${d.low_f.toFixed(0)}°</span><span class="t">${right(d)}</span></div>`).join("")
         + `<div class="exp"><span>Next 3 days: four-model blend · experimental</span></div>`;
     } catch (e) { /* no outlook: the default list stays */ }
+  })();
+  // Is the mountain out? rainier_pair.py's call from an airport camera that
+  // looks at Rainier along the Pointe's line of sight. Said only when out (or
+  // maybe) and fresh: the test never called a hidden mountain out, but it
+  // misses some lit evenings, so silence means "not seen", not "hidden".
+  (async () => {
+    try {
+      const m = await fetch(CONFIG.RAINIER_URL).then(r => r.json());
+      const age = (nowMs - Date.parse(m.frame_utc)) / 60000;
+      if (!(age >= -5 && age <= 90) || !(m.status === "out" || m.status === "unsure")) return;
+      const node = document.getElementById("mtn");
+      if (!node) return;
+      const at = fmt(Date.parse(m.frame_utc), { hour: "numeric", minute: "2-digit" }).replace(/\s/g, "").toLowerCase();
+      node.textContent = (m.status === "out" ? "Mt Rainier is out" : "Mt Rainier may be out") + ` · ${at}`;
+    } catch (e) { /* no call: no line */ }
   })();
   el("pills", alerts.length ? `<span class="pill warn">${alerts[0].event}</span>` : "");
   el("line", nowcast ? nowcastLine(nowcast) : wxLine(wx, nowMs, nowcast));
