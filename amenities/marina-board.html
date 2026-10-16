@@ -948,14 +948,15 @@ function sunDown(ms) {
    S/SW/W flow, see rain ~15-20 min before the cove (backtest 2026-10-04: first
    at 24 of 27 and 21 of 28 arrivals, ~2/3 followed by cove rain within 90 min).
    nowcast.json carries `lookout` (weather view) and fire.json rain.lookout (fire
-   view) in slightly different shapes; both reach here. Top-level for smoke_board.py. */
+   view) in slightly different shapes; both reach here. They are home
+   stations, so the page names a direction, never a distance. Top-level for
+   smoke_board.py. */
 function lookoutPhrase(lk) {
   if (!lk) return "";
-  const mi = lk.mi != null ? Math.round(lk.mi) + " mi " : "";
   const from = lk.from_dir || lk.from || "";
   // "may": about two in three of these reach the cove (lookout backtest)
   const eta = lk.eta_min != null ? `, may reach us in ~${lk.eta_min} min` : "";
-  return `rain ${esc(mi + from)} upwind${eta}`;
+  return `rain upwind${from ? " to the " + esc(from) : ""}${eta}`;
 }
 /* THE MARINA WIND is the board's site-corrected wind (cur = wx.current, fitted
    against the cove's own anemometer): MAE 1.0 kt there. Until 2026-10-16 it was
