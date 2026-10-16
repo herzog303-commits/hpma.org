@@ -155,9 +155,9 @@ const CONFIG = {
     { name: "launch ramp sill", ft: 3.0, kind: "low", tag: "ramp dry" }                       // water level at which the ramp end is exposed
   ],
 
-  /* Surge transfer from Tacoma. Basin-wide residual → 1:1, no lag (see surge-extrapolation-notes.md).
-     Surge is always folded silently into the shown heights; at/above SURGE_MAJOR_FT an unusual high/low
-     also gets a "†" footnote mark keyed to the static "NOAA + live surge" note. Below it, only that note. */
+  /* Surge transfer from Tacoma: the basin-wide residual taken 1:1, no lag. ASSUMED, never checked at
+     McMicken or the cove. Surge is folded into the shown heights and the strip names its source
+     (surgeNote); at/above SURGE_MAJOR_FT an unusual high/low gets a "†", keyed in the same strip. */
   SURGE_GAIN: 1.0, SURGE_LAG_MIN: 0, SURGE_MAJOR_FT: 1.5,
   SURGE_FORECAST_URL: "surge_forecast.json",   // surge_forecast.py: calibrated pressure/wind model, anchored to the live gauge
   NOWCAST_URL: "nowcast.json",
@@ -288,9 +288,11 @@ const compass = deg => COMPASS[Math.round(((deg % 360) + 360) % 360 / 22.5) % 16
 
 /* ---- site bias correction -------------------------------------------------
    Open-Meteo is a 1-2 km grid value; the cove is a sheltered pocket on a
-   1 km-wide passage. Verified against the cove's own station over 696 pairs the
-   model runs +1.70 F warm and +3.15 kt fast ON AVERAGE -- but the average is
-   the wrong instrument, because the error is strongly DIURNAL:
+   1 km-wide passage. When this was written (September 2026, 696 pairs against
+   the cove's own station) the model ran +1.70 F warm and +3.15 kt fast ON
+   AVERAGE. The figures in this comment are that snapshot; the live tables are
+   in scorecard.json. But the average is the wrong instrument, because the
+   error is strongly DIURNAL:
 
        temperature   +0.15 F at 02:00   ->  +4.82 F at 16:00   (range 4.67)
        wind          +0.88 kt at 12:00  ->  +4.93 kt at 22:00  (range 4.05)
@@ -547,6 +549,11 @@ function applyBias(wx, bias) {
     if (hrs.length < 4) return null;
     return hrs.reduce((a, b) => (pick === "hi" ? b.tempF > a.tempF : b.tempF < a.tempF) ? b : a);
   };
+  const gustRow = day => {
+    const key = fmt(day.t + 12 * 3600000, { day: "numeric", month: "numeric" });
+    const hrs = wx.hourly.filter(h => fmt(h.t, { day: "numeric", month: "numeric" }) === key && h.gust != null);
+    return hrs.length < 4 ? null : hrs.reduce((a, b) => b.gust > a.gust ? b : a);
+  };
   for (const d of wx.daily) {
     const hr = extremeRow(d, "hi"), lr = extremeRow(d, "lo");
     // The extreme is corrected as if it were the temperature at its own hour:
@@ -556,7 +563,8 @@ function applyBias(wx, bias) {
     // and the chart's marked high cannot disagree.
     d.hi = hr ? tempFix(d.hi, hr.t, hr) - carry(hr.t) : fixAtHour(d.hi, bias.tempF, 16);
     d.lo = lr ? tempFix(d.lo, lr.t, lr) - carry(lr.t) : fixAtHour(d.lo, bias.tempF, 6);
-    const gh = hr == null ? 16 : localHour(hr.t);
+    // The gust's own hour (it was the high temperature's): the bias is diurnal.
+    const gr = gustRow(d), gh = gr ? localHour(gr.t) : hr ? localHour(hr.t) : 16;
     d.gust = bias.gustOwn ? varFix(fixAtHour(d.gust, bias.gustOwn, gh), bias.gustOwnVar)
                           : varFix(fixAtHour(d.gust, bias.gust, gh));
   }
@@ -693,7 +701,7 @@ function renderTidesSimple({ extremes, surge, live, met, cur, alerts, annual, no
   const upcoming = extremes.filter(e => e.t > nowMs).slice(0, 6), next = upcoming[0];
   const flag = e => unusual(exp(e), e.type, annual) ? `<span class="flag ${e.type === "H" ? "hi" : "lo"}">${e.type === "H" ? "▲" : "▼"}${Math.abs(surge.fn(e.t)) >= CONFIG.SURGE_MAJOR_FT ? "†" : ""}</span>` : "";
   el("hero", `
-    <div class="big"><span class="n">${nowFt.toFixed(1)}</span><span class="u">ft</span><span class="dir">${soon > nowFt + 0.02 ? "rising" : soon < nowFt - 0.02 ? "falling" : "slack"}</span></div>
+    <div class="big"><span class="n">${nowFt.toFixed(1)}</span><span class="u">ft</span><span class="dir">${soon > nowFt + 0.02 ? "rising" : soon < nowFt - 0.02 ? "falling" : "turning"}</span></div>
     ${next ? `<div class="next"><b>${next.type === "H" ? "High" : "Low"} ${exp(next).toFixed(1)} ft at ${hhmm(next.t)}</b><span>in ${dur(next.t - nowMs)}</span></div>` : ""}
     <div class="list">${upcoming.slice(1).map(e => `<div><span>${e.type === "H" ? "High" : "Low"} <b>${exp(e).toFixed(1)}</b></span>${flag(e)}<span class="t">${dayTag(e.t, nowMs)}${hhmm(e.t)}</span></div>`).join("")}</div>`);
   const pills = [];
@@ -703,10 +711,22 @@ function renderTidesSimple({ extremes, surge, live, met, cur, alerts, annual, no
   el("line2", "");
   renderCurve(extremes, surge, annual, nowMs);
   const bits = [];
-  if (met.wind) bits.push(`Wind ${met.wind.dir} ${met.wind.kt.toFixed(0)}${met.wind.gust > met.wind.kt + 5 ? `–${met.wind.gust.toFixed(0)}` : ""} kt`);
+  // Wind and water are Tacoma's (MET_STATION), 30 km away: said so.
+  if (met.wind) bits.push(`Tacoma wind ${met.wind.dir} ${met.wind.kt.toFixed(0)}${met.wind.gust > met.wind.kt + 5 ? `–${met.wind.gust.toFixed(0)}` : ""} kt`);
   if (cur && cur.length) { const sl = cur.find(c => c.t > nowMs && c.type === "slack"); if (sl) bits.push(`Slack ${hhmm(sl.t)}`); }
-  if (met.waterF != null) bits.push(`Water ${met.waterF.toFixed(0)}°`);
-  el("strip", bits.map(b => `<span>${b}</span>`).join("") + `<span class="dim">NOAA + live surge</span>`);
+  if (met.waterF != null) bits.push(`Water ${met.waterF.toFixed(0)}° (Tacoma)`);
+  const dagger = upcoming.slice(1).some(e => unusual(exp(e), e.type, annual) && Math.abs(surge.fn(e.t)) >= CONFIG.SURGE_MAJOR_FT);
+  el("strip", bits.map(b => `<span>${b}</span>`).join("") + `<span class="dim">${surgeNote(surge)}${dagger ? ` · † surge ≥${CONFIG.SURGE_MAJOR_FT} ft` : ""}</span>`);
+}
+// WHAT IS IN THE HEIGHTS. This read "NOAA + live surge" whatever the surge
+// source, including when there was none. The surge is Tacoma's, carried 1:1 to
+// McMicken unchecked, so it says Tacoma. Top-level for smoke_board.py.
+function surgeNote(surge) {
+  const l = (surge && surge.label) || "";
+  if (l === "forecast feed") return "NOAA tide + Tacoma surge forecast";
+  if (l.startsWith("carried forward")) return "NOAA tide + Tacoma surge (last reading)";
+  if (l.startsWith("manual")) return `NOAA tide + ${esc(l)} surge`;
+  return "NOAA tide only (no surge data)";
 }
 
 // TAP READOUT -- one helper for all three charts, at a member's request.
@@ -897,9 +917,14 @@ function nowcastLine(nc) {
   // thermal IR, so this works at 2am.
   const sk = nc.sky;
   let sky = "";
+  // AT NIGHT "no cloud upwind" is no promise: low cloud forms in place. After
+  // a night "clear, none upwind", Shelton reported a ceiling within 6 h 44% of
+  // the time (2026-09-16..10-16; 16% by day).
+  const night = sunDown(Date.parse(nc.generated_utc) || Date.now());
   if (sk && sk.clear_now) {
     sky = sk.lead_h == null
-      ? ` · <b>clear</b>, no cloud within 100 mi upwind`
+      ? (night ? ` · <b>clear</b> now, none upwind · low cloud can still form overnight`
+               : ` · <b>clear</b>, no cloud within 100 mi upwind`)
       : sk.lead_h >= 6 ? ` · <b>clear</b>, next cloud ~${Math.round(sk.lead_h)}h out`
       : ` · clear now, cloud ~${sk.lead_h.toFixed(1)}h out (${sk.next_cloud_mi} mi)`;
   } else if (sk && sk.cloud_pct != null) {
@@ -910,11 +935,14 @@ function nowcastLine(nc) {
 // The "why" behind the nowcast: driving regime and pressure tendency, plus how
 // much the model trusts itself. Temperature is deliberately NOT repeated here --
 // the hero shows it three times its size, six inches away.
+// nowcast.json's "confidence" is not shown: it has never been scored.
 function nowcastDetail(nc) {
-  const bits = [];
-  if (nc.detail) bits.push(nc.detail);
-  if (nc.confidence) bits.push(`confidence ${nc.confidence}`);
-  return bits.join(" · ");
+  return nc.detail || "";
+}
+// Is the sun down at ms, at the marina?
+function sunDown(ms) {
+  const p = localParts(ms), s = sunDay(p.y, p.m, p.d, CONFIG.LAT, CONFIG.LON).sun;
+  return !s || ms < s.rise || ms > s.set;
 }
 /* RAIN LOOKOUTS (study repo lookout.py): two Shelton-side stations that, in
    S/SW/W flow, see rain ~15-20 min before the cove (backtest 2026-10-04: first
@@ -925,24 +953,38 @@ function lookoutPhrase(lk) {
   if (!lk) return "";
   const mi = lk.mi != null ? Math.round(lk.mi) + " mi " : "";
   const from = lk.from_dir || lk.from || "";
-  const eta = lk.eta_min != null ? `, here in ~${lk.eta_min} min` : "";
+  // "may": about two in three of these reach the cove (lookout backtest)
+  const eta = lk.eta_min != null ? `, may reach us in ~${lk.eta_min} min` : "";
   return `rain ${esc(mi + from)} upwind${eta}`;
 }
-/* THE MARINA WIND, labelled "est." -- it is the regional model wind times a
-   WindNinja shelter factor that no anemometer has ever checked (study repo
-   RESEARCH_NOTES, 2026-10-01). The exposed (Dougall Point) figure is built the
-   same way from that point's factor, so it carries "est." too. Top-level so
-   smoke_board.py can unit-test it: ?demo never loads nowcast.json, so no
-   rendered case ever reaches this. */
-function marinaWindSpan(w) {
-  if (!w || w.marina_kt == null) return "";
-  const dir = w.marina_dir_deg != null ? " " + compass(w.marina_dir_deg) : "";
+/* THE MARINA WIND is the board's site-corrected wind (cur = wx.current, fitted
+   against the cove's own anemometer): MAE 1.0 kt there. Until 2026-10-16 it was
+   the regional wind times a WindNinja shelter factor, labelled "est.", which
+   read 1.6 kt high on average (MAE 2.2) and "2 kt" over a gauge reading 0; its
+   "near-calm" switch keyed on model cloud. Uncorrected, the number is the
+   model's and says so. The exposed (Dougall Point) figure is still the
+   shelter-factor estimate and keeps "est.". Top-level so smoke_board.py can
+   unit-test it: ?demo never loads nowcast.json. */
+function marinaWindSpan(w, cur, corrected) {
+  if (!cur || cur.kt == null) return "";
+  const dir = cur.dir != null ? " " + compass(cur.dir) : "";
   const est = ` <span style="opacity:.6">est.</span>`;
-  if (w.mode === "drainage")
-    return `<span>Marina <b>${w.marina_kt.toFixed(0)} kt</b>${est}${dir} <span style="opacity:.6">near-calm</span></span>`;
-  const ex = w.exposed, windy = ex && (ex.kt >= 12 || ex.gust_kt >= 15);
+  const tag = corrected ? "" : ` <span style="opacity:.6">model</span>`;
+  const ex = w && w.exposed, windy = ex && (ex.kt >= 12 || ex.gust_kt >= 15);
   const exBit = windy ? ` <span style="opacity:.75">· exposed <b>${ex.kt.toFixed(0)}</b> gusting <b>${ex.gust_kt.toFixed(0)}</b>${est}</span>` : "";
-  return `<span>Marina <b>${w.marina_kt.toFixed(0)} kt</b>${est}${dir}${exBit}</span>`;
+  return `<span>Marina <b>${cur.kt.toFixed(0)} kt</b>${tag}${dir}${exBit}</span>`;
+}
+/* FEELS-LIKE from the numbers on this page: NWS wind chill from the corrected
+   temperature and wind, at or below 50 F with wind over 3 mph; otherwise null
+   and no "feels" is shown. The model's apparent temperature used its own wind
+   and humidity and printed "feels 46°" at a calm 49° (2026-10-16). Shown only
+   when it differs by 2 F or more. Top-level for smoke_board.py. */
+function feelsLike(tF, kt) {
+  if (tF == null || kt == null || tF > 50) return null;
+  const mph = kt * 1.15078;
+  if (mph <= 3) return null;
+  const v = 35.74 + 0.6215 * tF - 35.75 * mph ** 0.16 + 0.4275 * tF * mph ** 0.16;
+  return tF - v >= 2 ? v : null;
 }
 
 // THE SKY WORD, OBSERVED. The headline "clear" / "overcast" was the model's
@@ -973,7 +1015,8 @@ function renderWeatherSimple({ wx, met, alerts, nowMs, nowcast, wxCorrected }) {
   // already gives part-of-day language ("Windy this afternoon, breezy this
   // evening") and was only reachable from a fallback that almost never runs.
   const subline = [rainBit(today), windPhrase(wx, nowMs)].filter(Boolean).join(" · ");
-  el("hero", `<div class="big"><span class="n">${c.tempF.toFixed(0)}°</span><span class="dir">${skyWord(c.code, nowcast)} · feels ${c.feelsF.toFixed(0)}°</span></div>
+  const feels = feelsLike(c.tempF, c.kt);
+  el("hero", `<div class="big"><span class="n">${c.tempF.toFixed(0)}°</span><span class="dir">${skyWord(c.code, nowcast)}${feels != null ? ` · feels ${feels.toFixed(0)}°` : ""}</span></div>
     <div class="next"><b>High ${today.hi.toFixed(0)}° · Low ${today.lo.toFixed(0)}°</b><span>${subline}</span><span class="mtn" id="mtn"></span></div>
     <div class="list" id="dayList">${wx.daily.slice(0, 3).map((d, i) => `<div><span><b>${i === 0 ? "Today" : fmt(d.t + 12 * 3600000, { weekday: "short" })}</b> ${d.hi.toFixed(0)}°/${d.lo.toFixed(0)}°</span><span class="t">${dayRight(d)}</span></div>`).join("")}</div>`);
   // The next three days from outlook.py: a corrected blend of four models,
@@ -994,7 +1037,7 @@ function renderWeatherSimple({ wx, met, alerts, nowMs, nowcast, wxCorrected }) {
       const label = d => fmt(Date.parse(d.date + "T19:00:00Z"), { weekday: "short" });
       node.innerHTML = `<div><span><b>Today</b> ${today.hi.toFixed(0)}°/${today.lo.toFixed(0)}°</span><span class="t">${dayRight(today)}</span></div>`
         + days.map(d => `<div><span><b>${label(d)}</b> ${d.high_f.toFixed(0)}°/${d.low_f.toFixed(0)}°</span><span class="t">${right(d)}</span></div>`).join("")
-        + `<div class="exp"><span>Next 3 days: four-model blend · experimental</span></div>`;
+        + `<div class="exp"><span>Next 3 days: four-model blend · % = chance of any rain · experimental</span></div>`;
     } catch (e) { /* no outlook: the default list stays */ }
   })();
   // Is the mountain out? rainier_pair.py's call from an airport camera that
@@ -1010,7 +1053,7 @@ function renderWeatherSimple({ wx, met, alerts, nowMs, nowcast, wxCorrected }) {
       if (!node) return;
       const at = fmt(Date.parse(m.frame_utc), { hour: "numeric", minute: "2-digit" }).replace(/\s/g, "").toLowerCase();
       // Locally it is "the mountain", never "Mt Rainier" (owner, 2026-10-15).
-      node.textContent = (m.status === "out" ? "The Mountain is Out" : "The Mountain may be out") + ` · ${at}`;
+      node.textContent = (m.status === "out" ? "The Mountain is Out" : "The Mountain may be out") + ` · ${at} · experimental`;
     } catch (e) { /* no call: no line */ }
   })();
   el("pills", alerts.length ? `<span class="pill warn">${alerts[0].event}</span>` : "");
@@ -1105,8 +1148,8 @@ function renderWeatherSimple({ wx, met, alerts, nowMs, nowcast, wxCorrected }) {
       el("line2", `${b.deck} ${kind} · ${call}`);
     } catch (e) { /* no call today */ }
   })();
-  const windSpan = marinaWindSpan(nowcast && nowcast.wind);
-  const waterSpan = met.waterF != null ? `<span>Water ${met.waterF.toFixed(0)}°</span>` : "";
+  const windSpan = marinaWindSpan(nowcast && nowcast.wind, wx.current, wxCorrected);
+  const waterSpan = met.waterF != null ? `<span>Water ${met.waterF.toFixed(0)}° (Tacoma)</span>` : "";
   // Say when the forecast has been de-biased, and equally when it has not.
   const calSpan = `<span class="dim">${wxCorrected ? "site-corrected" : "raw model"}</span>`;
   el("strip", [windSpan, waterSpan, calSpan].filter(Boolean).join(""));
@@ -1244,7 +1287,7 @@ async function renderFire(nowMs) {
 
   const aq = fire.air_quality || {}, hs = fire.hours_since_rain;
   const rows = [];
-  if (aq.us_aqi != null) rows.push(["Air", `AQI ${aq.us_aqi} · ${aq.us_aqi <= 50 ? "clean" : aq.us_aqi <= 100 ? "moderate" : "poor"}`]);
+  if (aq.us_aqi != null) rows.push(["Air", `AQI ${aq.us_aqi} · ${aq.us_aqi <= 50 ? "clean" : aq.us_aqi <= 100 ? "moderate" : "poor"} (model)`]);
   // LAST RAIN, IN UNITS A PERSON USES. This said "0.8 h ago", which is 48
   // minutes, reads as eight hours, and is a quantity nobody has ever thought
   // in. Under 90 minutes it is now minutes; past two days, days.
@@ -1264,9 +1307,12 @@ async function renderFire(nowMs) {
   for (const e of extremes.filter(e => e.t >= nowMs && e.t <= nowMs + 12 * 3600000).slice(0, 2))
     rows.push([e.type === "H" ? "High tide" : "Low tide", `${(e.h + surge.fn(e.t)).toFixed(1)} ft ${clock(e.t)}`]);
 
+  // The dew point is the model's, beside a corrected temperature: on
+  // 2026-10-16 it ran 6 F dry and the gap read 7 F against a measured 0.5.
+  // Said, in place of the RH that pair implied.
   const head = sum
     ? `<div class="next"><b>Low ${sum.low_f.toFixed(0)}° at ${esc(sum.low_at)} · dew ${sum.low_dew.toFixed(0)}°</b>
-         <span>RH ${sum.low_rh}% · gusts to ${sum.max_gust.toFixed(0)} kt · ${sum.mean_cloud}% cloud</span></div>`
+         <span>model dew · gusts to ${sum.max_gust.toFixed(0)} kt · ${sum.mean_cloud}% cloud</span></div>`
     : "";
   const joy = (v.insights || []).map(t => `<div><span class="g">${joyGlyph(t)}</span><span>${fireText(t)}</span></div>`).join("");
   el("hero", `${head}<div class="list">${rows.map(([k, val]) =>
@@ -1314,8 +1360,13 @@ async function renderFire(nowMs) {
   let banTxt;
   if (bb.wood === "prohibited")
     banTxt = `⚠ Wood fires prohibited${bb.propane === "allowed" ? " · propane OK" : ""} — per ${esc(decided)}`;
+  // Mason County binds a recreational fire here. When only DNR has said yes,
+  // say that, not "lifted restrictions" (2026-10-16: the county's Oct 8
+  // release could not be read).
   else if (bb.wood === "allowed")
-    banTxt = `Wood fires OK — ${esc(decided)} lifted restrictions`;
+    banTxt = (bb.mason || {}).recreational === "allowed"
+      ? `Wood fires OK — per Mason County`
+      : `Wood fires OK per ${esc(decided)} — county not confirmed`;
   else
     banTxt = `⚠ Burn ban status unclear — check before you light`;
   // A source that disagrees is shown, not buried. It is how somebody notices
