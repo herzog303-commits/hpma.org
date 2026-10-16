@@ -1010,7 +1010,8 @@ function renderWeatherSimple({ wx, met, alerts, nowMs, nowcast, wxCorrected }) {
       const node = document.getElementById("mtn");
       if (!node) return;
       const at = fmt(Date.parse(m.frame_utc), { hour: "numeric", minute: "2-digit" }).replace(/\s/g, "").toLowerCase();
-      node.textContent = (m.status === "out" ? "Mt Rainier is out" : "Mt Rainier may be out") + ` · ${at}`;
+      // Locally it is "the mountain", never "Mt Rainier" (owner, 2026-10-15).
+      node.textContent = (m.status === "out" ? "The Mountain is Out" : "The Mountain may be out") + ` · ${at}`;
     } catch (e) { /* no call: no line */ }
   })();
   el("pills", alerts.length ? `<span class="pill warn">${alerts[0].event}</span>` : "");
