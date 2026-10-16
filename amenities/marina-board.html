@@ -288,7 +288,7 @@ const compass = deg => COMPASS[Math.round(((deg % 360) + 360) % 360 / 22.5) % 16
 
 /* ---- site bias correction -------------------------------------------------
    Open-Meteo is a 1-2 km grid value; the cove is a sheltered pocket on a
-   1 km-wide passage. Verified against KWASHELT285 (0.56 km) over 696 pairs the
+   1 km-wide passage. Verified against the cove's own station over 696 pairs the
    model runs +1.70 F warm and +3.15 kt fast ON AVERAGE -- but the average is
    the wrong instrument, because the error is strongly DIURNAL:
 
@@ -842,9 +842,9 @@ const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
 function wxLine(wx, nowMs, nowcast) {
   const next2h = wx.minutely.filter(m => m.t > nowMs - 15 * 60000 && m.t <= nowMs + 2 * 3600000), wet = m => m.inch >= 0.005;
   // IS it raining, not MIGHT it rain. wx.current.precip is Open-Meteo's MODELLED
-  // precipitation for a 1-2 km grid cell; rn is eleven real gauges inside 4.7 km,
-  // the nearest 0.56 km from the gangway. A member standing on the dock in rain
-  // while the board says "dry" is the exact complaint this board exists to answer,
+  // precipitation for a 1-2 km grid cell; rn is eleven real gauges around the
+  // cove. A member standing on the dock in rain while the board says "dry" is
+  // the exact complaint this board exists to answer,
   // so when the gauges have an opinion they win outright -- including saying DRY
   // when the model thinks otherwise.
   const rn = nowcast && nowcast.rain_now;
@@ -854,10 +854,9 @@ function wxLine(wx, nowMs, nowcast) {
   let rain;
   if (rainingNow && gaugeSays) {
     // one wet bucket could be a spider; two cannot. Say which we have.
-    const near = rn.wet_stations && rn.wet_stations[0];
     rain = rn.confident
       ? `Raining now \u2014 ${rn.wet} of ${rn.total} gauges.`
-      : `Rain ${near ? near.mi.toFixed(1) + " mi away" : "nearby"} \u2014 1 gauge only.`;
+      : `Rain nearby \u2014 1 gauge only.`;
     const stop = next2h.find(m => m.t > nowMs && !wet(m));
     if (stop) rain += ` Easing around ${hhmm(stop.t)}.`;
   }
@@ -886,9 +885,9 @@ function nowcastLine(nc) {
   // when the gauges agree, and say plainly when they do not -- the count is
   // shown either way so the reader can judge.
   const nhWord = (rn.total > 0 && rn.confident)
-      ? `<span style="color:var(--warn-fg)">RAINING NOW (${rn.wet}/${rn.total} gauges${rn.nearest_rate_in_hr ? ", " + rn.nearest_rate_in_hr + " in/hr" : ""})</span>`
+      ? `<span style="color:var(--warn-fg)">RAINING NOW (${rn.wet}/${rn.total} gauges)</span>`
     : (rn.total > 0 && rn.observed)
-      ? `<span style="color:var(--warn-fg)">rain at 1 of ${rn.total} gauges${rn.nearest_rate_in_hr ? " (" + rn.nearest_rate_in_hr + " in/hr)" : ""}</span>`
+      ? `<span style="color:var(--warn-fg)">rain at 1 of ${rn.total} gauges</span>`
     : o.now ? `<span style="color:var(--warn-fg)">rain nearby</span>`
     : (nc.lookout && nc.lookout.fired) ? `<span style="color:var(--warn-fg)">${lookoutPhrase(nc.lookout)}</span>`
     : o.inbound ? `<span style="color:var(--warn-fg)">rain inbound ~${o.inbound.lead_h}h ${o.inbound.from_dir}</span>`
