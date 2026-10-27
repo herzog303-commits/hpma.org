@@ -1,10 +1,10 @@
 {
-  "generated_utc": "2026-10-27T04:53:19Z",
-  "n_verified": 84665,
-  "n_pending": 1484,
+  "generated_utc": "2026-10-27T05:13:10Z",
+  "n_verified": 84674,
+  "n_pending": 1512,
   "variables": {
     "surge_ft": {
-      "n": 7516,
+      "n": 7517,
       "bias": -0.1,
       "mae": 0.19,
       "rmse": 0.24,
@@ -112,12 +112,12 @@
       "_diurnal": "bias_by_hour_local is the SAME bias split by local hour. Where diurnal_range approaches or exceeds the overall bias, a flat correction is the wrong instrument and an hour-of-day correction is warranted."
     },
     "rain_next_hr": {
-      "n": 4798,
+      "n": 4799,
       "brier": 0.033,
       "base_rate": 0.063,
       "brier_skill_vs_climo": 0.442,
       "note": "lower Brier better; skill>0 beats always-forecasting-climatology",
-      "n_cond": 4798,
+      "n_cond": 4799,
       "brier_cond_climo": 0.064,
       "brier_skill_vs_cond_climo": 0.48,
       "contingency_p50": {
@@ -288,7 +288,7 @@
         "_note": "event = obs 1; forecast 'yes' when p >= 0.5. CSI ignores correct no's, so it is not inflated by an easy base rate."
       },
       "calibration": {
-        "0.0": 0.293,
+        "0.0": 0.291,
         "1.0": 0.795
       },
       "_note": "P(sky clear in 3 h). Fitted, not calibrated: an ensemble of three NWP cloud forecasts plus the observed sky three hours earlier, the layered low/mid/high cloud over the cove, wind regime, pressure, season and hour. Truth is the median METAR cloud fraction across KSHN/KOLM/KTCM/KPWT -- regional, which is acceptable because cloud is synoptic-scale where our rain is not. This is NOT the fog-on-the-water question; that is burnoff.py's, and it uses different instruments for good reason.",
@@ -541,24 +541,24 @@
   "carry_verification": {
     "1h": {
       "tempfix": {
-        "n": 2323,
+        "n": 2324,
         "bias": -0.05,
         "mae": 1.54
       },
       "carry": {
-        "n": 2323,
+        "n": 2324,
         "bias": -0.03,
         "mae": 0.81
       }
     },
     "2h": {
       "tempfix": {
-        "n": 2320,
-        "bias": 0.01,
+        "n": 2321,
+        "bias": 0.02,
         "mae": 1.54
       },
       "carry": {
-        "n": 2320,
+        "n": 2321,
         "bias": 0.03,
         "mae": 1.13
       }
@@ -742,36 +742,36 @@
     "_note": "The 0-lead wind and temperature forecasts verified at the cove (its own weather station) and at Grapeview (GW2160 via CWOP, 4.5 km W) on the same hours. Restored 2026-10-05 when aprsis.py's silence-guard bug was fixed; Grapeview rows start then. If the model's wind bias is about the same at both, it is the model; if it differs, it is siting.",
     "wind_kt": {
       "grapeview_all": {
-        "n": 1632,
-        "bias": 2.95,
+        "n": 1633,
+        "bias": 2.96,
         "mae": 3.21
       },
-      "n_paired": 1489,
+      "n_paired": 1490,
       "cove": {
-        "n": 1489,
+        "n": 1490,
         "bias": 2.83,
         "mae": 3.18
       },
       "grapeview": {
-        "n": 1489,
+        "n": 1490,
         "bias": 2.89,
         "mae": 3.17
       }
     },
     "temp_f": {
       "grapeview_all": {
-        "n": 1632,
+        "n": 1633,
         "bias": 0.46,
         "mae": 0.82
       },
-      "n_paired": 1632,
+      "n_paired": 1633,
       "cove": {
-        "n": 1632,
+        "n": 1633,
         "bias": -0.09,
         "mae": 1.05
       },
       "grapeview": {
-        "n": 1632,
+        "n": 1633,
         "bias": 0.46,
         "mae": 0.82
       }
@@ -780,9 +780,9 @@
   "rain_truth": {
     "_note": "rain_next_hr is verified against the COVE's own gauges from switched_utc, on what they collected: one gauge up >= 0.02 in in the hour, or two gauges up at all. Until 2026-10-17 it read the gauges' hourly peak RATE, which counted single 0.01 in tips and hours with nothing collected (9% of hours 'wet' in a dry spell, against 1% on the totals); every row since switched_utc was rescored then. Before switched_utc it was GW2160 and then KSHN/KOLM METAR, 20+ km away, which disagreed with the cove on 11.5% of hours over 2025-26. variables.rain_next_hr therefore steps on that date. 'regional' keeps scoring the same forecasts against the old truth so the step can be read across.",
     "switched_utc": "2026-10-05T08:00:00Z",
-    "n_paired": 1760,
+    "n_paired": 1761,
     "cove": {
-      "brier": 0.0275,
+      "brier": 0.0274,
       "base_rate": 0.034
     },
     "regional": {
