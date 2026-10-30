@@ -46,9 +46,9 @@
   .next .mtn { color:var(--ink); font-weight:700; }
   .list { font-size:14px; line-height:1.35; }
   .list div { display:flex; justify-content:space-between; gap:6px; white-space:nowrap; }
-  .list .t { color:var(--muted); }
+  .list .t { color:var(--muted); min-width:0; overflow:hidden; text-overflow:ellipsis; }
   .list .flag { font-size:12px; font-weight:700; color:var(--accent); }
-  .list .exp { font-size:12px; color:var(--muted); }
+  .list .exp { font-size:12px; color:var(--muted); white-space:normal; text-wrap:balance; }
 
   .lineRow { display:block; font-size:17px; line-height:1.35; min-height:24px; }
   /* Secondary context under the nowcast: driving regime and pressure tendency.
@@ -1022,7 +1022,8 @@ function renderWeatherSimple({ wx, met, alerts, nowMs, nowcast, wxCorrected }) {
     <div class="next"><b>High ${today.hi.toFixed(0)}° · Low ${today.lo.toFixed(0)}°</b><span>${subline}</span><span class="mtn" id="mtn"></span></div>
     <div class="list" id="dayList">${wx.daily.slice(0, 3).map((d, i) => `<div><span><b>${i === 0 ? "Today" : fmt(d.t + 12 * 3600000, { weekday: "short" })}</b> ${d.hi.toFixed(0)}°/${d.lo.toFixed(0)}°</span><span class="t">${dayRight(d)}</span></div>`).join("")}</div>`);
   // The next three days from outlook.py: a corrected blend of up to seven models
-  // (o.blend names it), checked against the cove's own stations, with wind at the dock's exposure.
+  // (o.blend names it), checked against the cove's own stations, with wind at the dock's exposure,
+  // and on a likely-wet day its rain total (rain_amount: "light", 0.3", 0.7").
   // Today stays on the live, site-corrected forecast above. Experimental, and
   // labelled so. A missing, stale or out-of-step file leaves the list above.
   (async () => {
@@ -1034,12 +1035,15 @@ function renderWeatherSimple({ wx, met, alerts, nowMs, nowcast, wxCorrected }) {
       if (!(age >= 0 && age <= 8) || !days.length || days[0].date !== ymd(nowMs + 86400000)) return;
       const node = document.getElementById("dayList");
       if (!node) return;
-      const right = d => [d.rain_chance != null && d.rain_chance >= 0.2 ? `${Math.round(100 * d.rain_chance)}% rain` : "",
+      // The row is 236 px: with an amount the chance drops its "rain" ("93% · 0.7"
+      // · gale-force", the widest, fits with ~13 px spare); the footer keys both.
+      const right = d => [d.rain_chance != null && d.rain_chance >= 0.2
+                            ? `${Math.round(100 * d.rain_chance)}%${d.rain_amount ? " · " + esc(d.rain_amount) : " rain"}` : "",
                           d.gust_kt != null ? windWord(d.gust_kt) : ""].filter(Boolean).join(" · ");
       const label = d => fmt(Date.parse(d.date + "T19:00:00Z"), { weekday: "short" });
       node.innerHTML = `<div><span><b>Today</b> ${today.hi.toFixed(0)}°/${today.lo.toFixed(0)}°</span><span class="t">${dayRight(today)}</span></div>`
         + days.map(d => `<div><span><b>${label(d)}</b> ${d.high_f.toFixed(0)}°/${d.low_f.toFixed(0)}°</span><span class="t">${right(d)}</span></div>`).join("")
-        + `<div class="exp"><span>Next 3 days: ${o.blend === "seven-model blend" ? "seven-model blend" : "four-model blend"} · % = chance of any rain · experimental</span></div>`;
+        + `<div class="exp"><span>Next 3 days: ${o.blend === "seven-model blend" ? "seven-model blend" : "four-model blend"}, experimental · % = rain chance${days.some(d => d.rain_amount) ? ' · " = likely total' : ""}</span></div>`;
     } catch (e) { /* no outlook: the default list stays */ }
   })();
   // Is the mountain out? rainier_pair.py's call from an airport camera that
