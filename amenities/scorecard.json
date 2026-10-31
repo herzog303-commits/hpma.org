@@ -1,10 +1,10 @@
 {
-  "generated_utc": "2026-10-31T00:21:40Z",
-  "n_verified": 91563,
-  "n_pending": 1493,
+  "generated_utc": "2026-10-31T00:41:29Z",
+  "n_verified": 91573,
+  "n_pending": 1507,
   "variables": {
     "surge_ft": {
-      "n": 7948,
+      "n": 7950,
       "bias": -0.1,
       "mae": 0.19,
       "rmse": 0.24,
@@ -269,12 +269,12 @@
       "_note": "The SAME Open-Meteo cloud_cover forecast as cloud_pct, verified against the GOES-18 cloud mask over the cove (nearest scan within 45 min), which sees cloud at every height. Where cloud_pct is much worse than this, the difference is high cloud the airfields cannot see. The mask misses thin fog, so neither truth is complete on its own."
     },
     "sky_clear_3h": {
-      "n": 3722,
+      "n": 3723,
       "brier": 0.157,
       "base_rate": 0.527,
       "brier_skill_vs_climo": 0.369,
       "note": "lower Brier better; skill>0 beats always-forecasting-climatology",
-      "n_cond": 3722,
+      "n_cond": 3723,
       "brier_cond_climo": 0.238,
       "brier_skill_vs_cond_climo": 0.34,
       "contingency_p50": {
@@ -289,17 +289,17 @@
       },
       "calibration": {
         "0.0": 0.102,
-        "1.0": 0.662
+        "1.0": 0.653
       },
       "_note": "P(sky clear in 3 h). Fitted, not calibrated: an ensemble of three NWP cloud forecasts plus the observed sky three hours earlier, the layered low/mid/high cloud over the cove, wind regime, pressure, season and hour. Truth is the median METAR cloud fraction across KSHN/KOLM/KTCM/KPWT -- regional, which is acceptable because cloud is synoptic-scale where our rain is not. This is NOT the fog-on-the-water question; that is burnoff.py's, and it uses different instruments for good reason.",
       "_health": "REPLACED 2026-09-24. Rows up to that date came from a GOES binary mapped through a rolling calibration and scored -0.83 in the calibrated era; they are pooled here and drag the number down. The cause was never the calibration -- the TRUTH lived in goes_log.jsonl, eight days deep, so the predictor could be hedged but never fitted. Truth now comes from the median METAR cloud fraction across four airfields, which has five years, and the forecast comes from skyclear.json: 33,310 hours, leave-one-year-out Brier 0.0825, AUC 0.953, skill +0.655. Persistence alone -- the observed sky three hours earlier -- is worth +0.549 of that and the old version did not use it. Read the post-2026-09-24 rows; the pooled figure is two different variables added together.",
       "since_refit": {
-        "n": 2928,
+        "n": 2929,
         "base_rate": 0.517,
         "brier": 0.141,
         "brier_skill_vs_climo": 0.435,
         "_note": "fitted model against a METAR target, from 2026-09-25. The pooled number above still carries the retired GOES-based rows.",
-        "n_cond": 2928,
+        "n_cond": 2929,
         "brier_cond_climo": 0.241,
         "brier_skill_vs_cond_climo": 0.414,
         "contingency_p50": {
@@ -315,7 +315,7 @@
       }
     },
     "sky_clear_3h_sat": {
-      "n": 2928,
+      "n": 2929,
       "brier": 0.198,
       "base_rate": 0.391,
       "brier_skill_vs_climo": 0.168,
@@ -553,24 +553,24 @@
     },
     "2h": {
       "tempfix": {
-        "n": 2557,
+        "n": 2558,
         "bias": -0.03,
         "mae": 1.5
       },
       "carry": {
-        "n": 2557,
+        "n": 2558,
         "bias": 0.0,
         "mae": 1.11
       }
     },
     "3h": {
       "tempfix": {
-        "n": 2554,
+        "n": 2555,
         "bias": 0.01,
         "mae": 1.55
       },
       "carry": {
-        "n": 2554,
+        "n": 2555,
         "bias": 0.03,
         "mae": 1.34
       }
