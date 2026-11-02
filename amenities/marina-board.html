@@ -81,9 +81,8 @@
   .bottom b { font-weight:700; }
   .bottom .dim { color:var(--muted); }
   .bottom .nav { display:inline-flex; align-self:center; padding:2px; gap:2px; background:var(--pill); border:1.5px solid var(--pill-b); border-radius:9px; }
-  .bottom .nav a { color:var(--muted); text-decoration:none; font-size:13px; font-weight:700; padding:2px 12px; border-radius:6px; }
-  .bottom .nav a.on { background:var(--accent); color:var(--paper); }
-  .bottom .nav a.glyph { padding:2px 8px; }   /* the emoji button needs less room than a word */
+  .bottom .nav a { color:var(--muted); text-decoration:none; font-size:15px; line-height:18px; padding:2px 8px; border-radius:6px; }
+  .bottom .nav a.on { background:var(--accent); color:var(--paper); }   /* views are icons, not words, so a fourth fits */
   
   .bottom .fresh { color:var(--muted); }
   .bottom .fresh.warn { color:var(--warn-fg); font-weight:700; }
@@ -115,6 +114,16 @@
   body.color .joy { font-family:Georgia,"Times New Roman",serif; }
   .fireHead { font-size:22px; font-weight:800; letter-spacing:-.01em; line-height:1.1; }
   .fireHead.long { font-size:18px; }
+  /* Clouds view: the column overhead, to scale, beside its layers in words. */
+  .clHead { font-size:12px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); }
+  .clBody { display:flex; gap:8px; min-height:0; flex:1 1 0; }
+  .clCol { flex:0 0 34px; }
+  .clCol svg { width:34px; height:100%; display:block; }
+  .clN { display:inline-block; min-width:15px; font-size:11px; font-weight:700; color:var(--muted); }
+  .clList { display:flex; flex-direction:column; justify-content:space-between; gap:6px; min-width:0; font-size:12.5px; line-height:1.25; }
+  .clList b { font-size:15px; font-weight:700; }
+  .clList .dim { color:var(--muted); }
+  .clList .away { opacity:.6; }
 </style>
 </head>
 <body data-pagefind-ignore>
@@ -166,6 +175,7 @@ const CONFIG = {
   FIRE_URL: "fire.json",
   BURNOFF_URL: "burnoff.json",     // burnoff.py: whether this morning's deck clears
   OUTLOOK_URL: "outlook.json",     // outlook.py: tomorrow + 2 days from the corrected model blend (experimental)
+  CLOUDS_URL: "clouds.json",       // cloud_layers.py: the cloud column, airfield bases + satellite tops (experimental)
   RAINIER_URL: "rainier.json",     // is the mountain out: a public airport camera's last frames, as a yes/maybe (experimental)
        // fire.py: the 7pm-2am beach-fire outlook at the Point (easter egg view)
   FIRE_LAT: 47.300420, FIRE_LON: -122.847355,  // the ring itself, 0.73 mi NE of the marina
@@ -1468,12 +1478,161 @@ function renderFireChart(hourly, extremes, t0, t1, nowMs, surge) {
     { text: t => tideOk ? `tide ${water(t).toFixed(1)} ft` : "", y: t => tideOk ? tideY(water(t)) : null }] });
 }
 
+/* ============================== CLOUDS ============================== */
+// The Clouds view (?view=clouds), from cloud_layers.py's clouds.json. Every
+// sentence and name is composed there, where it is tested; this draws.
+//
+// NO ONE INSTRUMENT SEES THE COLUMN. The satellite sees the top layer; the
+// airfields' ceilometers see bases, only to 12,000 ft, only from 20+ km away,
+// and nothing above an overcast. So each layer says where its numbers came
+// from, and what nobody saw reads "hidden" -- the page never fills it in.
+// Heights are feet above sea level.
+const CLOUD_TOP_FT = 40000;
+const ftK = ft => ft >= 10000 ? `${(ft / 1000).toFixed(ft % 1000 ? 1 : 0)}k` : ft.toLocaleString("en-US");
+const ftWords = (ft, hi) => ft == null ? "?" : `${ft.toLocaleString("en-US")}${hi && hi !== ft ? "–" + hi.toLocaleString("en-US") : ""} ft`;
+function cloudY(ft, T, Hp) { return T + Hp * (1 - Math.sqrt(Math.max(0, Math.min(ft, CLOUD_TOP_FT)) / CLOUD_TOP_FT)); }
+
+function cloudLayerHtml(L, n) {
+  const cap = s => s ? s[0].toUpperCase() + s.slice(1) : "";
+  const tags = [L.type === "fog" ? "" : L.cover, L.phase].filter(Boolean).map(esc).join(" · ");
+  const base = L.base_ft === 0 && L.base_src === "airfields" ? "at the surface"
+    : L.base_note === "hidden" ? "base hidden"
+    : L.base_note === "above 12,000 ft" ? "base above 12,000 ft"
+    : L.base_ft == null ? ""
+    : L.base_src === "satellite estimate" ? `base ~${ftWords(L.base_ft)} (est.)`
+    : `base ${ftWords(L.base_ft, L.base_hi_ft)}`;
+  const top = L.top_ft != null ? `top ${ftWords(L.top_ft)}` : L.top_note === "hidden" ? "top hidden" : "";
+  const thick = L.thick_ft != null ? `~${ftWords(L.thick_ft)} thick` : "";
+  const m = L.move;
+  const move = !m ? "" : m.note === "forms in place"
+    ? `forms in place${m.kt != null ? ` · wind ${esc(m.from)} ${Math.round(m.kt)} kt` : ""}`
+    : `from ${esc(m.from)} ${Math.round(m.kt)} kt <span class="dim">(${m.src === "measured" ? "measured" : "model"})</span>`;
+  const where = L.overhead ? "" : `<div class="dim">at the airfields, not overhead</div>`;
+  return `<div${L.overhead ? "" : ' class="away"'}>${L.overhead ? `<span class="clN">${n}</span>` : ""}<b>${esc(cap(L.type))}</b>${tags ? ` <span class="dim">· ${tags}</span>` : ""}
+    <div>${[top, base, thick].filter(Boolean).join(" · ")}</div>${move ? `<div>${move}</div>` : ""}${where}</div>`;
+}
+
+// The column to scale, each overhead bar numbered like its entry in the list:
+// the list cannot sit beside its bar (four layers can share the bottom 2,000
+// ft), so the numbers do the pairing. Dashed = an edge nobody measured.
+function cloudColumnSvg(layers) {
+  const color = isColor(), W = 34, H = 260, T = 4, Hp = H - T - 4;
+  const fill = color ? "#8796a6" : "#000", ink = color ? "#1a1a19" : "#000", muted = color ? "#9b9a93" : "#000";
+  let g = `<rect x="3" y="${T}" width="2" height="${Hp}" fill="${muted}" opacity=".35"/>`;
+  let n = 0, lastY = -1e9;
+  const tags = [];
+  for (const L of layers) {
+    if (!L.overhead) continue;
+    n += 1;
+    const top = L.top_ft != null ? L.top_ft : (L.base_ft || 0) + 1000;
+    const base = L.base_ft != null ? L.base_ft : Math.max(0, top - 2000);
+    const y0 = cloudY(top, T, Hp), y1 = Math.max(cloudY(base, T, Hp), y0 + 3);
+    const sure = L.top_ft != null && L.base_ft != null && L.base_src === "airfields";
+    g += `<rect x="6" y="${y0.toFixed(1)}" width="12" height="${(y1 - y0).toFixed(1)}" rx="2" fill="${fill}" opacity="${sure ? 0.9 : 0.55}"${sure ? "" : ` stroke="${ink}" stroke-dasharray="2 2" stroke-width=".8"`}/>`;
+    tags.push([(y0 + y1) / 2, n]);
+  }
+  // Layers come high to low, so each number goes at its bar's middle, pushed
+  // down just enough to clear the one above it.
+  for (const [y, k] of tags) {
+    const yy = Math.min(Math.max(y + 3.5, lastY + 11), T + Hp);
+    lastY = yy;
+    g += `<text x="${W - 1}" y="${yy.toFixed(1)}" font-size="10" font-weight="700" text-anchor="end" fill="${ink}">${k}</text>`;
+  }
+  g += `<rect x="2" y="${(T + Hp).toFixed(1)}" width="18" height="3" fill="${color ? "#185FA5" : "#000"}"/>`;
+  return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">${g}</svg>`;
+}
+
+function renderCloudChart(c, nowMs) {
+  const color = isColor(), W = 520, H = 300, L = 14, R = 12, T = 18, B = 22, Hp = H - T - B;
+  const node = document.getElementById("chart");
+  const t0 = nowMs - 12 * 3600000, t1 = nowMs + 12 * 3600000;
+  const x = t => L + (t - t0) / (t1 - t0) * (W - L - R);
+  const ink = color ? "#1a1a19" : "#000", accent = color ? "#D85A30" : "#000", muted = color ? "#9b9a93" : "#000";
+  const fill = color ? "#8796a6" : "#000";
+  const st = c.strip || {}, edges = st.edges_ft || [10000, 24000];
+  const bands = { low: [0, edges[0]], mid: [edges[0], edges[1]], high: [edges[1], CLOUD_TOP_FT] };
+  const rows = [...(st.past || []).map(r => ({ ...r, t: Date.parse(r.t) + 1800000 })),
+                ...(st.ahead || []).map(r => ({ ...r, t: Date.parse(r.t) }))]
+    .filter(r => isFinite(r.t) && r.t > t0 - 1800000 && r.t < t1 + 1800000);
+  let g = "";
+  for (const r of rows) {
+    const xa = Math.max(L, x(r.t - 1800000)), xb = Math.min(W - R, x(r.t + 1800000));
+    if (xb <= xa) continue;
+    for (const [k, [lo, hi]] of Object.entries(bands)) {
+      const v = r[k];
+      if (v == null || v < 5) continue;
+      const y0 = cloudY(hi, T, Hp), y1 = cloudY(lo, T, Hp);
+      g += `<rect x="${xa.toFixed(1)}" y="${y0.toFixed(1)}" width="${(xb - xa + 0.4).toFixed(1)}" height="${(y1 - y0).toFixed(1)}" fill="${fill}" opacity="${(0.12 + 0.68 * v / 100).toFixed(2)}"/>`;
+    }
+  }
+  // Observed heights through the past half: the lowest base an airfield
+  // measured under cloud over us, and the highest top the satellite measured.
+  const line = (k, stroke, dash) => {
+    const pts = rows.filter(r => r.src === "obs" && r[k] != null).map(r => `${x(r.t).toFixed(1)},${cloudY(r[k], T, Hp).toFixed(1)}`);
+    return pts.length > 1 ? `<polyline points="${pts.join(" ")}" fill="none" stroke="${stroke}" stroke-width="2"${dash ? ' stroke-dasharray="4 3"' : ""}/>`
+      : pts.length ? `<circle cx="${pts[0].split(",")[0]}" cy="${pts[0].split(",")[1]}" r="2.5" fill="${stroke}"/>` : "";
+  };
+  g += line("top", ink, false) + line("base", ink, true);
+  let axis = "";
+  for (const ft of [1000, 5000, 10000, 20000, 30000]) {
+    const y = cloudY(ft, T, Hp);
+    axis += `<line x1="${L}" y1="${y.toFixed(1)}" x2="${W - R}" y2="${y.toFixed(1)}" stroke="${muted}" stroke-width=".6" opacity=".45"/>`
+      + `<text x="${L + 2}" y="${(y - 3).toFixed(1)}" font-size="10" fill="${muted}">${ftK(ft)}</text>`;   // inside: a tap at the left edge still reads
+  }
+  for (const [k, [lo, hi]] of Object.entries(bands))
+    axis += `<text x="${W - R - 3}" y="${((cloudY(lo, T, Hp) + cloudY(Math.min(hi, 32000), T, Hp)) / 2 + 4).toFixed(1)}" font-size="10" text-anchor="end" fill="${muted}">${k}</text>`;
+  axis += `<text x="${L}" y="${T - 6}" font-size="10.5" fill="${muted}">observed · ft above sea level</text>`
+    + `<text x="${W - R}" y="${T - 6}" font-size="10.5" text-anchor="end" fill="${muted}">HRRR forecast</text>`;
+  let ticks = "";
+  for (let t = Math.ceil(t0 / 3600000) * 3600000; t <= t1; t += 3600000) {
+    const h = +fmt(t, { hour: "numeric", hour12: false });
+    if (h % 3 || Math.abs(t - nowMs) < 80 * 60000) continue;   // keep clear of the "now" label
+    const lbl = h === 12 ? "noon" : h === 0 || h === 24 ? "mid" : fmt(t, { hour: "numeric" }).replace(" ", "").toLowerCase();
+    ticks += `<text x="${x(t).toFixed(1)}" y="${H - 6}" font-size="11" text-anchor="middle" fill="${muted}">${lbl}</text>`;
+  }
+  ticks += `<text x="${x(nowMs).toFixed(1)}" y="${H - 6}" font-size="11" font-weight="700" text-anchor="middle" fill="${accent}">now</text>`;
+  const nowMark = `<line x1="${x(nowMs).toFixed(1)}" y1="${T}" x2="${x(nowMs).toFixed(1)}" y2="${(H - B).toFixed(1)}" stroke="${accent}" stroke-width="2"/>`;
+  node.innerHTML = `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">${axis}${g}${ticks}${nowMark}</svg>`;
+  const near = t => { let b = null; for (const r of rows) if (Math.abs(r.t - t) <= 1800000 && (!b || Math.abs(r.t - t) < Math.abs(b.t - t))) b = r; return b; };
+  const pct = k => t => { const r = near(t); return r && r[k] != null ? `${k} ${Math.round(r[k])}%` : ""; };
+  chartReadout({ W, H, L, R, T, B, t0, t1, nowMs, rows: [
+    { text: pct("low") }, { text: pct("mid") }, { text: pct("high") },
+    { text: t => { const r = near(t); return r && r.src === "obs" && r.base != null ? `base ${ftK(r.base)} ft` : ""; } },
+    { text: t => { const r = near(t); return r && r.src === "obs" && r.top != null ? `top ${ftK(r.top)} ft` : ""; } },
+    { text: t => { const r = near(t); return r ? (r.src === "hrrr" ? "HRRR" : "observed") : "no data"; } }] });
+}
+
+async function renderClouds(nowMs) {
+  const c = await fetch(CONFIG.CLOUDS_URL).then(r => r.json()).catch(() => null);
+  el("pills", `<span class="pill">☁️ Clouds</span><span class="pill">experimental</span>`);
+  if (!c || !c.headline) { el("line", '<span class="err">no cloud report published</span>'); renderFreshness(null, nowMs); return; }
+  el("line", `<b>${esc(c.headline)}</b>`);
+  el("line2", esc(c.sub || ""));
+  const layers = c.layers || [];
+  el("hero", `<div class="clHead">Overhead now</div><div class="clBody"><div class="clCol">${cloudColumnSvg(layers)}</div>`
+    + `<div class="clList">${layers.length ? layers.map((L, i) => cloudLayerHtml(L, layers.slice(0, i + 1).filter(x => x.overhead).length)).join("") : "<div><b>Clear</b></div>"}</div></div>`);
+  renderCloudChart(c, nowMs);
+  const s = c.sources || {}, when = u => u ? hhmm(Date.parse(u)) : null;
+  const src = [s.satellite_utc ? `GOES-18 ${when(s.satellite_utc)}` : "no satellite",
+               s.airfields_utc ? `airfields ${when(s.airfields_utc)}` : "no airfields",
+               s.hrrr_run ? `HRRR ${when(s.hrrr_run.replace(/Z$/, ":00Z"))} run` : ""].filter(Boolean);
+  el("strip", `<span class="dim">${esc(src.join(" · "))}</span>`);
+  renderFreshness(c.generated_utc, nowMs);
+  // The mountain, by the weather view's rule: said only when out (or maybe) and fresh.
+  try {
+    const m = await fetch(CONFIG.RAINIER_URL).then(r => r.json());
+    const age = (nowMs - Date.parse(m.frame_utc)) / 60000;
+    if (age >= -5 && age <= 90 && (m.status === "out" || m.status === "unsure"))
+      el("line3", `${m.status === "out" ? "The Mountain is Out" : "The Mountain may be out"} · ${fmt(Date.parse(m.frame_utc), { hour: "numeric", minute: "2-digit" }).replace(/\s/g, "").toLowerCase()}`);
+  } catch (e) { /* no call: no line */ }
+}
+
 /* ============================== MAIN ============================== */
 async function main() {
   const url = new URL(location.href);
   document.body.classList.add("color");   // COLOR build: always renders in color, no ?theme needed
   const vq = url.searchParams.get("view");
-  const view = vq === "weather" ? "weather" : vq === "fire" ? "fire" : "tides";
+  const view = vq === "weather" ? "weather" : vq === "fire" ? "fire" : vq === "clouds" ? "clouds" : "tides";
   document.body.classList.add(view);
   const nowMs = url.searchParams.get("at") ? +new Date(url.searchParams.get("at")) : Date.now();
   el("date", fmt(nowMs, { weekday: "long", month: "short", day: "numeric" }));
@@ -1481,16 +1640,22 @@ async function main() {
   /* The view switcher carries the current query string back (?at, ?demo, ?surge),
      so its href is URL-derived -- build it with DOM APIs, never innerHTML. */
   const nav = document.getElementById("nav"); nav.textContent = "";
-  for (const [v, label] of [["tides", "Tides"], ["weather", "Weather"], ["fire", "\u{1F525}"]]) {
+  /* Clouds is in trial: reachable at ?view=clouds and shown in the nav only
+     there, until it has been checked against the real sky (2026-11-02). */
+  const views = [["tides", "\u{1F30A}", "Tides"], ["weather", "\u{1F321}\u{FE0F}", "Weather"], ["fire", "\u{1F525}", "Fire"]];
+  if (view === "clouds") views.splice(2, 0, ["clouds", "\u{2601}\u{FE0F}", "Clouds"]);
+  for (const [v, icon, name] of views) {
     const u = new URL(location.href); u.searchParams.set("view", v);
-    const a = document.createElement("a"); a.setAttribute("href", u.search); a.textContent = label;
-    a.className = [v === view ? "on" : "", v === "fire" ? "glyph" : ""].filter(Boolean).join(" ");
+    const a = document.createElement("a"); a.setAttribute("href", u.search); a.textContent = icon;
+    a.title = name; a.setAttribute("aria-label", name);
+    if (v === view) { a.className = "on"; a.setAttribute("aria-current", "page"); }
     nav.appendChild(a);
   }
   if (view === "tides") renderSunSimple(nowMs); else el("sun", "");   // sun times are tides-view only
   /* The fire view shares none of the tides/weather feeds, so it returns before
      the fan-out below rather than firing five NOAA/NWS requests it discards. */
   if (view === "fire") { await renderFire(nowMs); return; }
+  if (view === "clouds") { await renderClouds(nowMs); return; }
   const manual = url.searchParams.has("surge") ? parseFloat(url.searchParams.get("surge")) : null, demo = url.searchParams.has("demo");
   try {
     let extremes, live = null, met = {}, alerts = [], forecast = null, cur = null, wx = null, annual = null, wxCorrected = false;
