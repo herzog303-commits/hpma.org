@@ -115,7 +115,9 @@
   .fireHead { font-size:22px; font-weight:800; letter-spacing:-.01em; line-height:1.1; }
   .fireHead.long { font-size:18px; }
   /* Clouds view: the column overhead, to scale, beside its layers in words. */
-  .clHead { font-size:12px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); }
+  body.clouds .main { grid-template-columns:minmax(0,1fr) 292px; }   /* names, what they are made of, motion: a wider side */
+  .clHead { display:flex; justify-content:space-between; align-items:baseline; font-size:12px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); }
+  .clHead span { font-size:12.5px; font-weight:600; letter-spacing:0; text-transform:none; color:var(--ink); }
   .clBody { display:flex; gap:8px; min-height:0; flex:1 1 0; }
   .clCol { flex:0 0 34px; }
   .clCol svg { width:34px; height:100%; display:block; }
@@ -124,6 +126,10 @@
   .clList b { font-size:15px; font-weight:700; }
   .clList .dim { color:var(--muted); }
   .clList .away { opacity:.6; }
+  .clList.tight { gap:3px; }
+  .clList .ab { font-size:12px; font-weight:700; color:var(--muted); }
+  .clFall { font-weight:700; padding-left:7px; border-left:4px solid #2a7fd4; }
+  .clFall.dry { border-left-color:var(--muted); }
 </style>
 </head>
 <body data-pagefind-ignore>
@@ -778,14 +784,18 @@ function chartReadout(spec) {
     const right = x < (s.L + s.W - s.R) / 2, tx = right ? x + 8 : x - 8;
     g.innerHTML = `<line x1="${x.toFixed(1)}" y1="${s.T}" x2="${x.toFixed(1)}" y2="${(s.H - s.B).toFixed(1)}" stroke="${ink}" stroke-width="1.2" stroke-dasharray="3 3"/>${dots}
       <rect class="bg" rx="4" fill="${paper}" stroke="${ink}" stroke-width="1"/>
-      <text x="${tx.toFixed(1)}" y="${(s.T + 16).toFixed(1)}" font-size="12.5" font-weight="600" text-anchor="${right ? "start" : "end"}" fill="${ink}">${[when, ...vals.map(o => o.v)].join(" · ")}</text>`;
+      <text x="${tx.toFixed(1)}" y="${(s.T + 16).toFixed(1)}" font-size="12.5" font-weight="600" text-anchor="${right ? "start" : "end"}" fill="${ink}">${
+        // spec.wrap: the values after the first `wrap` go on a second line (the clouds strip carries seven)
+        s.wrap && vals.length > s.wrap
+          ? `<tspan x="${tx.toFixed(1)}">${[when, ...vals.slice(0, s.wrap).map(o => o.v)].join(" · ")}</tspan><tspan x="${tx.toFixed(1)}" dy="15">${vals.slice(s.wrap).map(o => o.v).join(" · ")}</tspan>`
+          : [when, ...vals.map(o => o.v)].join(" · ")}</text>`;
     svg.appendChild(g);
     // Keep the whole label on the chart: the fire readout runs to five values,
     // and anchored at mid-chart it would otherwise paint past the edge.
     const txt = g.querySelector("text"); let bb = txt.getBBox();
     const M = 7;   // the background box pads 5 beyond the text; keep 2 clear of the edge
     const shift = bb.x < M ? M - bb.x : bb.x + bb.width > s.W - M ? s.W - M - (bb.x + bb.width) : 0;
-    if (shift) { txt.setAttribute("x", (tx + shift).toFixed(1)); bb = txt.getBBox(); }
+    if (shift) { for (const n of [txt, ...txt.querySelectorAll("tspan")]) n.setAttribute("x", (tx + shift).toFixed(1)); bb = txt.getBBox(); }
     const bg = g.querySelector(".bg");
     bg.setAttribute("x", (bb.x - 5).toFixed(1)); bg.setAttribute("y", (bb.y - 3).toFixed(1));
     bg.setAttribute("width", (bb.width + 10).toFixed(1)); bg.setAttribute("height", (bb.height + 6).toFixed(1));
@@ -1492,9 +1502,14 @@ const ftK = ft => ft >= 10000 ? `${(ft / 1000).toFixed(ft % 1000 ? 1 : 0)}k` : f
 const ftWords = (ft, hi) => ft == null ? "?" : `${ft.toLocaleString("en-US")}${hi && hi !== ft ? "–" + hi.toLocaleString("en-US") : ""} ft`;
 function cloudY(ft, T, Hp) { return T + Hp * (1 - Math.sqrt(Math.max(0, Math.min(ft, CLOUD_TOP_FT)) / CLOUD_TOP_FT)); }
 
-function cloudLayerHtml(L, n) {
+const degC = t => `${t < 0 ? "−" : ""}${Math.abs(t)} °C`;
+const WX_WORD = { rain: "rain", drizzle: "drizzle", snow: "snow", mix: "rain and snow", freezing: "freezing rain", ice: "sleet", thunder: "thunder" };
+
+function cloudLayerHtml(L, n, crowded) {
   const cap = s => s ? s[0].toUpperCase() + s.slice(1) : "";
-  const tags = [L.type === "fog" ? "" : L.cover, L.phase].filter(Boolean).map(esc).join(" · ");
+  // Three or more layers overhead fill the column: the look goes, and what the
+  // layer is made of joins its name line. The facts all stay.
+  const tags = [L.abbr ? `<span class="ab">${esc(L.abbr)}</span>` : "", L.type === "fog" ? "" : esc(L.cover), crowded ? esc(L.phase || "") : ""].filter(Boolean).join(" · ");
   const base = L.base_ft === 0 && L.base_src === "airfields" ? "at the surface"
     : L.base_note === "hidden" ? "base hidden"
     : L.base_note === "above 12,000 ft" ? "base above 12,000 ft"
@@ -1503,13 +1518,18 @@ function cloudLayerHtml(L, n) {
     : `base ${ftWords(L.base_ft, L.base_hi_ft)}`;
   const top = L.top_ft != null ? `top ${ftWords(L.top_ft)}` : L.top_note === "hidden" ? "top hidden" : "";
   const thick = L.thick_ft != null ? `~${ftWords(L.thick_ft)} thick` : "";
+  // What it is: the look in a few words, what it is made of, how cold its top
+  // is, and by day how much sun gets through. The phase "ice" already reads in
+  // "veil of ice", so a cirro- name does not repeat it.
+  const made = L.phase && !(L.phase === "ice" && /\bice\b/.test(L.about || "")) ? L.phase : "";
+  const props = [crowded ? "" : L.about, crowded ? "" : made, L.top_c != null ? `${degC(L.top_c)} at top` : "", L.see].filter(Boolean).map(esc).join(" · ");
   const m = L.move;
   const move = !m ? "" : m.note === "forms in place"
     ? `forms in place${m.kt != null ? ` · wind ${esc(m.from)} ${Math.round(m.kt)} kt` : ""}`
     : `from ${esc(m.from)} ${Math.round(m.kt)} kt <span class="dim">(${m.src === "measured" ? "measured" : "model"})</span>`;
   const where = L.overhead ? "" : `<div class="dim">at the airfields, not overhead</div>`;
   return `<div${L.overhead ? "" : ' class="away"'}>${L.overhead ? `<span class="clN">${n}</span>` : ""}<b>${esc(cap(L.type))}</b>${tags ? ` <span class="dim">· ${tags}</span>` : ""}
-    <div>${[top, base, thick].filter(Boolean).join(" · ")}</div>${move ? `<div>${move}</div>` : ""}${where}</div>`;
+    ${props ? `<div class="dim">${props}</div>` : ""}<div>${[top, base, thick].filter(Boolean).join(" · ")}</div>${move ? `<div>${move}</div>` : ""}${where}</div>`;
 }
 
 // The column to scale, each overhead bar numbered like its entry in the list:
@@ -1542,18 +1562,27 @@ function cloudColumnSvg(layers) {
   return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">${g}</svg>`;
 }
 
+// The 24 h strip. Shading: how much of each height band (low, mid, high) was
+// cloud, darker = more. Lines: the TOPS (solid), the lowest BASE (dashed) and
+// the freezing level (blue dots: above it cloud is ice or supercooled, and
+// what falls from above starts as snow). Bars on the floor: rain or snow. The
+// past half is measured (satellite tops, airfield bases, what the airfields
+// saw falling); the future half is HRRR, its lines drawn fainter. Each line
+// is labelled at "now" and the legend says the rest, so it reads untapped.
 function renderCloudChart(c, nowMs) {
-  const color = isColor(), W = 520, H = 300, L = 14, R = 12, T = 18, B = 22, Hp = H - T - B;
+  const color = isColor(), W = 520, H = 300, L = 14, R = 12, T = 34, B = 22, Hp = H - T - B;
   const node = document.getElementById("chart");
   const t0 = nowMs - 12 * 3600000, t1 = nowMs + 12 * 3600000;
   const x = t => L + (t - t0) / (t1 - t0) * (W - L - R);
   const ink = color ? "#1a1a19" : "#000", accent = color ? "#D85A30" : "#000", muted = color ? "#9b9a93" : "#000";
-  const fill = color ? "#8796a6" : "#000";
+  const paper = color ? "#fcfcfb" : "#fff", fill = color ? "#8796a6" : "#000";
+  const blue = color ? "#2a7fd4" : "#000", purple = color ? "#7a4fd0" : "#000";
   const st = c.strip || {}, edges = st.edges_ft || [10000, 24000];
   const bands = { low: [0, edges[0]], mid: [edges[0], edges[1]], high: [edges[1], CLOUD_TOP_FT] };
   const rows = [...(st.past || []).map(r => ({ ...r, t: Date.parse(r.t) + 1800000 })),
                 ...(st.ahead || []).map(r => ({ ...r, t: Date.parse(r.t) }))]
     .filter(r => isFinite(r.t) && r.t > t0 - 1800000 && r.t < t1 + 1800000);
+  const halo = `stroke="${paper}" stroke-width="3" paint-order="stroke"`;
   let g = "";
   for (const r of rows) {
     const xa = Math.max(L, x(r.t - 1800000)), xb = Math.min(W - R, x(r.t + 1800000));
@@ -1564,25 +1593,61 @@ function renderCloudChart(c, nowMs) {
       const y0 = cloudY(hi, T, Hp), y1 = cloudY(lo, T, Hp);
       g += `<rect x="${xa.toFixed(1)}" y="${y0.toFixed(1)}" width="${(xb - xa + 0.4).toFixed(1)}" height="${(y1 - y0).toFixed(1)}" fill="${fill}" opacity="${(0.12 + 0.68 * v / 100).toFixed(2)}"/>`;
     }
+    // What fell that hour, on the floor: measured by the share of airfields
+    // reporting it, forecast by HRRR's rate.
+    if (r.wx) {
+      const snow = r.wx === "snow", other = ["mix", "freezing", "ice"].includes(r.wx);
+      const op = r.src === "obs" ? 0.45 + 0.55 * (r.wxn ? r.wxn[0] / Math.max(r.wxn[1], 1) : 1) : Math.min(1, 0.4 + (r.mmh || 0) / 2);
+      g += `<rect x="${(xa + 0.6).toFixed(1)}" y="${(H - B - 7).toFixed(1)}" width="${Math.max(1, xb - xa - 1.2).toFixed(1)}" height="6" rx="1.5" fill="${snow ? paper : other ? purple : blue}"${snow ? ` stroke="${blue}" stroke-width="1.2"` : ""} opacity="${op.toFixed(2)}"/>`;
+    }
   }
-  // Observed heights through the past half: the lowest base an airfield
-  // measured under cloud over us, and the highest top the satellite measured.
-  const line = (k, stroke, dash) => {
-    const pts = rows.filter(r => r.src === "obs" && r[k] != null).map(r => `${x(r.t).toFixed(1)},${cloudY(r[k], T, Hp).toFixed(1)}`);
-    return pts.length > 1 ? `<polyline points="${pts.join(" ")}" fill="none" stroke="${stroke}" stroke-width="2"${dash ? ' stroke-dasharray="4 3"' : ""}/>`
-      : pts.length ? `<circle cx="${pts[0].split(",")[0]}" cy="${pts[0].split(",")[1]}" r="2.5" fill="${stroke}"/>` : "";
+  // A line through the hours that have a value, broken where an hour is missing:
+  // a gap is a gap, never bridged.
+  const runs = (k, keep) => {
+    const out = []; let cur = [];
+    for (const r of rows.filter(r => keep(r) && r[k] != null)) {
+      if (cur.length && r.t - cur[cur.length - 1].t > 5400000) { out.push(cur); cur = []; }
+      cur.push(r);
+    }
+    if (cur.length) out.push(cur);
+    return out;
   };
-  g += line("top", ink, false) + line("base", ink, true);
+  const draw = (k, keep, stroke, w, dash, op) => runs(k, keep).map(run => run.length > 1
+    ? `<polyline points="${run.map(r => `${x(r.t).toFixed(1)},${cloudY(r[k], T, Hp).toFixed(1)}`).join(" ")}" fill="none" stroke="${stroke}" stroke-width="${w}" stroke-linecap="round" opacity="${op}"${dash ? ` stroke-dasharray="${dash}"` : ""}/>`
+    : `<circle cx="${x(run[0].t).toFixed(1)}" cy="${cloudY(run[0][k], T, Hp).toFixed(1)}" r="2.5" fill="${stroke}" opacity="${op}"/>`).join("");
+  const obs = r => r.src === "obs", fc = r => r.src === "hrrr";
+  g += draw("fzl", () => true, blue, 2, "0.1 4", 0.9);
+  g += draw("top", obs, ink, 2, "", 1) + draw("base", obs, ink, 2, "5 3", 1);
+  g += draw("top", fc, ink, 1.5, "", 0.5) + draw("base", fc, ink, 1.5, "5 3", 0.5);
+  // Name each line where it crosses "now" (or its nearest value), pushed apart.
+  // The measured value when there is one from the last 90 min, else the nearest.
+  const at = k => { let b = null; for (const r of rows) if (r[k] != null && (!b || Math.abs(r.t - nowMs) < Math.abs(b.t - nowMs))) b = r;
+    const o = rows.filter(r => obs(r) && r[k] != null && nowMs - r.t <= 5400000).pop(); return (o || b || {})[k] ?? null; };
+  const tags = [["tops", at("top"), ink], ["bases", at("base"), ink], ["freezing", at("fzl"), blue]]
+    .filter(t => t[1] != null).map(t => [t[0], cloudY(t[1], T, Hp) - 4, t[2]]).sort((a, b) => a[1] - b[1]);
+  for (let i = 1; i < tags.length; i++) tags[i][1] = Math.max(tags[i][1], tags[i - 1][1] + 11);
+  let names = "";
+  for (const [lbl, y, c2] of tags)
+    names += `<text x="${(x(nowMs) + 5).toFixed(1)}" y="${Math.min(y, H - B - 10).toFixed(1)}" font-size="10.5" font-weight="700" fill="${c2}" ${halo}>${lbl}</text>`;
   let axis = "";
   for (const ft of [1000, 5000, 10000, 20000, 30000]) {
     const y = cloudY(ft, T, Hp);
     axis += `<line x1="${L}" y1="${y.toFixed(1)}" x2="${W - R}" y2="${y.toFixed(1)}" stroke="${muted}" stroke-width=".6" opacity=".45"/>`
-      + `<text x="${L + 2}" y="${(y - 3).toFixed(1)}" font-size="10" fill="${muted}">${ftK(ft)}</text>`;   // inside: a tap at the left edge still reads
+      + `<text x="${L + 2}" y="${(y - 3).toFixed(1)}" font-size="10" fill="${muted}">${ftK(ft)}${ft === 30000 ? " ft" : ""}</text>`;   // inside: a tap at the left edge still reads
   }
   for (const [k, [lo, hi]] of Object.entries(bands))
     axis += `<text x="${W - R - 3}" y="${((cloudY(lo, T, Hp) + cloudY(Math.min(hi, 32000), T, Hp)) / 2 + 4).toFixed(1)}" font-size="10" text-anchor="end" fill="${muted}">${k}</text>`;
-  axis += `<text x="${L}" y="${T - 6}" font-size="10.5" fill="${muted}">observed · ft above sea level</text>`
-    + `<text x="${W - R}" y="${T - 6}" font-size="10.5" text-anchor="end" fill="${muted}">HRRR forecast</text>`;
+  // The legend: every mark on the chart, in the chart's own ink.
+  let lx = L, key = "";
+  const item = (mark, lbl) => { key += `<g transform="translate(${lx},0)">${mark}<text x="20" y="13" font-size="10.5" fill="${ink}">${lbl}</text></g>`; lx += 26 + lbl.length * 5.6; };
+  item(`<line x1="0" y1="9" x2="16" y2="9" stroke="${ink}" stroke-width="2"/>`, "tops");
+  item(`<line x1="0" y1="9" x2="16" y2="9" stroke="${ink}" stroke-width="2" stroke-dasharray="5 3"/>`, "lowest base");
+  item(`<line x1="1" y1="9" x2="16" y2="9" stroke="${blue}" stroke-width="2" stroke-linecap="round" stroke-dasharray="0.1 4"/>`, "freezing level");
+  item(`<rect x="0" y="4" width="16" height="10" fill="${fill}" opacity=".7"/>`, "cloud cover");
+  item(`<rect x="0" y="6" width="16" height="6" rx="1.5" fill="${blue}"/>`, "rain/snow");
+  axis += key
+    + `<text x="${L}" y="${T - 5}" font-size="10.5" fill="${muted}">observed</text>`
+    + `<text x="${W - R}" y="${T - 5}" font-size="10.5" text-anchor="end" fill="${muted}">HRRR forecast</text>`;
   let ticks = "";
   for (let t = Math.ceil(t0 / 3600000) * 3600000; t <= t1; t += 3600000) {
     const h = +fmt(t, { hour: "numeric", hour12: false });
@@ -1592,13 +1657,15 @@ function renderCloudChart(c, nowMs) {
   }
   ticks += `<text x="${x(nowMs).toFixed(1)}" y="${H - 6}" font-size="11" font-weight="700" text-anchor="middle" fill="${accent}">now</text>`;
   const nowMark = `<line x1="${x(nowMs).toFixed(1)}" y1="${T}" x2="${x(nowMs).toFixed(1)}" y2="${(H - B).toFixed(1)}" stroke="${accent}" stroke-width="2"/>`;
-  node.innerHTML = `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">${axis}${g}${ticks}${nowMark}</svg>`;
+  node.innerHTML = `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">${axis}${g}${nowMark}${names}${ticks}</svg>`;
   const near = t => { let b = null; for (const r of rows) if (Math.abs(r.t - t) <= 1800000 && (!b || Math.abs(r.t - t) < Math.abs(b.t - t))) b = r; return b; };
   const pct = k => t => { const r = near(t); return r && r[k] != null ? `${k} ${Math.round(r[k])}%` : ""; };
-  chartReadout({ W, H, L, R, T, B, t0, t1, nowMs, rows: [
+  const ht = (k, w) => t => { const r = near(t); return r && r[k] != null ? `${w} ${ftK(r[k])} ft` : ""; };
+  chartReadout({ W, H, L, R, T, B, t0, t1, nowMs, wrap: 3, rows: [
     { text: pct("low") }, { text: pct("mid") }, { text: pct("high") },
-    { text: t => { const r = near(t); return r && r.src === "obs" && r.base != null ? `base ${ftK(r.base)} ft` : ""; } },
-    { text: t => { const r = near(t); return r && r.src === "obs" && r.top != null ? `top ${ftK(r.top)} ft` : ""; } },
+    { text: ht("base", "base") }, { text: ht("top", "top") }, { text: ht("fzl", "freezing") },
+    { text: t => { const r = near(t); if (!r || !r.wx) return ""; const w = WX_WORD[r.wx] || r.wx;
+        return r.src === "obs" ? (r.wxn ? `${w} at ${r.wxn[0]} of ${r.wxn[1]}` : w) : `${w} ${(r.mmh || 0).toFixed(1)} mm/h`; } },
     { text: t => { const r = near(t); return r ? (r.src === "hrrr" ? "HRRR" : "observed") : "no data"; } }] });
 }
 
@@ -1609,8 +1676,10 @@ async function renderClouds(nowMs) {
   el("line", `<b>${esc(c.headline)}</b>`);
   el("line2", esc(c.sub || ""));
   const layers = c.layers || [];
-  el("hero", `<div class="clHead">Overhead now</div><div class="clBody"><div class="clCol">${cloudColumnSvg(layers)}</div>`
-    + `<div class="clList">${layers.length ? layers.map((L, i) => cloudLayerHtml(L, layers.slice(0, i + 1).filter(x => x.overhead).length)).join("") : "<div><b>Clear</b></div>"}</div></div>`);
+  const fz = c.freezing && c.freezing.ft != null ? `<span>freezing level ${ftWords(c.freezing.ft)}</span>` : "";
+  const fall = c.falling ? `<div class="clFall${c.falling.kind ? "" : " dry"}">${esc(c.falling.text)}</div>` : "";
+  el("hero", `<div class="clHead">Overhead now${fz}</div><div class="clBody"><div class="clCol">${cloudColumnSvg(layers)}</div>`
+    + `<div class="clList${layers.filter(x => x.overhead).length >= 3 ? " tight" : ""}">${layers.length ? layers.map((L, i) => cloudLayerHtml(L, layers.slice(0, i + 1).filter(x => x.overhead).length, layers.filter(x => x.overhead).length >= 3)).join("") : "<div><b>Clear</b></div>"}${fall}</div></div>`);
   renderCloudChart(c, nowMs);
   const s = c.sources || {}, when = u => u ? hhmm(Date.parse(u)) : null;
   const src = [s.satellite_utc ? `GOES-18 ${when(s.satellite_utc)}` : "no satellite",
