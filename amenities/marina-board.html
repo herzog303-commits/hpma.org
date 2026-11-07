@@ -1063,7 +1063,7 @@ function renderWeatherSimple({ wx, met, alerts, nowMs, nowcast, wxCorrected }) {
       const label = d => fmt(Date.parse(d.date + "T19:00:00Z"), { weekday: "short" });
       node.innerHTML = `<div><span><b>Today</b> ${today.hi.toFixed(0)}°/${today.lo.toFixed(0)}°</span><span class="t">${dayRight(today)}</span></div>`
         + days.map(d => `<div><span><b>${label(d)}</b> ${d.high_f.toFixed(0)}°/${d.low_f.toFixed(0)}°</span><span class="t">${right(d)}</span></div>`).join("")
-        + `<div class="exp"><span>Next 3 days: ${o.blend === "seven-model blend" ? "seven-model blend" : "four-model blend"}, experimental · % = rain chance${days.some(d => d.rain_amount) ? ' · " = likely total' : ""}</span></div>`;
+        + `<div class="exp"><span>Next 3 days: ${o.blend === "seven-model blend" ? "seven-model blend" : "four-model blend"}, experimental · % = rain chance${days.some(d => d.rain_amount) ? ' · " = likely total' : ""} · data: ECMWF, NOAA, DWD &amp; others via Open-Meteo.com, CC BY 4.0</span></div>`;
     } catch (e) { /* no outlook: the default list stays */ }
   })();
   // Is the mountain out? rainier_pair.py's call from an airport camera that
