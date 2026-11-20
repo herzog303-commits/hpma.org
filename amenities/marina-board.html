@@ -181,6 +181,7 @@ const CONFIG = {
   FIRE_URL: "fire.json",
   BURNOFF_URL: "burnoff.json",     // burnoff.py: whether this morning's deck clears
   OUTLOOK_URL: "outlook.json",     // outlook.py: tomorrow + 2 days from the corrected model blend (experimental)
+  SHORT_RANGE_URL: "short_range.json", // short_range.py: the next 24 h of temperature, re-forecast hourly (used while < 2 h old)
   CLOUDS_URL: "clouds.json",       // cloud_layers.py: the cloud column, airfield bases + satellite tops (experimental)
   RAINIER_URL: "rainier.json",     // is the mountain out: a public airport camera's last frames, as a yes/maybe (experimental)
        // fire.py: the 7pm-2am beach-fire outlook at the Point (easter egg view)
@@ -591,6 +592,50 @@ function applyBias(wx, bias) {
     if (wx.current.feelsF != null) wx.current.feelsF -= r0;
   }
   return { wx, corrected: true };
+}
+
+/* THE 24-HOUR TEMPERATURE RE-FORECAST (study repo short_range.py, issue #23).
+   Every hour the newest model runs, bias-corrected and nudged by the cove's miss
+   right now. Live, on ~1,075 shared hours (2026-11), it beat this page's own
+   correction (tempfix + carry-forward, above) by 0.40 / 0.47 / 0.58 F at
+   1 / 2 / 3 h, ranges excluding zero. So for the hours it covers it REPLACES
+   the corrected hourly temperature, and a day's high/low follows it when the
+   extreme falls in its window; outside the window the page is as it was. A
+   file older than SR_MAX_AGE_MIN, or none, changes nothing. Temperature only:
+   its wind is scored on a drifting anemometer and its rain loses to NWS.
+   Returns true when it applied. Top-level for smoke_board.py. */
+const SR_MAX_AGE_MIN = 120;
+function applyShortRange(wx, sr, nowMs) {
+  if (!wx || !wx.hourly || !sr || !Array.isArray(sr.hours) || !sr.issued_utc) return false;
+  const age = nowMs - Date.parse(sr.issued_utc);
+  if (!(age >= -10 * 60000 && age <= SR_MAX_AGE_MIN * 60000)) return false;
+  const by = new Map(sr.hours.filter(h => h.temp_f != null).map(h => [Date.parse(h.t), h.temp_f]));
+  if (!by.size) return false;
+  const dayKey = ms => fmt(ms, { day: "numeric", month: "numeric" });
+  // which rows held each day's extremes BEFORE the overlay
+  const before = {};
+  for (const h of wx.hourly) {
+    if (h.tempF == null) continue;
+    const k = dayKey(h.t), b = before[k] || (before[k] = { hi: h, lo: h, n: 0 });
+    b.n++;
+    if (h.tempF > b.hi.tempF) b.hi = h;
+    if (h.tempF < b.lo.tempF) b.lo = h;
+  }
+  let n = 0;
+  for (const h of wx.hourly) if (by.has(h.t)) { h.tempF = by.get(h.t); h.sr = true; n++; }
+  if (!n) return false;
+  for (const d of wx.daily || []) {
+    const k = dayKey(d.t + 12 * 3600000), b = before[k];
+    const rows = wx.hourly.filter(h => dayKey(h.t) === k && h.tempF != null);
+    const srs = rows.filter(h => h.sr).map(h => h.tempF);
+    if (!srs.length || !b || b.n < 4) continue;
+    const all = rows.map(h => h.tempF);
+    // extreme inside the window: the day's value is the overlaid series' own;
+    // outside it: keep the corrected value, unless the window goes beyond it
+    d.hi = b.hi.sr ? Math.max(...all) : Math.max(d.hi, ...srs);
+    d.lo = b.lo.sr ? Math.min(...all) : Math.min(d.lo, ...srs);
+  }
+  return true;
 }
 
 async function fetchOpenMeteo(lat, lon) {
@@ -1180,7 +1225,7 @@ function renderWeatherSimple({ wx, met, alerts, nowMs, nowcast, wxCorrected }) {
   const windSpan = marinaWindSpan(nowcast && nowcast.wind, wx.current, wxCorrected);
   const waterSpan = met.waterF != null ? `<span>Water ${met.waterF.toFixed(0)}° (Tacoma)</span>` : "";
   // Say when the forecast has been de-biased, and equally when it has not.
-  const calSpan = `<span class="dim">${wxCorrected ? "site-corrected" : "raw model"}</span>`;
+  const calSpan = `<span class="dim">${wxCorrected ? (wx.shortRange ? "site-corrected · 24h re-forecast" : "site-corrected") : "raw model"}</span>`;
   el("strip", [windSpan, waterSpan, calSpan].filter(Boolean).join(""));
 }
 // Temperature curve up top, rain-chance (%) as a quiet band along the base. Night blocks separate the days.
@@ -1745,6 +1790,8 @@ async function main() {
     // Demo data has the same shape, so running it through here makes ?demo a
     // real rehearsal and makes smoke_board.py able to fail.
     if (view === "weather" && wx) ({ wx, corrected: wxCorrected } = applyBias(wx, await fetchBias()));
+    if (view === "weather" && wx && CONFIG.SHORT_RANGE_URL)
+      wx.shortRange = applyShortRange(wx, await fetch(CONFIG.SHORT_RANGE_URL).then(x => x.json()).catch(() => null), nowMs);
     let nowcast = null;   // weather view renders it; tides view uses only generated_utc
     if (!demo && CONFIG.NOWCAST_URL)
       nowcast = await fetch(CONFIG.NOWCAST_URL).then(x => x.json()).catch(() => null);
