@@ -966,7 +966,8 @@ function sunDown(ms) {
 }
 /* RAIN LOOKOUTS (study repo lookout.py): two Shelton-side stations that, in
    S/SW/W flow, see rain ~15-20 min before the cove (backtest 2026-10-04: first
-   at 24 of 27 and 21 of 28 arrivals, ~2/3 followed by cove rain within 90 min).
+   at 24 of 27 and 21 of 28 arrivals, ~2/3 followed by cove rain within 90 min;
+   live it is ~1/3, so the phrase says so).
    nowcast.json carries `lookout` (weather view) and fire.json rain.lookout (fire
    view) in slightly different shapes; both reach here. They are home
    stations, so the page names the place they stand in and a direction, never
@@ -974,8 +975,10 @@ function sunDown(ms) {
 function lookoutPhrase(lk) {
   if (!lk) return "";
   const from = lk.from_dir || lk.from || "";
-  // "may": about two in three of these reach the cove (lookout backtest)
-  const eta = lk.eta_min != null ? `, may reach us in ~${lk.eta_min} min` : "";
+  // About one in three of these reach the cove: 10 of 30 live firings (0.33,
+  // 90% range 0.24-0.47), 2026-10-17..11-16 -- not the backtest's two in three
+  // (study repo TESTS.md T13, issue #30). Say what is true.
+  const eta = `, reaches us about 1 time in 3${lk.eta_min != null ? ` (~${lk.eta_min} min)` : ""}`;
   const at = lk.place ? ` at ${esc(lk.place)},` : "";
   return `rain${at} upwind${from ? " to the " + esc(from) : ""}${eta}`;
 }
