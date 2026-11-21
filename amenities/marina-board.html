@@ -601,10 +601,13 @@ function applyBias(wx, bias) {
    1 / 2 / 3 h, ranges excluding zero. So for the hours it covers it REPLACES
    the corrected hourly temperature, and a day's high/low follows it when the
    extreme falls in its window; outside the window the page is as it was. A
-   file older than SR_MAX_AGE_MIN, or none, changes nothing. Temperature only:
+   file older than SR_MAX_AGE_MIN, or none, changes nothing. Where the window
+   ends, its last hour's difference from the corrected curve fades out over the
+   next SR_BLEND_H hours, so the line does not step 1-2 F at the handover
+   (2026-11-20, Dave). Temperature only:
    its wind is scored on a drifting anemometer and its rain loses to NWS.
    Returns true when it applied. Top-level for smoke_board.py. */
-const SR_MAX_AGE_MIN = 120;
+const SR_MAX_AGE_MIN = 120, SR_BLEND_H = 6;
 function applyShortRange(wx, sr, nowMs) {
   if (!wx || !wx.hourly || !sr || !Array.isArray(sr.hours) || !sr.issued_utc) return false;
   const age = nowMs - Date.parse(sr.issued_utc);
@@ -616,24 +619,42 @@ function applyShortRange(wx, sr, nowMs) {
   const before = {};
   for (const h of wx.hourly) {
     if (h.tempF == null) continue;
-    const k = dayKey(h.t), b = before[k] || (before[k] = { hi: h, lo: h, n: 0 });
+    const k = dayKey(h.t), b = before[k] || (before[k] = { hi: h, lo: h, hiF: h.tempF, loF: h.tempF, n: 0 });
     b.n++;
-    if (h.tempF > b.hi.tempF) b.hi = h;
-    if (h.tempF < b.lo.tempF) b.lo = h;
+    if (h.tempF > b.hiF) { b.hi = h; b.hiF = h.tempF; }
+    if (h.tempF < b.loF) { b.lo = h; b.loF = h.tempF; }
   }
-  let n = 0;
-  for (const h of wx.hourly) if (by.has(h.t)) { h.tempF = by.get(h.t); h.sr = true; n++; }
+  let n = 0, lastT = -Infinity, seam = null;
+  for (const h of wx.hourly) if (by.has(h.t)) {
+    if (h.t > lastT) { lastT = h.t; seam = h.tempF == null ? null : by.get(h.t) - h.tempF; }
+    h.tempF = by.get(h.t); h.sr = true; n++;
+  }
   if (!n) return false;
+  // the handover: hour i after the window keeps (1 - i/(SR_BLEND_H+1)) of the
+  // window's last difference, so the two curves meet without a step
+  if (seam != null) for (const h of wx.hourly) {
+    const i = (h.t - lastT) / 3600000;
+    if (h.tempF == null || h.sr || !(i > 0 && i <= SR_BLEND_H)) continue;
+    h.tempF = Math.round((h.tempF + seam * (1 - i / (SR_BLEND_H + 1))) * 10) / 10;
+    h.sr = true;
+  }
   for (const d of wx.daily || []) {
     const k = dayKey(d.t + 12 * 3600000), b = before[k];
     const rows = wx.hourly.filter(h => dayKey(h.t) === k && h.tempF != null);
     const srs = rows.filter(h => h.sr).map(h => h.tempF);
     if (!srs.length || !b || b.n < 4) continue;
     const all = rows.map(h => h.tempF);
+    // TODAY IS ONLY PARTLY ON THE CHART (past_hours: 6), so this morning's low
+    // can sit before the first row. If the day is partial and its daily value
+    // is beyond anything on the chart, the extreme was in those hidden hours:
+    // keep it. Without this, at 7pm on 2026-11-20 "Today" read 42/39 and lost
+    // the morning's 33.
+    const full = rows.length >= 23;
+    const hiHidden = !full && b.hiF < d.hi - 0.5, loHidden = !full && b.loF > d.lo + 0.5;
     // extreme inside the window: the day's value is the overlaid series' own;
-    // outside it: keep the corrected value, unless the window goes beyond it
-    d.hi = b.hi.sr ? Math.max(...all) : Math.max(d.hi, ...srs);
-    d.lo = b.lo.sr ? Math.min(...all) : Math.min(d.lo, ...srs);
+    // outside it (or hidden): keep the corrected value, unless the window goes beyond it
+    d.hi = b.hi.sr && !hiHidden ? Math.max(...all) : Math.max(d.hi, ...srs);
+    d.lo = b.lo.sr && !loHidden ? Math.min(...all) : Math.min(d.lo, ...srs);
   }
   return true;
 }
