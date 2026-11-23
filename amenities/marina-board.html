@@ -980,6 +980,17 @@ const NC_BLOCKS = ["▁", "▂", "▃", "▄", "▅", "▆", "▇", "█"];
 const ncWord = r => r >= 0.45 ? "rain likely" : r >= 0.27 ? "showers possible" : "dry";
 // The 1h + 1-4h projection as one line: a 3-bucket sparkline (0-30, 30-90, 90-240 min),
 // the next-hour and 1-4h calls, the driving regime, and confidence. Text-only for e-ink.
+// The 3-hour chance the cove stays clear (satellite-trained, #32; shipped
+// before confirmation, TESTS T19). Words in three bands, never a percentage:
+// live, the model understates staying clear below ~0.3 (0.15 forecast, 0.32
+// seen), and the bands held 10-13..11-23 (likely clear: 0.79-0.89 stayed
+// clear; may cloud: 0.49-0.72; cloud likely: 0.27-0.36).
+function clear3Word(sk) {
+  const at = Date.parse(sk && sk.clear_3h_valid), p = sk && sk.clear_3h;
+  if (p == null || !Number.isFinite(at)) return "";
+  const t = fmt(Math.round(at / 3600000) * 3600000, { hour: "numeric" }).replace(/\s/g, "").toLowerCase();
+  return p >= 0.7 ? `likely still clear at ${t}` : p >= 0.3 ? `may cloud over by ${t}` : `cloud likely by ${t}`;
+}
 function nowcastLine(nc) {
   const tl = nc.timeline || [];
   if (tl.length < 3) return "";
@@ -1012,12 +1023,15 @@ function nowcastLine(nc) {
   // a night "clear, none upwind", Shelton reported a ceiling within 6 h 44% of
   // the time (2026-09-16..10-16; 16% by day).
   const night = sunDown(Date.parse(nc.generated_utc) || Date.now());
+  // It covers cloud that forms in place, so it replaces the overnight caveat.
+  const word3 = clear3Word(sk);
   if (sk && sk.clear_now) {
     sky = sk.lead_h == null
-      ? (night ? ` · <b>clear</b> now, none upwind · low cloud can still form overnight`
+      ? (night ? ` · <b>clear</b> now, none upwind · ${word3 || "low cloud can still form overnight"}`
                : ` · <b>clear</b>, no cloud within 100 mi upwind`)
       : sk.lead_h >= 6 ? ` · <b>clear</b>, next cloud ~${Math.round(sk.lead_h)}h out`
       : ` · clear now, cloud ~${sk.lead_h.toFixed(1)}h out (${sk.next_cloud_mi} mi)`;
+    if (word3 && !(sk.lead_h == null && night)) sky += ` · ${word3}`;
   } else if (sk && sk.cloud_pct != null) {
     sky = ` · sky <b>${Math.round(sk.cloud_pct)}%</b> cloud`;
   }
