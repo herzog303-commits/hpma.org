@@ -991,6 +991,25 @@ function clear3Word(sk) {
   const t = fmt(Math.round(at / 3600000) * 3600000, { hour: "numeric" }).replace(/\s/g, "").toLowerCase();
   return p >= 0.7 ? `likely still clear at ${t}` : p >= 0.3 ? `may cloud over by ${t}` : `cloud likely by ${t}`;
 }
+// HOW THIS COMPARES WITH NWS HERE (outlook.json vs_nws, from outlook_retro and
+// short_range_score; 2026-11-23, Dave). Average miss against the cove's own
+// stations; a side is named only when every lead's 90% range agrees, else "tie".
+// Wind is left out on purpose: the dock gauge reads low from an obstruction
+// (#48) and only our forecast is corrected to it. Unconfirmed until T5/T6.
+function vsNwsLine(v) {
+  if (!v || !Array.isArray(v.lines) || !v.lines.length) return "";
+  const e = t => String(t == null ? "" : t).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+  const miss = l => l.ours != null && l.nws != null ? ` (off ${l.ours}${e(l.unit)} vs ${l.nws}${e(l.unit)})` : "";
+  const ours = v.lines.filter(l => l.verdict === "ours").map(l => `${e(l.what)}${miss(l)}`);
+  const nws = v.lines.filter(l => l.verdict === "nws").map(l => `${e(l.what)}${miss(l)}`);
+  const tie = v.lines.filter(l => l.verdict === "tie").map(l => e(l.what));
+  const parts = [];
+  if (ours.length) parts.push(`closer than NWS on ${ours.join(" and ")}`);
+  if (tie.length) parts.push(`even on ${tie.join(" and ")}`);
+  if (nws.length) parts.push(`NWS closer on ${nws.join(" and ")}`);
+  if (v.wind) parts.push("wind not compared yet");
+  return `vs NWS here, ${Number(v.days) || "?"} days${v.confirmed ? "" : ", still being confirmed"}: ${parts.join(" · ")}`;
+}
 function nowcastLine(nc) {
   const tl = nc.timeline || [];
   if (tl.length < 3) return "";
@@ -1151,7 +1170,8 @@ function renderWeatherSimple({ wx, met, alerts, nowMs, nowcast, wxCorrected }) {
       const label = d => fmt(Date.parse(d.date + "T19:00:00Z"), { weekday: "short" });
       node.innerHTML = `<div><span><b>Today</b> ${today.hi.toFixed(0)}°/${today.lo.toFixed(0)}°</span><span class="t">${dayRight(today)}</span></div>`
         + days.map(d => `<div><span><b>${label(d)}</b> ${d.high_f.toFixed(0)}°/${d.low_f.toFixed(0)}°</span><span class="t">${right(d)}</span></div>`).join("")
-        + `<div class="exp"><span>Next 3 days: ${o.blend === "seven-model blend" ? "seven-model blend" : "four-model blend"}, experimental · % = rain chance${days.some(d => d.rain_amount) ? ' · " = likely total' : ""} · data: ECMWF, NOAA, DWD &amp; others via Open-Meteo.com, CC BY 4.0</span></div>`;
+        + `<div class="exp"><span>Next 3 days: ${o.blend === "seven-model blend" ? "seven-model blend" : "four-model blend"}, experimental · % = rain chance${days.some(d => d.rain_amount) ? ' · " = likely total' : ""} · data: ECMWF, NOAA, DWD &amp; others via Open-Meteo.com, CC BY 4.0</span></div>`
+        + (vsNwsLine(o.vs_nws) ? `<div class="exp"><span>${vsNwsLine(o.vs_nws)}</span></div>` : "");
     } catch (e) { /* no outlook: the default list stays */ }
   })();
   // Is the mountain out? rainier_pair.py's call from an airport camera that
