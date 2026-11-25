@@ -996,6 +996,27 @@ function clear3Word(sk) {
 // stations; a side is named only when every lead's 90% range agrees, else "tie".
 // Wind is left out on purpose: the dock gauge reads low from an obstruction
 // (#48) and only our forecast is corrected to it. Unconfirmed until T5/T6.
+/* THE OPEN INLET's afternoon wind: NWS's own gridpoint forecast, as outlook.py
+   writes it into outlook.json ("inlet"). Against the Carr Inlet buoy at 10 m
+   NWS gets the afternoon right (12-6 pm: no bias over 178 hours; the morning
+   forecast of the afternoon mean misses by 1.3 kt) and reads ~3 kt light at
+   night, so only the afternoon is shown -- today's until 5 pm, then tomorrow's
+   (study repo TESTS.md T21). Our own wind is the sheltered cove's and runs
+   about half of this. The label comes from the date here, so an outlook.json
+   written at 4:59 pm never says "this afternoon" at 9. Top-level for smoke_board.py. */
+function inletRow(w, nowMs) {
+  if (!w || w.kt == null || !Number.isFinite(+w.kt) || !w.date || !w.issued_utc) return "";
+  const age = (nowMs - Date.parse(w.issued_utc)) / 3600000;
+  if (!(age >= -1 && age <= 12)) return "";
+  const ymd = ms => new Intl.DateTimeFormat("en-CA", { timeZone: CONFIG.TZ }).format(new Date(ms));
+  const hr = Number(new Intl.DateTimeFormat("en-US", { timeZone: CONFIG.TZ, hour: "numeric", hourCycle: "h23" }).format(new Date(nowMs)));
+  const when = w.date === ymd(nowMs) && hr < 18 ? "this afternoon"
+    : w.date === ymd(nowMs + 86400000) ? "tomorrow afternoon" : "";
+  if (!when) return "";
+  const dir = w.dir != null && Number.isFinite(+w.dir) ? " " + compass(+w.dir) : "";
+  const gust = w.gust_kt != null && Number.isFinite(+w.gust_kt) && +w.gust_kt >= +w.kt + 3 ? `, gusts ${Number(w.gust_kt).toFixed(0)}` : "";
+  return `<div><span><b>Open inlet</b> ${when}</span><span class="t">${Number(w.kt).toFixed(0)} kt${dir}${gust} · NWS</span></div>`;
+}
 function vsNwsLine(v) {
   if (!v || !Array.isArray(v.lines) || !v.lines.length) return "";
   const e = t => String(t == null ? "" : t).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
@@ -1093,7 +1114,12 @@ function lookoutPhrase(lk) {
    "near-calm" switch keyed on model cloud. Uncorrected, the number is the
    model's and says so. The exposed (Dougall Point) figure is still the
    shelter-factor estimate and keeps "est.". Top-level so smoke_board.py can
-   unit-test it: ?demo never loads nowcast.json. */
+   unit-test it: ?demo never loads nowcast.json.
+   LABELLED "Cove" SINCE 2026-11-24, not "Marina". The gauge it is fitted to is
+   a sheltered shore anemometer, and out on the open water -- the Carr Inlet
+   buoy, scaled to 10 m -- the wind runs about twice this, hour by hour (study
+   repo analysis/overwater_compare.py, #48). "Marina" read as the wind a boater
+   meets; the open-inlet figure is inletRow's, below. */
 function marinaWindSpan(w, cur, corrected) {
   if (!cur || cur.kt == null) return "";
   const dir = cur.dir != null ? " " + compass(cur.dir) : "";
@@ -1101,7 +1127,7 @@ function marinaWindSpan(w, cur, corrected) {
   const tag = corrected ? "" : ` <span style="opacity:.6">model</span>`;
   const ex = w && w.exposed, windy = ex && (ex.kt >= 12 || ex.gust_kt >= 15);
   const exBit = windy ? ` <span style="opacity:.75">· exposed <b>${ex.kt.toFixed(0)}</b> gusting <b>${ex.gust_kt.toFixed(0)}</b>${est}</span>` : "";
-  return `<span>Marina <b>${cur.kt.toFixed(0)} kt</b>${tag}${dir}${exBit}</span>`;
+  return `<span>Cove <b>${cur.kt.toFixed(0)} kt</b>${tag}${dir}${exBit}</span>`;
 }
 /* FEELS-LIKE from the numbers on this page: NWS wind chill from the corrected
    temperature and wind, at or below 50 F with wind over 3 mph; otherwise null
@@ -1159,9 +1185,16 @@ function renderWeatherSimple({ wx, met, alerts, nowMs, nowcast, wxCorrected }) {
       const age = (nowMs - Date.parse(o.issued_utc)) / 3600000;
       const ymd = ms => new Intl.DateTimeFormat("en-CA", { timeZone: CONFIG.TZ }).format(new Date(ms));
       const days = (o.days || []).filter(d => d.high_f != null && d.low_f != null);
-      if (!(age >= 0 && age <= 8) || !days.length || days[0].date !== ymd(nowMs + 86400000)) return;
       const node = document.getElementById("dayList");
       if (!node) return;
+      // The open inlet's afternoon wind (NWS) rides on its own freshness, so a
+      // card that is out of step does not take it down too.
+      const inlet = inletRow(o.inlet, nowMs);
+      const inletNote = inlet ? `<div class="exp"><span>Open inlet: NWS's afternoon wind, which fits open water here; the cove's sheltered wind (bottom) runs about half</span></div>` : "";
+      if (!(age >= 0 && age <= 8) || !days.length || days[0].date !== ymd(nowMs + 86400000)) {
+        if (inlet) node.insertAdjacentHTML("beforeend", inlet + inletNote);
+        return;
+      }
       // The row is 236 px: with an amount the chance drops its "rain" ("93% · 0.7"
       // · gale-force", the widest, fits with ~13 px spare); the footer keys both.
       const right = d => [d.rain_chance != null && d.rain_chance >= 0.2
@@ -1170,7 +1203,9 @@ function renderWeatherSimple({ wx, met, alerts, nowMs, nowcast, wxCorrected }) {
       const label = d => fmt(Date.parse(d.date + "T19:00:00Z"), { weekday: "short" });
       node.innerHTML = `<div><span><b>Today</b> ${today.hi.toFixed(0)}°/${today.lo.toFixed(0)}°</span><span class="t">${dayRight(today)}</span></div>`
         + days.map(d => `<div><span><b>${label(d)}</b> ${d.high_f.toFixed(0)}°/${d.low_f.toFixed(0)}°</span><span class="t">${right(d)}</span></div>`).join("")
+        + inlet
         + `<div class="exp"><span>Next 3 days: ${o.blend === "seven-model blend" ? "seven-model blend" : "four-model blend"}, experimental · % = rain chance${days.some(d => d.rain_amount) ? ' · " = likely total' : ""} · data: ECMWF, NOAA, DWD &amp; others via Open-Meteo.com, CC BY 4.0</span></div>`
+        + inletNote
         + (vsNwsLine(o.vs_nws) ? `<div class="exp"><span>${vsNwsLine(o.vs_nws)}</span></div>` : "");
     } catch (e) { /* no outlook: the default list stays */ }
   })();
